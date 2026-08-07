@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>P2000 · Universal Monitor</title>
+<title>P2000 · Universele Monitor</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -249,6 +249,7 @@
     border-radius:12px;max-width:90vw;max-height:90vh;
     overflow-y:auto;padding:2rem;
     box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    position:relative;
   }
   .modal h2{
     font-size:1.8rem;margin-bottom:1.5rem;color:#eaf1fa;
@@ -269,11 +270,12 @@
     margin-bottom:1rem;
   }
   .modal-section textarea{
-    min-height:100px;resize:vertical;
+    min-height:80px;resize:vertical;
   }
   .voertuigen-list{
     background:#0a0f1a;border:1px solid #20304a;
     border-radius:6px;padding:1rem;margin-bottom:1rem;
+    max-height:200px;overflow-y:auto;
   }
   .voertuigen-item{
     display:flex;justify-content:space-between;align-items:center;
@@ -298,12 +300,6 @@
     background:#20304a;color:#eaf1fa;
   }
   .btn-secondary:hover{background:#2a3a5a}
-  .btn-danger{
-    background:#ff3b30;
-  }
-  .btn-danger:hover{
-    background:#ff5a52;
-  }
 
   .modal-close{
     position:absolute;top:1rem;right:1rem;
@@ -327,12 +323,12 @@
 
 <div id="screen">
   <div class="topbar">
-    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" onclick="openConfig()">
+    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" onclick="openConfig()" style="cursor:pointer">
       <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
     </svg>
     <div class="post-id">
-      <div class="name" id="postName">-</div>
-      <div class="sub">Post</div>
+      <div class="name" id="postName">Post</div>
+      <div class="sub">Monitor</div>
     </div>
     <div class="status">
       <span class="dot"></span>
@@ -385,142 +381,84 @@
 <div class="modal-overlay" id="configModal">
   <div class="modal">
     <button class="modal-close" onclick="closeConfig()">✕</button>
-    <h2>⚙️ CONFIGURATIE</h2>
+    <h2>⚙️ INSTELLINGEN</h2>
 
     <!-- POSTNAAM & COÖRDINATEN -->
     <div class="modal-section">
       <label>POSTNAAM</label>
       <input type="text" id="postNameInput" placeholder="bijv. Post Almere Veluwsekant">
-      <label>COÖRDINATEN (KAART)</label>
+      <label>COÖRDINATEN (LAT, LON)</label>
       <input type="text" id="coordsInput" placeholder="bijv. 52.356938, 5.247188">
     </div>
 
     <!-- NACHTMODUS -->
     <div class="modal-section">
-      <label>NACHTMODUS INSCHAKELEN</label>
-      <input type="checkbox" id="nachtModeToggle"> Nachtmodus aan
+      <label><input type="checkbox" id="nachtModeToggle"> NACHTMODUS ACTIVEREN</label>
       <label style="margin-top:1rem">VAN (uur)</label>
-      <input type="number" id="nachtVan" min="0" max="23" placeholder="bijv. 22">
+      <input type="number" id="nachtVan" min="0" max="23" placeholder="22">
       <label>TOT (uur)</label>
-      <input type="number" id="nachtTot" min="0" max="23" placeholder="bijv. 7">
+      <input type="number" id="nachtTot" min="0" max="23" placeholder="7">
     </div>
 
     <!-- PLOEGEN -->
     <div class="modal-section">
-      <label>PLOEGEN (KOMMA GESCHEIDEN LETTERS)</label>
-      <input type="text" id="poegenInput" placeholder="bijv. A,B,C,D of A,B,C">
-      <small style="color:#8395ad">Welke ploegen worden weergegeven?</small>
+      <label>PLOEGEN (KOMMA GESCHEIDEN)</label>
+      <input type="text" id="poegenInput" placeholder="A,B,C,D">
+      <small style="color:#8395ad">Bijv: A,B,C of A,B,C,D,E</small>
     </div>
 
     <!-- CAPCODES -->
     <div class="modal-section">
-      <label>CAPCODES VAN DE POST (SPATIE OF KOMMA GESCHEIDEN)</label>
-      <textarea id="capcodesInput" placeholder="bijv. 0700140 0700143 254133"></textarea>
+      <label>CAPCODES VAN DE POST (SPATIE/KOMMA GESCHEIDEN)</label>
+      <textarea id="capcodesInput" placeholder="0700140 0700143 254133"></textarea>
     </div>
 
     <!-- VOERTUIGEN -->
     <div class="modal-section">
-      <label>VOERTUIGEN TOEVOEGEN</label>
-      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
-        <input type="text" id="voertuigNummerInput" placeholder="Nummer bijv. 0700140" style="flex:1">
-        <input type="text" id="voertuigNaamInput" placeholder="Naam bijv. TS Hendrik" style="flex:2">
-        <button class="btn" onclick="addVoertuig()">+ ADD</button>
+      <label>VOERTUIGEN CONFIGURATIE</label>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+        <input type="text" id="voertuigNummerInput" placeholder="Nummer" style="flex:1;min-width:150px">
+        <input type="text" id="voertuigNaamInput" placeholder="Naam" style="flex:1.5;min-width:200px">
+        <button class="btn" onclick="addVoertuig()" style="padding:0.75rem 1rem">➕</button>
       </div>
       <div class="voertuigen-list" id="voertuigenList"></div>
     </div>
 
-    <!-- STATISTIEKEN -->
-    <div class="modal-section">
-      <label>STATISTIEKEN BEHEER</label>
-      <button class="btn btn-danger" onclick="resetYearStats()">Reset Jaarstatistieken</button>
-      <button class="btn btn-danger" style="margin-left:0.5rem" onclick="resetDienstStats()">Reset Dienst Counters</button>
-    </div>
-
-    <!-- KNOPPEN -->
-    <div style="display:flex;gap:1rem;margin-top:2rem">
-      <button class="btn" onclick="saveConfig()">💾 OPSLAAN VOOR ALLE SCHERMEN</button>
-      <button class="btn btn-secondary" onclick="resetDefaults()">↻ STANDAARD HERSTELLEN</button>
+    <!-- OPSLAAN -->
+    <div style="display:flex;gap:1rem">
+      <button class="btn" onclick="saveConfig()">💾 OPSLAAN</button>
+      <button class="btn btn-secondary" onclick="resetDefaults()">↻ STANDAARD</button>
     </div>
   </div>
 </div>
 
 <script>
-// ============= CONFIG SYSTEM =============
-let config = {
+// ============= UNIVERSELE CONFIGURATIE =============
+let universalConfig = {
   postName: 'Post Almere',
   coords: [52.356938, 5.247188],
   ploegen: ['A','B','C','D'],
-  capcodes: ['0700140','0700143','254133'],
-  voertuigen: {},
+  capcodes: ['0700140','0700143','254133','254152'],
+  voertuigen: {
+    '0700140': 'Brandweerauto A',
+    '0700143': 'Tankwagen',
+    '254133': 'Ambulance 1',
+    '254152': 'Ambulance 2'
+  },
   nachtMode: false,
   nachtVan: 22,
   nachtTot: 7
 };
 
-async function loadConfig() {
-  try {
-    const r = await fetch('/api/config');
-    if(r.ok) {
-      const d = await r.json();
-      config = {...config, ...d};
-    }
-  } catch(e) {
-    console.log('Config not found, using defaults');
-  }
-  applyConfig();
-}
-
-async function saveConfig() {
-  config.postName = document.getElementById('postNameInput').value || config.postName;
-  
-  const coordsStr = document.getElementById('coordsInput').value;
-  if(coordsStr) {
-    const [lat, lon] = coordsStr.split(',').map(s => parseFloat(s.trim()));
-    if(!isNaN(lat) && !isNaN(lon)) config.coords = [lat, lon];
-  }
-  
-  config.nachtMode = document.getElementById('nachtModeToggle').checked;
-  config.nachtVan = parseInt(document.getElementById('nachtVan').value) || 22;
-  config.nachtTot = parseInt(document.getElementById('nachtTot').value) || 7;
-  
-  const poegenStr = document.getElementById('poegenInput').value;
-  if(poegenStr) config.ploegen = poegenStr.split(',').map(s => s.trim().toUpperCase());
-  
-  const capcodesStr = document.getElementById('capcodesInput').value;
-  if(capcodesStr) {
-    config.capcodes = capcodesStr.split(/[\s,]+/).filter(s => s.trim());
-  }
-  
-  try {
-    await fetch('/api/config', {
-      method: 'POST',
-      headers: {'content-type': 'application/json'},
-      body: JSON.stringify(config)
-    });
-  } catch(e) {
-    console.log('Save failed (offline?)');
-  }
-  
-  applyConfig();
-  closeConfig();
-  alert('Instellingen opgeslagen!');
-}
-
-function applyConfig() {
-  document.getElementById('postName').textContent = config.postName;
-  document.getElementById('postNameInput').value = config.postName;
-  document.getElementById('coordsInput').value = config.coords.join(', ');
-  document.getElementById('nachtModeToggle').checked = config.nachtMode;
-  document.getElementById('nachtVan').value = config.nachtVan;
-  document.getElementById('nachtTot').value = config.nachtTot;
-  document.getElementById('poegenInput').value = config.ploegen.join(',');
-  document.getElementById('capcodesInput').value = config.capcodes.join(' ');
-  
-  updateVoertuigenList();
-  checkNachtMode();
-}
-
 function openConfig() {
+  document.getElementById('postNameInput').value = universalConfig.postName;
+  document.getElementById('coordsInput').value = universalConfig.coords.join(', ');
+  document.getElementById('nachtModeToggle').checked = universalConfig.nachtMode;
+  document.getElementById('nachtVan').value = universalConfig.nachtVan;
+  document.getElementById('nachtTot').value = universalConfig.nachtTot;
+  document.getElementById('poegenInput').value = universalConfig.ploegen.join(',');
+  document.getElementById('capcodesInput').value = universalConfig.capcodes.join(' ');
+  updateVoertuigenList();
   document.getElementById('configModal').classList.add('open');
 }
 
@@ -528,11 +466,44 @@ function closeConfig() {
   document.getElementById('configModal').classList.remove('open');
 }
 
+function saveConfig() {
+  universalConfig.postName = document.getElementById('postNameInput').value || universalConfig.postName;
+  
+  const coordsStr = document.getElementById('coordsInput').value;
+  if(coordsStr) {
+    const [lat, lon] = coordsStr.split(',').map(s => parseFloat(s.trim()));
+    if(!isNaN(lat) && !isNaN(lon)) universalConfig.coords = [lat, lon];
+  }
+  
+  universalConfig.nachtMode = document.getElementById('nachtModeToggle').checked;
+  universalConfig.nachtVan = parseInt(document.getElementById('nachtVan').value) || 22;
+  universalConfig.nachtTot = parseInt(document.getElementById('nachtTot').value) || 7;
+  
+  const poegenStr = document.getElementById('poegenInput').value;
+  if(poegenStr) universalConfig.ploegen = poegenStr.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+  
+  const capcodesStr = document.getElementById('capcodesInput').value;
+  if(capcodesStr) universalConfig.capcodes = capcodesStr.split(/[\s,]+/).filter(s => s.trim());
+  
+  applyConfig();
+  closeConfig();
+  alert('Instellingen opgeslagen!');
+}
+
+function applyConfig() {
+  document.getElementById('postName').textContent = universalConfig.postName;
+  updatePloegen();
+  checkNachtMode();
+  if(window.map) {
+    window.map.setView(universalConfig.coords, 14);
+  }
+}
+
 function addVoertuig() {
   const num = document.getElementById('voertuigNummerInput').value.trim();
   const naam = document.getElementById('voertuigNaamInput').value.trim();
   if(num && naam) {
-    config.voertuigen[num] = naam;
+    universalConfig.voertuigen[num] = naam;
     document.getElementById('voertuigNummerInput').value = '';
     document.getElementById('voertuigNaamInput').value = '';
     updateVoertuigenList();
@@ -540,14 +511,14 @@ function addVoertuig() {
 }
 
 function removeVoertuig(num) {
-  delete config.voertuigen[num];
+  delete universalConfig.voertuigen[num];
   updateVoertuigenList();
 }
 
 function updateVoertuigenList() {
   const list = document.getElementById('voertuigenList');
   list.innerHTML = '';
-  for(const [num, naam] of Object.entries(config.voertuigen)) {
+  for(const [num, naam] of Object.entries(universalConfig.voertuigen)) {
     const div = document.createElement('div');
     div.className = 'voertuigen-item';
     div.innerHTML = `<span>${num} → ${naam}</span><button onclick="removeVoertuig('${num}')">❌</button>`;
@@ -555,39 +526,33 @@ function updateVoertuigenList() {
   }
 }
 
-function resetYearStats() {
-  if(confirm('Jaarstatistieken echt resetten?')) {
-    fetch('/api/reset-year', {method:'POST'});
-  }
-}
-
-function resetDienstStats() {
-  if(confirm('Dienst counters echt resetten?')) {
-    fetch('/api/reset-dienst', {method:'POST'});
-  }
-}
-
 function resetDefaults() {
-  if(confirm('Alles teruggezet naar standaard?')) {
-    config = {
+  if(confirm('Alle instellingen resetten naar standaard?')) {
+    universalConfig = {
       postName: 'Post Almere',
       coords: [52.356938, 5.247188],
       ploegen: ['A','B','C','D'],
-      capcodes: ['0700140','0700143','254133'],
-      voertuigen: {},
+      capcodes: ['0700140','0700143','254133','254152'],
+      voertuigen: {
+        '0700140': 'Brandweerauto A',
+        '0700143': 'Tankwagen',
+        '254133': 'Ambulance 1',
+        '254152': 'Ambulance 2'
+      },
       nachtMode: false,
       nachtVan: 22,
       nachtTot: 7
     };
     applyConfig();
+    closeConfig();
   }
 }
 
-// ============= NACHTMODUS CHECK =============
+// ============= NACHTMODUS =============
 function checkNachtMode() {
   const now = new Date();
   const uur = now.getHours();
-  const actief = config.nachtMode && (uur >= config.nachtVan || uur < config.nachtTot);
+  const actief = universalConfig.nachtMode && (uur >= universalConfig.nachtVan || uur < universalConfig.nachtTot);
   
   if(actief) {
     document.body.classList.add('nacht-mode');
@@ -613,29 +578,29 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ============= VOERTUIGEN DISPLAY =============
-function getVoertuigNaam(capcode) {
-  return config.voertuigen[capcode] || capcode;
-}
-
-// ============= PLOEGEN DISPLAY =============
+// ============= PLOEGEN =============
 function updatePloegen() {
-  const poegenKop = document.getElementById('poegenKop');
-  const poegenRow = document.getElementById('poegenRow');
+  const kop = document.getElementById('poegenKop');
+  const row = document.getElementById('poegenRow');
   
-  if(config.ploegen.length === 0) {
-    poegenKop.innerHTML = '';
-    poegenRow.innerHTML = '';
+  if(!universalConfig.ploegen || universalConfig.ploegen.length === 0) {
+    kop.innerHTML = '';
+    row.innerHTML = '';
     return;
   }
   
-  poegenKop.innerHTML = 'DIENSTEN';
-  poegenRow.innerHTML = config.ploegen.map(p => 
+  kop.innerHTML = 'DIENSTEN';
+  row.innerHTML = universalConfig.ploegen.map(p => 
     `<div class="ploeg-item"><span class="naam">${p}</span>-PLOEG</div>`
   ).join('');
 }
 
-// ============= ALARM DISPLAY =============
+// ============= VOERTUIGEN DISPLAY =============
+function getVoertuigNaam(capcode) {
+  return universalConfig.voertuigen[capcode] || capcode;
+}
+
+// ============= ALARM FUNCTIONS =============
 function showAlarm(type, addr, prio, units, mapData, meldingTekst, kanaal) {
   const screen = document.getElementById('screen');
   screen.classList.add('is-alarm');
@@ -658,7 +623,7 @@ function showAlarm(type, addr, prio, units, mapData, meldingTekst, kanaal) {
   document.getElementById('meldingInfo').innerHTML = meldingTekst || '';
   
   if(window.map) {
-    window.map.setView(config.coords, 14);
+    window.map.setView(universalConfig.coords, 14);
   }
 }
 
@@ -669,22 +634,15 @@ function clearAlarm() {
 // ============= MAP INIT =============
 function initMap() {
   if(document.getElementById('map').innerHTML !== '') return;
-  window.map = L.map('map').setView(config.coords, 14);
+  window.map = L.map('map').setView(universalConfig.coords, 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '© OpenStreetMap'
   }).addTo(window.map);
 }
 
 // ============= STARTUP =============
-loadConfig().then(() => {
-  updatePloegen();
-  initMap();
-});
-
-// Test alarm (remove in production)
-setTimeout(() => {
-  // showAlarm('Brand Woning', 'Voorstraat 42, Almere', 2, '0700140 0700143', 'Test melding');
-}, 2000);
+applyConfig();
+initMap();
 </script>
 </body>
 </html>
