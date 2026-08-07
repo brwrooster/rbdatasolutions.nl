@@ -1,1 +1,690 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2000 · Universal Monitor</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0a0f1a;
+    --panel:#111a2b;
+    --panel-2:#0e1524;
+    --line:#20304a;
+    --text:#eaf1fa;
+    --muted:#8395ad;
+    --brand:#e30613;
+    --prio1:#ff3b30;
+    --prio2:#ffc400;
+    --accent:#3ec1ff;
+    --ok:#37d67a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body.geen-muis, body.geen-muis *{cursor:none !important}
+
+  body.dag{background:#f2f5f8}
+  body.dag #screen{background:#f2f5f8;color:#1a2433}
+  body.dag #screen .topbar{background:#e8edf3;border-bottom-color:#c9d4e0}
+  body.dag #screen .post-id .name{color:#1a2433}
+  body.dag #screen .post-id .sub{color:#5a6b80}
+  body.dag #screen .topbar .status{color:#5a6b80}
+  body.dag #screen .clock{color:#1a2433}
+  body.dag #screen .clock .sec{color:#0b63b8}
+  body.dag #screen .date{color:#5a6b80}
+  body.dag #screen .weather .temp{color:#1a2433}
+  body.dag #screen .weather .cond{color:#1a2433}
+  body.dag #screen .weather .wind{color:#5a6b80}
+  body.dag .task-bar .task{color:#3c4c60}
+  body.dag .task-bar .task::before{background:#0b63b8}
+  body.dag .brand-credit{color:#5a6b80}
+  body.dag .source-credit{color:#7a8798}
+  body.dag .source-credit a{color:#7a8798}
+  
+  body{
+    background:#0a0f1a;
+    color:#eaf1fa;
+    font-family:'Inter',system-ui,sans-serif;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  
+  body.nacht-mode {
+    --bg:#030508;
+    --panel:#0a0f1a;
+    --panel-2:#070a12;
+    --text:#4a5a70;
+  }
+  
+  #screen{
+    position:relative;
+    width:100vw;min-height:100vh;
+    display:flex;flex-direction:column;
+  }
+
+  .topbar{
+    display:flex;align-items:center;gap:.9rem;
+    padding:2.2vh 3vw;
+    border-bottom:1px solid #20304a;
+    flex:0 0 auto;
+    transition:background .4s ease, border-color .4s ease;
+  }
+  .mark{
+    width:4.2vh;height:4.2vh;
+    flex:0 0 auto;cursor:pointer;display:block;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .mark svg{width:100%;height:100%;display:block}
+  .post-id{display:flex;flex-direction:column;line-height:1.05}
+  .post-id .name{
+    font-family:'Oswald',sans-serif;font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;
+    font-size:2.5vh;
+  }
+  .post-id .sub{
+    color:#8395ad;font-size:1.4vh;
+    letter-spacing:.16em;text-transform:uppercase;margin-top:.15rem;
+  }
+  .topbar .status{
+    margin-left:auto;display:flex;align-items:center;gap:.55rem;
+    color:#8395ad;font-size:1.5vh;
+    font-family:'Roboto Mono',monospace;letter-spacing:.04em;
+  }
+  .dot{width:.6rem;height:.6rem;border-radius:50%;background:#37d67a}
+  .rb-logo{height:4.2vh;width:auto;display:block}
+  .wifi-icon{display:block;fill:#37d67a;height:4.2vh;width:4.2vh}
+
+  .idle{
+    flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:flex-start;
+    gap:3vh;padding:11vh 2rem 2rem;
+  }
+  
+  .clock{
+    font-family:'Roboto Mono',monospace;font-weight:500;
+    font-size:20vh;line-height:.9;
+    letter-spacing:.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .clock .sec{color:#3ec1ff}
+  .date{
+    font-family:'Oswald',sans-serif;font-weight:400;
+    text-transform:uppercase;letter-spacing:.22em;
+    color:#8395ad;font-size:2.4vh;
+  }
+  .weather{
+    display:flex;align-items:center;gap:2.2vw;
+    color:#8395ad;flex-wrap:wrap;justify-content:center;
+  }
+  .weather .glyph{font-size:4vh;line-height:1}
+  .weather .temp{
+    font-family:'Roboto Mono',monospace;font-weight:500;color:#eaf1fa;
+    font-size:4vh;line-height:1;
+  }
+  .weather .wx-meta{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+  .weather .cond{font-size:2.2vh;font-weight:500;color:#eaf1fa}
+  .weather .wind{
+    color:#8395ad;font-size:1.7vh;
+    font-family:'Roboto Mono',monospace;letter-spacing:.02em;
+  }
+
+  .stats-row{
+    display:flex;justify-content:center;align-items:flex-start;
+    gap:3.2rem;flex-wrap:wrap;
+  }
+  .stats-row .stat{
+    display:flex;flex-direction:column;align-items:center;
+    min-width:0;text-align:center;
+  }
+  .stats-row .stat-label{
+    color:#5a6b80;font-family:'Roboto Mono',monospace;
+    font-size:1.1vh;letter-spacing:.12em;text-transform:uppercase;
+    margin-bottom:.3rem;
+  }
+  .stats-row .stat-value{
+    color:#8395ad;
+    font-family:'Roboto Mono',monospace;letter-spacing:.02em;
+    font-size:1.7vh;white-space:nowrap;
+  }
+
+  .ploegen-kop{
+    text-align:center;color:#4a5a70;
+    font-family:'Roboto Mono',monospace;font-size:1.05vh;
+    letter-spacing:.14em;text-transform:uppercase;margin-top:.9rem;
+  }
+  .ploegen-row{
+    display:flex;justify-content:center;align-items:center;
+    gap:1.6rem;margin-top:.4rem;flex-wrap:wrap;
+  }
+  .ploegen-row .ploeg-item{
+    display:flex;align-items:baseline;gap:.4rem;
+    font-family:'Roboto Mono',monospace;font-size:1.25vh;
+    color:#5a6b80;letter-spacing:.03em;
+  }
+  .ploegen-row .ploeg-item .naam{
+    font-weight:500;color:#8395ad;
+  }
+
+  .ticker-wrap{
+    width:100%;overflow:hidden;margin-top:1.1rem;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+  }
+  .ticker-track{
+    display:inline-block;white-space:nowrap;
+    font-family:'Roboto Mono',monospace;font-size:1.95vh;letter-spacing:.03em;
+    color:#5a6b80;padding-left:100%;
+    animation:ticker-scroll 60s linear infinite;
+  }
+  @keyframes ticker-scroll{
+    0%{transform:translateX(0)}
+    100%{transform:translateX(-100%)}
+  }
+
+  .alarm{display:none;flex:1;flex-direction:column}
+  #screen.is-alarm .idle{display:none}
+  #screen.is-alarm .alarm{display:flex}
+  #screen.is-alarm .topbar{background:#0e1524}
+
+  .alarm-strip{
+    flex:0 0 auto;display:flex;align-items:center;gap:1rem;
+    padding:1.6vh 3vw;
+    font-family:'Oswald',sans-serif;font-weight:700;
+    text-transform:uppercase;letter-spacing:.14em;
+    font-size:2.8vh;
+    color:#0a0f1a;
+  }
+  .alarm-strip .when{
+    margin-left:auto;font-family:'Roboto Mono',monospace;
+    font-weight:500;letter-spacing:.02em;font-size:.8em;
+  }
+  #screen.prio-1 .alarm-strip{background:#ff3b30}
+  #screen.prio-2 .alarm-strip{background:#ffc400}
+
+  .alarm-body{flex:1;display:flex;min-height:0}
+  .alarm-main{
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+    gap:3vh;padding:4vw;min-width:0;
+  }
+  .eyebrow{
+    font-family:'Oswald',sans-serif;text-transform:uppercase;
+    letter-spacing:.24em;color:#8395ad;
+    font-size:1.7vh;
+  }
+  .type-big{
+    font-family:'Oswald',sans-serif;font-weight:700;
+    font-size:5vh;line-height:1.1;text-transform:uppercase;
+    letter-spacing:.08em;color:#eaf1fa;word-break:break-word;
+  }
+  .addr-big{
+    font-size:3.5vh;font-weight:500;color:#eaf1fa;
+    word-break:break-word;line-height:1.15;
+  }
+  .units-big{
+    font-family:'Roboto Mono',monospace;
+    font-size:2.2vh;letter-spacing:.04em;
+    color:#8395ad;font-weight:500;
+  }
+
+  .alarm-map{
+    flex:0 0 40%;min-width:300px;
+    position:relative;border-left:1px solid #20304a;
+  }
+  #map{width:100%;height:100%}
+
+  .modal-overlay{
+    display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.8);z-index:1000;
+    align-items:center;justify-content:center;
+  }
+  .modal-overlay.open{display:flex}
+  .modal{
+    background:#111a2b;border:1px solid #20304a;
+    border-radius:12px;max-width:90vw;max-height:90vh;
+    overflow-y:auto;padding:2rem;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal h2{
+    font-size:1.8rem;margin-bottom:1.5rem;color:#eaf1fa;
+  }
+  .modal-section{
+    margin-bottom:2rem;
+  }
+  .modal-section label{
+    display:block;color:#8395ad;font-size:0.9rem;
+    text-transform:uppercase;letter-spacing:.1em;
+    margin-bottom:0.5rem;font-weight:600;
+  }
+  .modal-section input, .modal-section textarea{
+    width:100%;padding:0.75rem;
+    background:#0a0f1a;color:#eaf1fa;
+    border:1px solid #20304a;border-radius:6px;
+    font-family:inherit;font-size:1rem;
+    margin-bottom:1rem;
+  }
+  .modal-section textarea{
+    min-height:100px;resize:vertical;
+  }
+  .voertuigen-list{
+    background:#0a0f1a;border:1px solid #20304a;
+    border-radius:6px;padding:1rem;margin-bottom:1rem;
+  }
+  .voertuigen-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:0.5rem;border-bottom:1px solid #20304a;font-size:0.9rem;
+  }
+  .voertuigen-item:last-child{border-bottom:none}
+  .voertuigen-item button{
+    background:#ff3b30;border:none;color:#fff;
+    padding:0.25rem 0.75rem;border-radius:4px;cursor:pointer;
+    font-size:0.8rem;
+  }
+  .voertuigen-item button:hover{background:#ff5a52}
+  
+  .btn{
+    padding:0.75rem 1.5rem;background:#e30613;color:#fff;
+    border:none;border-radius:6px;cursor:pointer;
+    font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+    font-size:0.9rem;transition:background 0.2s;
+  }
+  .btn:hover{background:#ff0000}
+  .btn-secondary{
+    background:#20304a;color:#eaf1fa;
+  }
+  .btn-secondary:hover{background:#2a3a5a}
+  .btn-danger{
+    background:#ff3b30;
+  }
+  .btn-danger:hover{
+    background:#ff5a52;
+  }
+
+  .modal-close{
+    position:absolute;top:1rem;right:1rem;
+    background:none;border:none;color:#eaf1fa;
+    font-size:1.5rem;cursor:pointer;
+  }
+  .modal-close:hover{color:#8395ad}
+
+  @media(max-width:1200px){
+    .alarm-map{flex:0 0 35%;min-width:250px}
+    .type-big{font-size:3.5vh}
+    .addr-big{font-size:2.5vh}
+  }
+  @media(max-width:768px){
+    .alarm-body{flex-direction:column}
+    .alarm-map{flex:0 0 50%;border-left:none;border-top:1px solid #20304a;min-width:auto}
+  }
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <div class="topbar">
+    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" onclick="openConfig()">
+      <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+    </svg>
+    <div class="post-id">
+      <div class="name" id="postName">-</div>
+      <div class="sub">Post</div>
+    </div>
+    <div class="status">
+      <span class="dot"></span>
+      <span id="statusText">Online</span>
+    </div>
+    <svg class="wifi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+      <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+      <path d="M9 20h6"/>
+    </svg>
+  </div>
+
+  <div class="idle">
+    <div class="clock"><span id="hour">--</span>:<span id="minute">--</span>:<span class="sec" id="second">--</span></div>
+    <div class="date" id="dateText">--</div>
+    <div class="weather">
+      <span class="glyph" id="weatherIcon">-</span>
+      <span class="temp" id="weatherTemp">--°</span>
+      <div class="wx-meta">
+        <span class="cond" id="weatherCond">-</span>
+        <span class="wind" id="weatherWind">-- km/h</span>
+      </div>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="ploegen-kop" id="poegenKop"></div>
+    <div class="ploegen-row" id="poegenRow"></div>
+    <div class="ticker-wrap"><div class="ticker-track" id="ticker"></div></div>
+  </div>
+
+  <div class="alarm">
+    <div class="alarm-strip">
+      <span id="prioLabel">-</span>
+      <span id="alarmType">-</span>
+      <span class="when" id="alarmWhen">-</span>
+    </div>
+    <div class="alarm-body">
+      <div class="alarm-main">
+        <div class="eyebrow" id="eyebrow1"></div>
+        <div class="type-big" id="type"></div>
+        <div class="addr-big" id="addr"></div>
+        <div class="units-big" id="units"></div>
+        <div class="last-run" id="meldingInfo"></div>
+      </div>
+      <div class="alarm-map"><div id="map"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIGURATIE MODAL -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeConfig()">✕</button>
+    <h2>⚙️ CONFIGURATIE</h2>
+
+    <!-- POSTNAAM & COÖRDINATEN -->
+    <div class="modal-section">
+      <label>POSTNAAM</label>
+      <input type="text" id="postNameInput" placeholder="bijv. Post Almere Veluwsekant">
+      <label>COÖRDINATEN (KAART)</label>
+      <input type="text" id="coordsInput" placeholder="bijv. 52.356938, 5.247188">
+    </div>
+
+    <!-- NACHTMODUS -->
+    <div class="modal-section">
+      <label>NACHTMODUS INSCHAKELEN</label>
+      <input type="checkbox" id="nachtModeToggle"> Nachtmodus aan
+      <label style="margin-top:1rem">VAN (uur)</label>
+      <input type="number" id="nachtVan" min="0" max="23" placeholder="bijv. 22">
+      <label>TOT (uur)</label>
+      <input type="number" id="nachtTot" min="0" max="23" placeholder="bijv. 7">
+    </div>
+
+    <!-- PLOEGEN -->
+    <div class="modal-section">
+      <label>PLOEGEN (KOMMA GESCHEIDEN LETTERS)</label>
+      <input type="text" id="poegenInput" placeholder="bijv. A,B,C,D of A,B,C">
+      <small style="color:#8395ad">Welke ploegen worden weergegeven?</small>
+    </div>
+
+    <!-- CAPCODES -->
+    <div class="modal-section">
+      <label>CAPCODES VAN DE POST (SPATIE OF KOMMA GESCHEIDEN)</label>
+      <textarea id="capcodesInput" placeholder="bijv. 0700140 0700143 254133"></textarea>
+    </div>
+
+    <!-- VOERTUIGEN -->
+    <div class="modal-section">
+      <label>VOERTUIGEN TOEVOEGEN</label>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+        <input type="text" id="voertuigNummerInput" placeholder="Nummer bijv. 0700140" style="flex:1">
+        <input type="text" id="voertuigNaamInput" placeholder="Naam bijv. TS Hendrik" style="flex:2">
+        <button class="btn" onclick="addVoertuig()">+ ADD</button>
+      </div>
+      <div class="voertuigen-list" id="voertuigenList"></div>
+    </div>
+
+    <!-- STATISTIEKEN -->
+    <div class="modal-section">
+      <label>STATISTIEKEN BEHEER</label>
+      <button class="btn btn-danger" onclick="resetYearStats()">Reset Jaarstatistieken</button>
+      <button class="btn btn-danger" style="margin-left:0.5rem" onclick="resetDienstStats()">Reset Dienst Counters</button>
+    </div>
+
+    <!-- KNOPPEN -->
+    <div style="display:flex;gap:1rem;margin-top:2rem">
+      <button class="btn" onclick="saveConfig()">💾 OPSLAAN VOOR ALLE SCHERMEN</button>
+      <button class="btn btn-secondary" onclick="resetDefaults()">↻ STANDAARD HERSTELLEN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============= CONFIG SYSTEM =============
+let config = {
+  postName: 'Post Almere',
+  coords: [52.356938, 5.247188],
+  ploegen: ['A','B','C','D'],
+  capcodes: ['0700140','0700143','254133'],
+  voertuigen: {},
+  nachtMode: false,
+  nachtVan: 22,
+  nachtTot: 7
+};
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    if(r.ok) {
+      const d = await r.json();
+      config = {...config, ...d};
+    }
+  } catch(e) {
+    console.log('Config not found, using defaults');
+  }
+  applyConfig();
+}
+
+async function saveConfig() {
+  config.postName = document.getElementById('postNameInput').value || config.postName;
+  
+  const coordsStr = document.getElementById('coordsInput').value;
+  if(coordsStr) {
+    const [lat, lon] = coordsStr.split(',').map(s => parseFloat(s.trim()));
+    if(!isNaN(lat) && !isNaN(lon)) config.coords = [lat, lon];
+  }
+  
+  config.nachtMode = document.getElementById('nachtModeToggle').checked;
+  config.nachtVan = parseInt(document.getElementById('nachtVan').value) || 22;
+  config.nachtTot = parseInt(document.getElementById('nachtTot').value) || 7;
+  
+  const poegenStr = document.getElementById('poegenInput').value;
+  if(poegenStr) config.ploegen = poegenStr.split(',').map(s => s.trim().toUpperCase());
+  
+  const capcodesStr = document.getElementById('capcodesInput').value;
+  if(capcodesStr) {
+    config.capcodes = capcodesStr.split(/[\s,]+/).filter(s => s.trim());
+  }
+  
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify(config)
+    });
+  } catch(e) {
+    console.log('Save failed (offline?)');
+  }
+  
+  applyConfig();
+  closeConfig();
+  alert('Instellingen opgeslagen!');
+}
+
+function applyConfig() {
+  document.getElementById('postName').textContent = config.postName;
+  document.getElementById('postNameInput').value = config.postName;
+  document.getElementById('coordsInput').value = config.coords.join(', ');
+  document.getElementById('nachtModeToggle').checked = config.nachtMode;
+  document.getElementById('nachtVan').value = config.nachtVan;
+  document.getElementById('nachtTot').value = config.nachtTot;
+  document.getElementById('poegenInput').value = config.ploegen.join(',');
+  document.getElementById('capcodesInput').value = config.capcodes.join(' ');
+  
+  updateVoertuigenList();
+  checkNachtMode();
+}
+
+function openConfig() {
+  document.getElementById('configModal').classList.add('open');
+}
+
+function closeConfig() {
+  document.getElementById('configModal').classList.remove('open');
+}
+
+function addVoertuig() {
+  const num = document.getElementById('voertuigNummerInput').value.trim();
+  const naam = document.getElementById('voertuigNaamInput').value.trim();
+  if(num && naam) {
+    config.voertuigen[num] = naam;
+    document.getElementById('voertuigNummerInput').value = '';
+    document.getElementById('voertuigNaamInput').value = '';
+    updateVoertuigenList();
+  }
+}
+
+function removeVoertuig(num) {
+  delete config.voertuigen[num];
+  updateVoertuigenList();
+}
+
+function updateVoertuigenList() {
+  const list = document.getElementById('voertuigenList');
+  list.innerHTML = '';
+  for(const [num, naam] of Object.entries(config.voertuigen)) {
+    const div = document.createElement('div');
+    div.className = 'voertuigen-item';
+    div.innerHTML = `<span>${num} → ${naam}</span><button onclick="removeVoertuig('${num}')">❌</button>`;
+    list.appendChild(div);
+  }
+}
+
+function resetYearStats() {
+  if(confirm('Jaarstatistieken echt resetten?')) {
+    fetch('/api/reset-year', {method:'POST'});
+  }
+}
+
+function resetDienstStats() {
+  if(confirm('Dienst counters echt resetten?')) {
+    fetch('/api/reset-dienst', {method:'POST'});
+  }
+}
+
+function resetDefaults() {
+  if(confirm('Alles teruggezet naar standaard?')) {
+    config = {
+      postName: 'Post Almere',
+      coords: [52.356938, 5.247188],
+      ploegen: ['A','B','C','D'],
+      capcodes: ['0700140','0700143','254133'],
+      voertuigen: {},
+      nachtMode: false,
+      nachtVan: 22,
+      nachtTot: 7
+    };
+    applyConfig();
+  }
+}
+
+// ============= NACHTMODUS CHECK =============
+function checkNachtMode() {
+  const now = new Date();
+  const uur = now.getHours();
+  const actief = config.nachtMode && (uur >= config.nachtVan || uur < config.nachtTot);
+  
+  if(actief) {
+    document.body.classList.add('nacht-mode');
+  } else {
+    document.body.classList.remove('nacht-mode');
+  }
+}
+
+setInterval(checkNachtMode, 60000);
+
+// ============= CLOCK & DATE =============
+function updateClock() {
+  const now = new Date();
+  document.getElementById('hour').textContent = String(now.getHours()).padStart(2,'0');
+  document.getElementById('minute').textContent = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('second').textContent = String(now.getSeconds()).padStart(2,'0');
+  
+  const days = ['ZO','MA','DI','WO','DO','VR','ZA'];
+  const d = days[now.getDay()] + ' ' + String(now.getDate()).padStart(2,'0') + ' ' + 
+    ['JAN','FEB','MAR','APR','MEI','JUN','JUL','AUG','SEP','OKT','NOV','DEC'][now.getMonth()];
+  document.getElementById('dateText').textContent = d;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============= VOERTUIGEN DISPLAY =============
+function getVoertuigNaam(capcode) {
+  return config.voertuigen[capcode] || capcode;
+}
+
+// ============= PLOEGEN DISPLAY =============
+function updatePloegen() {
+  const poegenKop = document.getElementById('poegenKop');
+  const poegenRow = document.getElementById('poegenRow');
+  
+  if(config.ploegen.length === 0) {
+    poegenKop.innerHTML = '';
+    poegenRow.innerHTML = '';
+    return;
+  }
+  
+  poegenKop.innerHTML = 'DIENSTEN';
+  poegenRow.innerHTML = config.ploegen.map(p => 
+    `<div class="ploeg-item"><span class="naam">${p}</span>-PLOEG</div>`
+  ).join('');
+}
+
+// ============= ALARM DISPLAY =============
+function showAlarm(type, addr, prio, units, mapData, meldingTekst, kanaal) {
+  const screen = document.getElementById('screen');
+  screen.classList.add('is-alarm');
+  screen.classList.remove('prio-1', 'prio-2');
+  if(prio === 1) screen.classList.add('prio-1');
+  if(prio === 2) screen.classList.add('prio-2');
+  
+  document.getElementById('prioLabel').textContent = prio === 1 ? 'PRIO 1' : 'PRIO 2';
+  document.getElementById('alarmType').textContent = type;
+  document.getElementById('alarmWhen').textContent = new Date().toLocaleTimeString('nl-NL');
+  
+  document.getElementById('type').textContent = type;
+  document.getElementById('addr').textContent = addr;
+  
+  const unitsDisplay = (units || '').split(' ')
+    .filter(u => u.trim())
+    .map(u => getVoertuigNaam(u.trim()))
+    .join(' ');
+  document.getElementById('units').textContent = unitsDisplay;
+  document.getElementById('meldingInfo').innerHTML = meldingTekst || '';
+  
+  if(window.map) {
+    window.map.setView(config.coords, 14);
+  }
+}
+
+function clearAlarm() {
+  document.getElementById('screen').classList.remove('is-alarm');
+}
+
+// ============= MAP INIT =============
+function initMap() {
+  if(document.getElementById('map').innerHTML !== '') return;
+  window.map = L.map('map').setView(config.coords, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(window.map);
+}
+
+// ============= STARTUP =============
+loadConfig().then(() => {
+  updatePloegen();
+  initMap();
+});
+
+// Test alarm (remove in production)
+setTimeout(() => {
+  // showAlarm('Brand Woning', 'Voorstraat 42, Almere', 2, '0700140 0700143', 'Test melding');
+}, 2000);
+</script>
+</body>
+</html>
