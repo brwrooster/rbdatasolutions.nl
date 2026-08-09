@@ -680,6 +680,14 @@
 /* ================= Config ================= */
 var START_COORDS = { lat: 52.356938, lon: 5.247188 }; // Post Veluwsekant, Plus Code 964W+QV
 var ALMERE = { lat: 52.3746, lon: 5.2653 };           // weer
+
+/* ===== POST LOCATIE ===== */
+var POST_LOCATION = {
+  lat: 52.3667,      // Standaard: Almere
+  lon: 5.2210,
+  nachtVan: '22:00',
+  nachtTot: '07:00'
+};
 var ALARM_TIMEOUT_MS = 5 * 60 * 1000;                 // 5 min
 
 // >>> Vul in na het deployen <<<
@@ -2195,12 +2203,6 @@ updatePloegenDisplay();  // display
 
 
 /* ===== POST LOCATIE & NACHTMODUS ===== */
-var POST_LOCATION = {
-  lat: 52.3667,      // Standaard: Almere
-  lon: 5.2210,
-  nachtVan: '22:00',
-  nachtTot: '07:00'
-};
 
 function applyNachtmodus(){
   var now = new Date();
