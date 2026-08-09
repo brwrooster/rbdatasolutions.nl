@@ -1695,7 +1695,15 @@ function openCfg(){
   vulTaakEditor();  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
   cfgPanel.classList.add('open');
 }
-document.getElementById('cfgClose').onclick=function(){ cfgPanel.classList.remove('open'); };
+// Close button
+var cfgCloseBtn = document.getElementById('cfgClose');
+if(cfgCloseBtn){
+  cfgCloseBtn.onclick = function(){ 
+    var cp = document.getElementById('cfgPanel');
+    if(cp) cp.classList.remove('open');
+    return false;
+  };
+}
 document.getElementById('cfgSave').onclick=function(){
   var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
   var hold=parseInt(document.getElementById('cfgHold').value,10);
