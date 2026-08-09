@@ -602,7 +602,7 @@
   <div class="tp-head">
     <span class="tag">Instellingen</span>
     <h2>Configuratie</h2>
-    <button class="close" id="cfgClose" aria-label="Sluiten">×</button>
+    <button class="close" id="cfgClose" aria-label="Sluiten" onclick="document.getElementById('cfgPanel').classList.remove('open');return false;">×</button>
   </div>
   <div class="cfg-grid">
     <div class="field">
@@ -1705,6 +1705,19 @@ if(cfgCloseBtn){
   };
 }
 document.getElementById('cfgSave').onclick=function(){
+  // Update config waardes
+  POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
+  POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
+  POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
+  POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
+  leesPloegenTabel();
+  
+  // Update scherm
+  updateTopbar();
+  updatePloegenDisplay();
+  loadWeather();
+  applyNachtmodus();
+  
   var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
   var hold=parseInt(document.getElementById('cfgHold').value,10);
   var p=tekstNaarPosts(document.getElementById('cfgPosts').value);
