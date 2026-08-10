@@ -602,7 +602,7 @@
   <div class="tp-head">
     <span class="tag">Instellingen</span>
     <h2>Configuratie</h2>
-    <button class="close" id="cfgClose" aria-label="Sluiten" onclick="document.getElementById('cfgPanel').classList.remove('open');return false;">×</button>
+    <button class="close" id="cfgClose" aria-label="Opslaan" onclick="document.getElementById('cfgSave').click();return false;">✓</button>
   </div>
   <div class="cfg-grid">
     <div class="field">
@@ -1629,6 +1629,7 @@ function tekstNaarUnits(txt){
 /* ---- Takeneditor met dagknoppen ---- */
 var DAGLABELS = [['ma','Ma'],['di','Di'],['wo','Wo'],['do','Do'],['vr','Vr'],['za','Za'],['zo','Zo']];
 function taakRij(taak){
+  if(!taak) taak = {tekst:'',dagen:[]};
   var rij = document.createElement('div');
   rij.className = 'task-row';
 
@@ -1640,7 +1641,14 @@ function taakRij(taak){
 
   var picker = document.createElement('div');
   picker.className = 'day-picker';
+  picker.style.display = 'flex';
+  picker.style.gap = '0.3rem';
+  picker.style.flexWrap = 'wrap';
   var gekozen = (taak.dagen || []).slice();
+  if(!DAGLABELS || DAGLABELS.length === 0){
+    console.warn('DAGLABELS niet gedefinieerd!');
+    return rij;  // Safety fallback
+  }
   for(var i=0;i<DAGLABELS.length;i++){
     (function(code,label){
       var b = document.createElement('button');
@@ -1667,9 +1675,15 @@ function taakRij(taak){
 }
 function vulTaakEditor(){
   var lijst = document.getElementById('cfgTaskList');
+  if(!lijst) return;
   lijst.innerHTML = '';
-  for(var i=0;i<TASKS.length;i++) lijst.appendChild(taakRij(TASKS[i]));
-  if(!TASKS.length) lijst.appendChild(taakRij({tekst:'',dagen:[]}));
+  if(!TASKS || TASKS.length === 0){
+    lijst.appendChild(taakRij({tekst:'',dagen:[]}));
+  } else {
+    for(var i=0;i<TASKS.length;i++) {
+      lijst.appendChild(taakRij(TASKS[i]));
+    }
+  }
 }
 function leesTaakEditor(){
   var out = [], rijen = document.getElementById('cfgTaskList').children;
@@ -1685,9 +1699,17 @@ function leesTaakEditor(){
   }
   return out;
 }
-document.getElementById('cfgTaskAdd').onclick = function(){
-  document.getElementById('cfgTaskList').appendChild(taakRij({tekst:'',dagen:[]}));
-};
+// Task add knop
+var taskAddBtn = document.getElementById('cfgTaskAdd');
+if(taskAddBtn){
+  taskAddBtn.onclick = function(){
+    var list = document.getElementById('cfgTaskList');
+    if(list){
+      list.appendChild(taakRij({tekst:'',dagen:[]}));
+      console.log('Task toegevoegd');
+    }
+  };
+}
 
 function openCfg(){
   // Voeg POST_CONFIG values in
