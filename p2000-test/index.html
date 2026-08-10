@@ -896,9 +896,12 @@ function currentPloeg(now){
 function parseUnits(str){
   var codes = (str||'').match(/\d{4,7}/g) || [];
   var out = [];
+  console.log('parseUnits: codes gevonden:', codes);
+  console.log('parseUnits: UNITS beschikbaar:', UNITS);
   codes.forEach(function(code){
     // Probeer eerst volledige code, dan slice(-4) voor backwards compatibility
     var u = UNITS[code] || UNITS[code.slice(-4)];
+    console.log('parseUnits: code', code, '→ UNITS[' + code + '] =', u);
     // postcapcode overslaan, maar alleen als het geen bekend voertuig is
     if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
     out.push({
@@ -1782,6 +1785,7 @@ document.getElementById('cfgSave').onclick=function(){
   var telU=0; for(k in u){ if(u.hasOwnProperty(k)) telU++; }
   if(telP) POSTS=p;
   if(telU) UNITS=u;
+  console.log('cfgSave: UNITS geupdate naar:', UNITS);
   var tks=leesTaakEditor();
   TASKS=tks;
   refreshPostCapcodes();
@@ -2455,8 +2459,14 @@ function updateCfgUnitsFromTable(){
   console.log('updateCfgUnitsFromTable: found', trs.length, 'rows');
   
   for(var i=0;i<trs.length;i++){
-    var cap = trs[i].querySelector('input[data-prop="cap"]').value.trim();
-    var naam = trs[i].querySelector('input[data-prop="naam"]').value.trim();
+    var capInput = trs[i].querySelector('input[data-prop="cap"]');
+    var naamInput = trs[i].querySelector('input[data-prop="naam"]');
+    if(!capInput || !naamInput) {
+      console.warn('row', i, ': inputs niet gevonden!');
+      continue;
+    }
+    var cap = capInput.value.trim();
+    var naam = naamInput.value.trim();
     console.log('row', i, ':', cap, '=', naam);
     if(cap && naam){
       rows.push(cap + ' = ' + naam);
@@ -2464,7 +2474,8 @@ function updateCfgUnitsFromTable(){
   }
   
   var txt = rows.join('\n');
-  console.log('updateCfgUnitsFromTable: setting cfgUnits to:', txt);
+  console.log('updateCfgUnitsFromTable KLAAR. cfgUnits wordt:', txt);
+  console.log('UNITS zal worden:', tekstNaarUnits(txt));
   document.getElementById('cfgUnits').value = txt;
 }
 
