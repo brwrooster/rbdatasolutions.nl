@@ -1727,6 +1727,11 @@ document.getElementById('cfgSave').onclick=function(){
   loadWeather();
   applyNachtmodus();
   msg.textContent='✓ Post instellingen opgeslagen!';
+  // Menu automatisch sluiten na 1 seconde
+  setTimeout(function(){
+    var cp = document.getElementById('cfgPanel');
+    if(cp) cp.classList.remove('open');
+  }, 800);
   
   // Rest van config
   var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
@@ -2013,8 +2018,19 @@ var POST_CONFIG = {
 };
 
 function updateTopbar(){
-  document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam;
-  document.getElementById('topbarBrandweer').textContent = POST_CONFIG.brandweer;
+  var pn = document.getElementById('cfgPostnaam');
+  var bw = document.getElementById('cfgBrandweer');
+  var postnaam = (pn && pn.value) ? pn.value.trim() : POST_CONFIG.postnaam;
+  var brandweer = (bw && bw.value) ? bw.value.trim() : POST_CONFIG.brandweer;
+  
+  document.getElementById('topbarPostnaam').textContent = postnaam || 'Post';
+  document.getElementById('topbarBrandweer').textContent = brandweer || 'Brandweer';
+  
+  // Update ook POST_CONFIG voor volgende keer
+  POST_CONFIG.postnaam = postnaam;
+  POST_CONFIG.brandweer = brandweer;
+  
+  console.log('updateTopbar():', postnaam, brandweer);
 }
 
 // Hook in openCfg - vul config fields
