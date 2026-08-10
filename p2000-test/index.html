@@ -1743,12 +1743,11 @@ document.getElementById('cfgSave').onclick=function(){
   var tks=leesTaakEditor();
   TASKS=tks;
   refreshPostCapcodes();
-  // saveCfg();  // TEST MODE: geen worker
+  // saveCfg();  // LOKAAL TEST: geen worker
   renderTasks();
   lastFeedId=null; firstPoll=true;
-  msg.textContent='✓ Opgeslagen lokaal (geen worker/KV)';
-  // bewaarTakenCentraal() // TEST MODE: geen worker
-  // Promise hier staat lokaal dus kommentaar
+  msg.textContent='✓ Opgeslagen lokaal (test mode - geen worker)';
+  // bewaarTakenCentraal() // LOKAAL TEST: geen worker
 };
 document.getElementById('cfgReset').onclick=function(){
   FILTER_CAPCODES=DEFAULT_CAPCODES.slice();
