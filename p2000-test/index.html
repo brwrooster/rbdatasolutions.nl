@@ -896,13 +896,8 @@ function currentPloeg(now){
 function parseUnits(str){
   var codes = (str||'').match(/\d{4,7}/g) || [];
   var out = [];
-  console.log('parseUnits: codes gevonden:', codes);
-  console.log('parseUnits: UNITS beschikbaar:', UNITS);
   codes.forEach(function(code){
-    // Probeer eerst volledige code, dan slice(-4) voor backwards compatibility
     var u = UNITS[code] || UNITS[code.slice(-4)];
-    console.log('parseUnits: code', code, '→ UNITS[' + code + '] =', u);
-    // postcapcode overslaan, maar alleen als het geen bekend voertuig is
     if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
     out.push({
       code: code,
@@ -1727,18 +1722,28 @@ if(taskAddBtn){
 }
 
 function openCfg(){
-  // Voeg POST_CONFIG values in
-  document.getElementById('cfgPostnaam').value = POST_CONFIG.postnaam;
-  document.getElementById('cfgBrandweer').value = POST_CONFIG.brandweer;
-  document.getElementById('cfgNachtVan').value = POST_LOCATION.nachtVan;
-  document.getElementById('cfgNachtTot').value = POST_LOCATION.nachtTot;
+  // Post config
+  var pn = document.getElementById('cfgPostnaam');
+  var bw = document.getElementById('cfgBrandweer');
+  if(pn) pn.value = POST_CONFIG.postnaam || 'Post';
+  if(bw) bw.value = POST_CONFIG.brandweer || 'Brandweer';
+  
+  var nv = document.getElementById('cfgNachtVan');
+  var nt = document.getElementById('cfgNachtTot');
+  if(nv) nv.value = POST_LOCATION.nachtVan || '22:00';
+  if(nt) nt.value = POST_LOCATION.nachtTot || '07:00';
   
   // Originele config
   document.getElementById('cfgCaps').value = FILTER_CAPCODES.join(' ');
   document.getElementById('cfgHold').value = HOLD_MIN;
   document.getElementById('cfgPosts').value = postsNaarTekst();
   document.getElementById('cfgUnits').value = unitsNaarTekst();
-  vulPloegenTabel();  vulTaakEditor();  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
+  
+  // Voertuigen & taken tabel
+  vulPloegenTabel();
+  vulVoertuigenConfigTable();
+  vulTaakEditor();
+  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
   cfgPanel.classList.add('open');
 }
 // Close button
@@ -1751,23 +1756,37 @@ if(cfgCloseBtn){
   };
 }
 document.getElementById('cfgSave').onclick=function(){
-  // Update tabel → textarea EERST
+  var msg=document.getElementById('cfgMsg');
+  
+  // 1. Update voertuigen tabel → textarea
   updateCfgUnitsFromTable();
   
-  // Save post info ALTIJD (onafhankelijk van caps!)
-  var msg=document.getElementById('cfgMsg');
+  // 2. Save post info
   POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
   POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
   POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
   POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
+  
+  // 3. Ploegen en taken
   leesPloegenTabel();
+  var tks=leesTaakEditor();
+  TASKS=tks;
+  
+  // 4. Update voertuigen
+  var u=tekstNaarUnits(document.getElementById('cfgUnits').value);
+  if(Object.keys(u).length > 0) UNITS=u;
+  
+  // 5. Update scherm
   updateTopbar();
   updatePloegenDisplay();
-  startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };  // route gebruikt dit
+  startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
   loadWeather();
   applyNachtmodus();
-  msg.textContent='✓ Post instellingen opgeslagen!';
-  // Menu automatisch sluiten na 1 seconde
+  renderTasks();
+  
+  msg.textContent='✓ Alles opgeslagen!';
+  
+  // 6. Menu automatisch sluiten
   setTimeout(function(){
     var cp = document.getElementById('cfgPanel');
     if(cp) cp.classList.remove('open');
@@ -1785,7 +1804,7 @@ document.getElementById('cfgSave').onclick=function(){
   var telU=0; for(k in u){ if(u.hasOwnProperty(k)) telU++; }
   if(telP) POSTS=p;
   if(telU) UNITS=u;
-  console.log('cfgSave: UNITS geupdate naar:', UNITS);
+
   var tks=leesTaakEditor();
   TASKS=tks;
   refreshPostCapcodes();
@@ -2215,15 +2234,8 @@ document.getElementById('addPloegBtn').onclick = function(){
 var origOpenCfg = window.openCfgOrig || function(){};
 if(typeof openCfg === 'function'){
   window.openCfgOrig = openCfg;
-  window.openCfg = function(){
-    origOpenCfg.apply(this, arguments);
-    vulPloegenTabel();  // config
-  };
 } else {
   window.openCfgOrig = function(){};
-  window.openCfg = function(){
-    vulPloegenTabel();  // config
-  };
 }
 
 // Hook in cfgSave - sla ploegen op
@@ -2349,13 +2361,6 @@ document.getElementById('cfgGeocode').onclick = function(){
 var origOpenCfg3 = window.openCfgOrig3 || function(){};
 var oldOpenCfg = window.openCfg || function(){};
 window.openCfgOrig3 = oldOpenCfg;
-window.openCfg = function(){
-  oldOpenCfg.apply(this, arguments);
-  document.getElementById('cfgNachtVan').value = POST_LOCATION.nachtVan;
-  document.getElementById('cfgNachtTot').value = POST_LOCATION.nachtTot;
-  vulVoertuigenConfigTable();  // Tabel vullen
-  console.log('openCfg: voertuigen tabel gevuld');
-};
 
 // Hook in cfgSave - sla nachtmodus op
 var cfgSaveBtn3 = document.getElementById('cfgSave');
@@ -2374,13 +2379,11 @@ if(cfgSaveBtn3){
 /* ===== VOERTUIGEN CONFIG TABEL ===== */
 function vulVoertuigenConfigTable(){
   var tbody = document.getElementById('voertuigenConfigBody');
-  if(!tbody) { console.warn('voertuigenConfigBody niet gevonden'); return; }
+  if(!tbody) return;
   tbody.innerHTML = '';
   
   var unitTxt = document.getElementById('cfgUnits').value || '';
-  console.log('vulVoertuigenConfigTable: cfgUnits text:', unitTxt);
   var units = tekstNaarUnits(unitTxt);
-  console.log('units parsed:', units);
   
   var rows = [];
   for(var cap in units){
@@ -2456,27 +2459,20 @@ function vulVoertuigenConfigTable(){
 function updateCfgUnitsFromTable(){
   var rows = [];
   var trs = document.querySelectorAll('#voertuigenConfigBody tr');
-  console.log('updateCfgUnitsFromTable: found', trs.length, 'rows');
   
   for(var i=0;i<trs.length;i++){
     var capInput = trs[i].querySelector('input[data-prop="cap"]');
     var naamInput = trs[i].querySelector('input[data-prop="naam"]');
-    if(!capInput || !naamInput) {
-      console.warn('row', i, ': inputs niet gevonden!');
-      continue;
-    }
+    if(!capInput || !naamInput) continue;
+    
     var cap = capInput.value.trim();
     var naam = naamInput.value.trim();
-    console.log('row', i, ':', cap, '=', naam);
     if(cap && naam){
       rows.push(cap + ' = ' + naam);
     }
   }
   
-  var txt = rows.join('\n');
-  console.log('updateCfgUnitsFromTable KLAAR. cfgUnits wordt:', txt);
-  console.log('UNITS zal worden:', tekstNaarUnits(txt));
-  document.getElementById('cfgUnits').value = txt;
+  document.getElementById('cfgUnits').value = rows.join('\n');
 }
 
 document.getElementById('addVoertuigConfigBtn').onclick = function(){
@@ -2492,10 +2488,6 @@ var origOpenCfg2 = window.openCfgOrig2 || function(){};
 window.openCfgOrig2 = window.openCfg || function(){};
 if(typeof openCfg === 'function'){
   var oldOpenCfg = window.openCfg;
-  window.openCfg = function(){
-    oldOpenCfg.apply(this, arguments);
-    vulVoertuigenConfigTable();
-  };
 }
 
 vulVoertuigenConfigTable();
