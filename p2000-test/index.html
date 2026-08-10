@@ -1786,7 +1786,10 @@ document.getElementById('cfgSave').onclick=function(){
   
   msg.textContent='✓ Alles opgeslagen!';
   
-  // 6. Menu automatisch sluiten
+  // 6. SAVE TO LOCALSTORAGE
+  saveToLocalStorage();
+  
+  // 7. Menu automatisch sluiten
   setTimeout(function(){
     var cp = document.getElementById('cfgPanel');
     if(cp) cp.classList.remove('open');
@@ -2070,6 +2073,36 @@ document.getElementById('cfgBtn').onclick = function(){
 };
 
 
+
+
+/* ===== LOKALE OPSLAG (localStorage) ===== */
+function saveToLocalStorage(){
+  localStorage.setItem('POST_CONFIG', JSON.stringify(POST_CONFIG));
+  localStorage.setItem('POST_LOCATION', JSON.stringify(POST_LOCATION));
+  localStorage.setItem('PLOEGEN_CONFIG', JSON.stringify(PLOEGEN_CONFIG));
+  localStorage.setItem('cfgUnits', document.getElementById('cfgUnits').value);
+  localStorage.setItem('TASKS', JSON.stringify(TASKS));
+}
+
+function loadFromLocalStorage(){
+  var pc = localStorage.getItem('POST_CONFIG');
+  if(pc) POST_CONFIG = JSON.parse(pc);
+  
+  var pl = localStorage.getItem('POST_LOCATION');
+  if(pl) POST_LOCATION = JSON.parse(pl);
+  
+  var ploeg = localStorage.getItem('PLOEGEN_CONFIG');
+  if(ploeg) PLOEGEN_CONFIG = JSON.parse(ploeg);
+  
+  var units = localStorage.getItem('cfgUnits');
+  if(units) document.getElementById('cfgUnits').value = units;
+  
+  var tasks = localStorage.getItem('TASKS');
+  if(tasks) TASKS = JSON.parse(tasks);
+}
+
+// Load bij pagina start
+loadFromLocalStorage();
 
 /* ===== POST CONFIG ===== */
 var POST_CONFIG = {
