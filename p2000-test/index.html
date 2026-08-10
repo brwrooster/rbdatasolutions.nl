@@ -1748,6 +1748,9 @@ if(cfgCloseBtn){
   };
 }
 document.getElementById('cfgSave').onclick=function(){
+  // Update tabel → textarea EERST
+  updateCfgUnitsFromTable();
+  
   // Save post info ALTIJD (onafhankelijk van caps!)
   var msg=document.getElementById('cfgMsg');
   POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
@@ -2346,6 +2349,8 @@ window.openCfg = function(){
   oldOpenCfg.apply(this, arguments);
   document.getElementById('cfgNachtVan').value = POST_LOCATION.nachtVan;
   document.getElementById('cfgNachtTot').value = POST_LOCATION.nachtTot;
+  vulVoertuigenConfigTable();  // Tabel vullen
+  console.log('openCfg: voertuigen tabel gevuld');
 };
 
 // Hook in cfgSave - sla nachtmodus op
@@ -2365,11 +2370,13 @@ if(cfgSaveBtn3){
 /* ===== VOERTUIGEN CONFIG TABEL ===== */
 function vulVoertuigenConfigTable(){
   var tbody = document.getElementById('voertuigenConfigBody');
-  if(!tbody) return;
+  if(!tbody) { console.warn('voertuigenConfigBody niet gevonden'); return; }
   tbody.innerHTML = '';
   
   var unitTxt = document.getElementById('cfgUnits').value || '';
+  console.log('vulVoertuigenConfigTable: cfgUnits text:', unitTxt);
   var units = tekstNaarUnits(unitTxt);
+  console.log('units parsed:', units);
   
   var rows = [];
   for(var cap in units){
@@ -2445,16 +2452,20 @@ function vulVoertuigenConfigTable(){
 function updateCfgUnitsFromTable(){
   var rows = [];
   var trs = document.querySelectorAll('#voertuigenConfigBody tr');
+  console.log('updateCfgUnitsFromTable: found', trs.length, 'rows');
   
   for(var i=0;i<trs.length;i++){
     var cap = trs[i].querySelector('input[data-prop="cap"]').value.trim();
     var naam = trs[i].querySelector('input[data-prop="naam"]').value.trim();
+    console.log('row', i, ':', cap, '=', naam);
     if(cap && naam){
       rows.push(cap + ' = ' + naam);
     }
   }
   
-  document.getElementById('cfgUnits').value = rows.join('\n');
+  var txt = rows.join('\n');
+  console.log('updateCfgUnitsFromTable: setting cfgUnits to:', txt);
+  document.getElementById('cfgUnits').value = txt;
 }
 
 document.getElementById('addVoertuigConfigBtn').onclick = function(){
