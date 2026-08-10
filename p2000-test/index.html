@@ -2102,23 +2102,8 @@ function loadFromLocalStorage(){
 }
 
 // Load bij pagina start
-var POST_CONFIG = {
-  postnaam: 'Post Veluwsekant',
-  brandweer: 'Brandweer Flevoland'
-};
-var PLOEGEN_CONFIG = [
-  {naam:'Ploeg A',start:'07:00',vandaag:true},
-  {naam:'Ploeg B',start:'19:00',vandaag:false}
-];
-loadFromLocalStorage();
-
-// TOON de instellingen op het scherm
-updateTopbar();
-updatePloegenDisplay();
-startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
-
-/* ===== POST CONFIG ===== */
-
+// POST_CONFIG en PLOEGEN_CONFIG zijn al gedefinieerd hierboven
+// loadFromLocalStorage() zal ze overschrijven als ze in opslag staan
 function updateTopbar(){
   var pn = document.getElementById('cfgPostnaam');
   var bw = document.getElementById('cfgBrandweer');
@@ -2134,6 +2119,39 @@ function updateTopbar(){
   
   console.log('updateTopbar():', postnaam, brandweer);
 }
+function updatePloegenDisplay(){
+  var ploegenRow = document.getElementById('ploegenRow');
+  if(!ploegenRow) return;
+  
+  ploegenRow.innerHTML = '';
+  
+  for(var i=0;i<PLOEGEN_CONFIG.length;i++){
+    if(PLOEGEN_CONFIG[i].vandaag){
+      var item = document.createElement('div');
+      item.className = 'ploeg-item';
+      
+      var naam = document.createElement('span');
+      naam.className = 'naam';
+      naam.textContent = PLOEGEN_CONFIG[i].naam;
+      item.appendChild(naam);
+      
+      var tijd = document.createElement('span');
+      tijd.textContent = ' (' + PLOEGEN_CONFIG[i].start + ')';
+      item.appendChild(tijd);
+      
+      ploegenRow.appendChild(item);
+    }
+  }
+}
+loadFromLocalStorage();
+
+// TOON de instellingen op het scherm
+updateTopbar();
+updatePloegenDisplay();
+startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
+
+/* ===== POST CONFIG ===== */
+
 
 // Hook in openCfg - vul config fields
 var originalOpenCfg = window.openCfg || function(){};
@@ -2292,30 +2310,6 @@ vulPloegenTabel();  // config
 
 
 /* ===== UPDATE PLOEGEN DISPLAY OP SCHERM ===== */
-function updatePloegenDisplay(){
-  var ploegenRow = document.getElementById('ploegenRow');
-  if(!ploegenRow) return;
-  
-  ploegenRow.innerHTML = '';
-  
-  for(var i=0;i<PLOEGEN_CONFIG.length;i++){
-    if(PLOEGEN_CONFIG[i].vandaag){
-      var item = document.createElement('div');
-      item.className = 'ploeg-item';
-      
-      var naam = document.createElement('span');
-      naam.className = 'naam';
-      naam.textContent = PLOEGEN_CONFIG[i].naam;
-      item.appendChild(naam);
-      
-      var tijd = document.createElement('span');
-      tijd.textContent = ' (' + PLOEGEN_CONFIG[i].start + ')';
-      item.appendChild(tijd);
-      
-      ploegenRow.appendChild(item);
-    }
-  }
-}
 
 // Roep aan als ploegen opgeslagen worden
 var cfgSaveBtn2 = document.getElementById('cfgSave');
