@@ -1436,7 +1436,7 @@ function initMap(dest){
   if(startMarker) startMarker.remove();
   if(incMarker) incMarker.remove();
   startMarker=L.marker([startCoords.lat,startCoords.lon],{icon:huisIcoon()})
-    .addTo(map).bindTooltip('Post Veluwsekant');
+    .addTo(map).bindTooltip(POST_CONFIG.postnaam);
   incMarker=L.marker([dest.lat,dest.lon],{icon:sterIcoon(selectedPrio)})
     .addTo(map);
   map.setView([dest.lat,dest.lon],13);
@@ -1472,6 +1472,8 @@ window.addEventListener('resize',function(){
   }
 });
 function showAlarm(type,addr,prio,unitsStr,timeoutMs,geoHint,kanaal){
+  // Zorg dat route van huidigelokatie start
+  startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
   var screen=document.getElementById('screen');
   selectedPrio=prio;
   screen.classList.remove('prio-1','prio-2');
@@ -1688,11 +1690,18 @@ document.getElementById('cfgTaskAdd').onclick = function(){
 };
 
 function openCfg(){
+  // Voeg POST_CONFIG values in
+  document.getElementById('cfgPostnaam').value = POST_CONFIG.postnaam;
+  document.getElementById('cfgBrandweer').value = POST_CONFIG.brandweer;
+  document.getElementById('cfgNachtVan').value = POST_LOCATION.nachtVan;
+  document.getElementById('cfgNachtTot').value = POST_LOCATION.nachtTot;
+  
+  // Originele config
   document.getElementById('cfgCaps').value = FILTER_CAPCODES.join(' ');
   document.getElementById('cfgHold').value = HOLD_MIN;
   document.getElementById('cfgPosts').value = postsNaarTekst();
   document.getElementById('cfgUnits').value = unitsNaarTekst();
-  vulTaakEditor();  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
+  vulPloegenTabel();  vulTaakEditor();  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
   cfgPanel.classList.add('open');
 }
 // Close button
@@ -1705,7 +1714,8 @@ if(cfgCloseBtn){
   };
 }
 document.getElementById('cfgSave').onclick=function(){
-  // Save post info EERST (onafhankelijk)
+  // Save post info ALTIJD (onafhankelijk van caps!)
+  var msg=document.getElementById('cfgMsg');
   POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
   POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
   POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
@@ -1713,16 +1723,17 @@ document.getElementById('cfgSave').onclick=function(){
   leesPloegenTabel();
   updateTopbar();
   updatePloegenDisplay();
+  startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };  // route gebruikt dit
   loadWeather();
   applyNachtmodus();
+  msg.textContent='✓ Post instellingen opgeslagen!';
   
   // Rest van config
   var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
   var hold=parseInt(document.getElementById('cfgHold').value,10);
   var p=tekstNaarPosts(document.getElementById('cfgPosts').value);
   var u=tekstNaarUnits(document.getElementById('cfgUnits').value);
-  var msg=document.getElementById('cfgMsg');
-  if(!caps.length){ msg.textContent='Let op: vul minstens één capcode in.'; return; }
+  if(!caps.length){ msg.textContent='Let op: vul minstens één capcode in voor de rest.'; return; }
   FILTER_CAPCODES=caps;
   HOLD_MIN=(!isNaN(hold)&&hold>0)?hold:DEFAULT_HOLD_MIN;
   var telP=0,k; for(k in p){ if(p.hasOwnProperty(k)) telP++; }
@@ -1732,20 +1743,12 @@ document.getElementById('cfgSave').onclick=function(){
   var tks=leesTaakEditor();
   TASKS=tks;
   refreshPostCapcodes();
-  saveCfg();
+  // saveCfg();  // TEST MODE: geen worker
   renderTasks();
   lastFeedId=null; firstPoll=true;
-  msg.textContent='Opslaan en delen…';
-  bewaarTakenCentraal().then(function(res){
-    if(res && res.ok){
-      msg.textContent='Opgeslagen. Alle schermen krijgen dit binnen 20 seconden: '+
-        caps.length+' capcode(s), '+telU+' voertuigen, '+telP+' posten, '+
-        TASKS.length+' taken, melding '+HOLD_MIN+' min.';
-    }else{
-      msg.textContent='Opgeslagen op dit apparaat. Delen lukte niet'+
-        ((res && res.error) ? ' ('+res.error+')' : '')+'.';
-    }
-  });
+  msg.textContent='✓ Opgeslagen lokaal (geen worker/KV)';
+  // bewaarTakenCentraal() // TEST MODE: geen worker
+  // Promise hier staat lokaal dus kommentaar
 };
 document.getElementById('cfgReset').onclick=function(){
   FILTER_CAPCODES=DEFAULT_CAPCODES.slice();
@@ -2271,6 +2274,7 @@ document.getElementById('cfgGeocode').onclick = function(){
       if(d && d.length > 0){
         POST_LOCATION.lat = parseFloat(d[0].lat);
         POST_LOCATION.lon = parseFloat(d[0].lon);
+        startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };  // route update
         hint.textContent = '✓ Locatie ingesteld: ' + POST_LOCATION.lat.toFixed(4) + ', ' + POST_LOCATION.lon.toFixed(4);
         hint.style.color = '#37d67a';
         setTimeout(loadWeather, 500);  // Weer ophalen voor nieuwe locatie
