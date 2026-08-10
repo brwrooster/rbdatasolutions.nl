@@ -2102,6 +2102,14 @@ function loadFromLocalStorage(){
 }
 
 // Load bij pagina start
+var POST_CONFIG = {
+  postnaam: 'Post Veluwsekant',
+  brandweer: 'Brandweer Flevoland'
+};
+var PLOEGEN_CONFIG = [
+  {naam:'Ploeg A',start:'07:00',vandaag:true},
+  {naam:'Ploeg B',start:'19:00',vandaag:false}
+];
 loadFromLocalStorage();
 
 // TOON de instellingen op het scherm
@@ -2110,10 +2118,6 @@ updatePloegenDisplay();
 startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
 
 /* ===== POST CONFIG ===== */
-var POST_CONFIG = {
-  postnaam: 'Post Veluwsekant',
-  brandweer: 'Brandweer Flevoland'
-};
 
 function updateTopbar(){
   var pn = document.getElementById('cfgPostnaam');
@@ -2157,10 +2161,6 @@ updateTopbar();
 
 
 /* ===== PLOEGEN CONFIG ===== */
-var PLOEGEN_CONFIG = [
-  {naam:'Ploeg A',start:'07:00',vandaag:true},
-  {naam:'Ploeg B',start:'19:00',vandaag:false}
-];
 
 function vulPloegenTabel(){
   var tbody = document.getElementById('ploegenTableBody');
