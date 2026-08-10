@@ -2101,23 +2101,28 @@ function loadFromLocalStorage(){
   if(tasks) TASKS = JSON.parse(tasks);
 }
 
-// Load bij pagina start
-// POST_CONFIG en PLOEGEN_CONFIG zijn al gedefinieerd hierboven
-// loadFromLocalStorage() zal ze overschrijven als ze in opslag staan
+// ===== DEFAULTS DEFINIEREN =====
+var POST_CONFIG = {
+  postnaam: 'Post Veluwsekant',
+  brandweer: 'Brandweer Flevoland'
+};
+
+var PLOEGEN_CONFIG = [
+  {naam:'Ploeg A', start:'07:00', vandaag:true},
+  {naam:'Ploeg B', start:'19:00', vandaag:false}
+];
+
+var TASKS = [];
+
+// ===== FUNCTIES =====
 function updateTopbar(){
-  var pn = document.getElementById('cfgPostnaam');
-  var bw = document.getElementById('cfgBrandweer');
-  var postnaam = (pn && pn.value) ? pn.value.trim() : POST_CONFIG.postnaam;
-  var brandweer = (bw && bw.value) ? bw.value.trim() : POST_CONFIG.brandweer;
+  // Lees ALTIJD van POST_CONFIG (niet van inputs die leeg kunnen zijn)
+  var postnaam = POST_CONFIG.postnaam || 'Post';
+  var brandweer = POST_CONFIG.brandweer || 'Brandweer';
   
-  document.getElementById('topbarPostnaam').textContent = postnaam || 'Post';
-  document.getElementById('topbarBrandweer').textContent = brandweer || 'Brandweer';
-  
-  // Update ook POST_CONFIG voor volgende keer
-  POST_CONFIG.postnaam = postnaam;
-  POST_CONFIG.brandweer = brandweer;
-  
-  console.log('updateTopbar():', postnaam, brandweer);
+  // Toon op topbar
+  document.getElementById('topbarPostnaam').textContent = postnaam;
+  document.getElementById('topbarBrandweer').textContent = brandweer;
 }
 function updatePloegenDisplay(){
   var ploegenRow = document.getElementById('ploegenRow');
@@ -2143,6 +2148,7 @@ function updatePloegenDisplay(){
     }
   }
 }
+// Load instellingen van browser
 loadFromLocalStorage();
 
 // TOON de instellingen op het scherm
