@@ -2104,6 +2104,11 @@ function loadFromLocalStorage(){
 // Load bij pagina start
 loadFromLocalStorage();
 
+// TOON de instellingen op het scherm
+updateTopbar();
+updatePloegenDisplay();
+startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
+
 /* ===== POST CONFIG ===== */
 var POST_CONFIG = {
   postnaam: 'Post Veluwsekant',
