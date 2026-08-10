@@ -660,8 +660,19 @@
       <textarea id="cfgPosts" rows="4" spellcheck="false"></textarea>
     </div>
     <div class="field">
-      <label for="cfgUnits">Voertuigen — één per regel: <code>nummer = naam @ post</code></label>
-      <textarea id="cfgUnits" rows="7" spellcheck="false"></textarea>
+      <label>Voertuigen & Capcodes</label>
+      <table id="voertuigenConfigTable" style="width:100%;border-collapse:collapse;margin:1rem 0">
+        <thead>
+          <tr style="background:#111a2b;border-bottom:1px solid #20304a">
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Capcode</th>
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Voertuignaam</th>
+            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">—</th>
+          </tr>
+        </thead>
+        <tbody id="voertuigenConfigBody"></tbody>
+      </table>
+      <button class="btn ghost" id="addVoertuigConfigBtn" type="button" style="margin-top:0.5rem">+ Voertuig toevoegen</button>
+      <textarea id="cfgUnits" rows="0" spellcheck="false" style="display:none"></textarea>
     </div>
     <div class="field">
       <label>Werkzaamheden — kies per taak de dagen (niets aan = elke dag)</label>
@@ -886,7 +897,8 @@ function parseUnits(str){
   var codes = (str||'').match(/\d{4,7}/g) || [];
   var out = [];
   codes.forEach(function(code){
-    var u = UNITS[code.slice(-4)];
+    // Probeer eerst volledige code, dan slice(-4) voor backwards compatibility
+    var u = UNITS[code] || UNITS[code.slice(-4)];
     // postcapcode overslaan, maar alleen als het geen bekend voertuig is
     if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
     out.push({
@@ -2347,6 +2359,124 @@ if(cfgSaveBtn3){
     if(origSave3.call) origSave3.call(this);
   };
 }
+
+
+
+/* ===== VOERTUIGEN CONFIG TABEL ===== */
+function vulVoertuigenConfigTable(){
+  var tbody = document.getElementById('voertuigenConfigBody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  
+  var unitTxt = document.getElementById('cfgUnits').value || '';
+  var units = tekstNaarUnits(unitTxt);
+  
+  var rows = [];
+  for(var cap in units){
+    if(units.hasOwnProperty(cap)){
+      rows.push({cap: cap, unit: units[cap]});
+    }
+  }
+  
+  for(var i=0;i<rows.length;i++){
+    var tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #20304a';
+    
+    var td1 = document.createElement('td');
+    td1.style.padding = '0.8rem';
+    var inp1 = document.createElement('input');
+    inp1.type = 'text';
+    inp1.value = rows[i].cap;
+    inp1.dataset.idx = i;
+    inp1.dataset.prop = 'cap';
+    inp1.style.width = '100%';
+    inp1.style.padding = '0.5rem';
+    inp1.style.background = '#0e1524';
+    inp1.style.border = '1px solid #20304a';
+    inp1.style.color = '#eaf1fa';
+    inp1.style.borderRadius = '.3rem';
+    inp1.style.fontFamily = 'inherit';
+    td1.appendChild(inp1);
+    tr.appendChild(td1);
+    
+    var td2 = document.createElement('td');
+    td2.style.padding = '0.8rem';
+    var inp2 = document.createElement('input');
+    inp2.type = 'text';
+    inp2.value = rows[i].unit.naam || '';
+    inp2.dataset.idx = i;
+    inp2.dataset.prop = 'naam';
+    inp2.style.width = '100%';
+    inp2.style.padding = '0.5rem';
+    inp2.style.background = '#0e1524';
+    inp2.style.border = '1px solid #20304a';
+    inp2.style.color = '#eaf1fa';
+    inp2.style.borderRadius = '.3rem';
+    inp2.style.fontFamily = 'inherit';
+    td2.appendChild(inp2);
+    tr.appendChild(td2);
+    
+    var td3 = document.createElement('td');
+    td3.style.padding = '0.8rem';
+    td3.style.textAlign = 'center';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '×';
+    btn.dataset.idx = i;
+    btn.style.background = '#e30613';
+    btn.style.border = 'none';
+    btn.style.color = '#fff';
+    btn.style.padding = '0.4rem 0.8rem';
+    btn.style.cursor = 'pointer';
+    btn.style.borderRadius = '.2rem';
+    btn.style.fontWeight = '600';
+    btn.onclick = function(){ 
+      rows.splice(parseInt(this.dataset.idx, 10), 1);
+      updateCfgUnitsFromTable();
+      vulVoertuigenConfigTable();
+    };
+    td3.appendChild(btn);
+    tr.appendChild(td3);
+    
+    tbody.appendChild(tr);
+  }
+}
+
+function updateCfgUnitsFromTable(){
+  var rows = [];
+  var trs = document.querySelectorAll('#voertuigenConfigBody tr');
+  
+  for(var i=0;i<trs.length;i++){
+    var cap = trs[i].querySelector('input[data-prop="cap"]').value.trim();
+    var naam = trs[i].querySelector('input[data-prop="naam"]').value.trim();
+    if(cap && naam){
+      rows.push(cap + ' = ' + naam);
+    }
+  }
+  
+  document.getElementById('cfgUnits').value = rows.join('\n');
+}
+
+document.getElementById('addVoertuigConfigBtn').onclick = function(){
+  updateCfgUnitsFromTable();
+  var textarea = document.getElementById('cfgUnits');
+  if(textarea.value) textarea.value += '\n';
+  textarea.value += ' = ';
+  vulVoertuigenConfigTable();
+};
+
+// Vul tabel bij openCfg
+var origOpenCfg2 = window.openCfgOrig2 || function(){};
+window.openCfgOrig2 = window.openCfg || function(){};
+if(typeof openCfg === 'function'){
+  var oldOpenCfg = window.openCfg;
+  window.openCfg = function(){
+    oldOpenCfg.apply(this, arguments);
+    vulVoertuigenConfigTable();
+  };
+}
+
+vulVoertuigenConfigTable();
 
 </script></body>
 </html>
