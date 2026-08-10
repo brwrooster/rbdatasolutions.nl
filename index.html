@@ -1,2529 +1,507 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>P2000 · Post Veluwsekant</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="P2000 kazernescherm - Real-time emergency dispatch system voor Nederlandse brandweerkazernes. Ontvang alarmeringen direct en volg geschatte aankomsttijden op tv of monitor.">
+    <meta name="keywords" content="P2000, kazernescherm, brandweer, dispatch, alarm, Flevoland, Almere">
+    <meta name="author" content="RB Data Solutions">
+    <meta name="theme-color" content="#0f172a">
+    <title>P2000 Kazernescherm | Real-time Emergency Dispatch System | RB Data Solutions</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+        :root {
+            --navy: #0f172a;
+            --orange: #f97316;
+            --white: #ffffff;
+            --slate: #64748b;
+            --light-gray: #f8fafc;
+        }
 
-<style>
-  :root{
-    --bg:#0a0f1a;
-    --panel:#111a2b;
-    --panel-2:#0e1524;
-    --line:#20304a;
-    --text:#eaf1fa;
-    --muted:#8395ad;
-    --brand:#e30613;
-    --prio1:#ff3b30;
-    --prio2:#ffc400;
-    --accent:#3ec1ff;
-    --ok:#37d67a;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  /* muispijl verdwijnt bij stilstand, komt terug bij beweging */
-  body.geen-muis, body.geen-muis *{cursor:none !important}
+        html {
+            scroll-behavior: smooth;
+        }
 
-  /* ===== Dagthema: licht rustscherm. Vervalt zodra er een melding is ===== */
-  body.dag{background:#f2f5f8}
-  body.dag #screen{background:#f2f5f8;color:#1a2433}
-  body.dag #screen .topbar{background:#e8edf3;border-bottom-color:#c9d4e0}
-  body.dag #screen .post-id .name{color:#1a2433}
-  body.dag #screen .post-id .sub{color:#5a6b80}
-  body.dag #screen .topbar .status{color:#5a6b80}
-  body.dag #screen 
-  body.dag #screen .clock{color:#1a2433}
-  body.dag #screen .clock .sec{color:#0b63b8}
-  body.dag #screen .date{color:#5a6b80}
-  body.dag #screen .weather .temp{color:#1a2433}
-  body.dag #screen .weather .cond{color:#1a2433}
-  body.dag #screen .weather .wind{color:#5a6b80}
-  body.dag #screen 
-  body.dag .task-bar .task{color:#3c4c60}
-  body.dag .task-bar .task::before{background:#0b63b8}
-  body.dag .brand-credit{color:#5a6b80}
-  body.dag .source-credit{color:#7a8798}
-  body.dag .source-credit a{color:#7a8798}
-  body{
-    background:#0a0f1a;
-    color:#eaf1fa;
-    font-family:'Inter',system-ui,sans-serif;
-    overflow:hidden;
-    -webkit-font-smoothing:antialiased;
-  }
-  #screen{
-    position:relative;
-    width:100vw;min-height:100vh;
-    display:flex;flex-direction:column;
-  }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--navy);
+            background: var(--white);
+        }
 
-  /* ---------- Topbalk ---------- */
-  .topbar{
-    display:flex;align-items:center;gap:.9rem;
-    padding:2.2vh 3vw;
-    border-bottom:1px solid #20304a;
-    flex:0 0 auto;
-    transition:background .4s ease, border-color .4s ease;
-  }
-  .mark{
-    width:4.2vh;height:4.2vh;
-    flex:0 0 auto;cursor:pointer;display:block;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .mark svg{width:100%;height:100%;display:block}
-  .post-id{display:flex;flex-direction:column;line-height:1.05}
-  .post-id .name{
-    font-family:'Oswald',sans-serif;font-weight:600;
-    letter-spacing:.06em;text-transform:uppercase;
-    font-size:2.5vh;
-  }
-  .post-id .sub{
-    color:#8395ad;font-size:1.4vh;
-    letter-spacing:.16em;text-transform:uppercase;margin-top:.15rem;
-  }
-  .topbar .status{
-    margin-left:auto;display:flex;align-items:center;gap:.55rem;
-    color:#8395ad;font-size:1.5vh;
-    font-family:'Roboto Mono',monospace;letter-spacing:.04em;
-  }
-  .dot{width:.6rem;height:.6rem;border-radius:50%;background:#37d67a}
-  .rb-logo{height:4.2vh;width:auto;display:block}
-  .wifi-icon{display:block;fill:#37d67a;height:4.2vh;width:4.2vh}
-  .wifi-icon path{stroke:#37d67a}
-  .wifi-icon path:first-child{stroke:none}
+        /* Header */
+        header {
+            background: var(--navy);
+            color: var(--white);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
 
-  /* ---------- IDLE ---------- */
-  .idle{
-    flex:1;display:flex;flex-direction:column;
-    align-items:center;justify-content:flex-start;
-    gap:3vh;padding:11vh 2rem 2rem;
-  }
-  
-  .clock{
-    font-family:'Roboto Mono',monospace;font-weight:500;
-    font-size:20vh;line-height:.9;
-    letter-spacing:.02em;
-    font-variant-numeric:tabular-nums;
-  }
-  .clock .sec{color:#3ec1ff}
-  .date{
-    font-family:'Oswald',sans-serif;font-weight:400;
-    text-transform:uppercase;letter-spacing:.22em;
-    color:#8395ad;font-size:2.4vh;
-  }
-  .weather{
-    display:flex;align-items:center;gap:2.2vw;
-    color:#8395ad;flex-wrap:wrap;justify-content:center;
-  }
-  .weather .glyph{font-size:4vh;line-height:1}
-  .weather .temp{
-    font-family:'Roboto Mono',monospace;font-weight:500;color:#eaf1fa;
-    font-size:4vh;line-height:1;
-  }
-  .weather .wx-meta{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
-  .weather .cond{font-size:2.2vh;font-weight:500;color:#eaf1fa}
-  .weather .wind{
-    color:#8395ad;font-size:1.7vh;
-    font-family:'Roboto Mono',monospace;letter-spacing:.02em;
-  }
-  .weather .sep{display:none}
-  
-  .last-run:empty{display:none}
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-  /* ---------- Statistiekenrij: laatste melding + dienst + jaar ---------- */
-  .stats-row{
-    display:flex;justify-content:center;align-items:flex-start;
-    gap:3.2rem;flex-wrap:wrap;
-  }
-  .stats-row .stat{
-    display:flex;flex-direction:column;align-items:center;
-    min-width:0;text-align:center;
-  }
-  .stats-row .stat-label{
-    color:#5a6b80;font-family:'Roboto Mono',monospace;
-    font-size:1.1vh;letter-spacing:.12em;text-transform:uppercase;
-    margin-bottom:.3rem;
-  }
-  .stats-row .stat-value{
-    color:#8395ad;
-    font-family:'Roboto Mono',monospace;letter-spacing:.02em;
-    font-size:1.7vh;white-space:nowrap;
-  }
-  .stats-row:empty{display:none}
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
 
-  .ploegen-kop{
-    text-align:center;color:#4a5a70;
-    font-family:'Roboto Mono',monospace;font-size:1.05vh;
-    letter-spacing:.14em;text-transform:uppercase;margin-top:.9rem;
-  }
-  .ploegen-kop:empty{display:none}
-  .ploegen-row{
-    display:flex;justify-content:center;align-items:center;
-    gap:1.6rem;margin-top:.4rem;flex-wrap:wrap;
-  }
-  .ploegen-row .ploeg-item{
-    display:flex;align-items:baseline;gap:.4rem;
-    font-family:'Roboto Mono',monospace;font-size:1.25vh;
-    color:#5a6b80;letter-spacing:.03em;
-  }
-  .ploegen-row .ploeg-item .naam{
-    font-weight:500;color:#8395ad;
-  }
-  .ploegen-row:empty{display:none}
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
-  .ticker-wrap{
-    width:100%;overflow:hidden;margin-top:1.1rem;
-    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
-    mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
-  }
-  .ticker-wrap:empty{display:none}
-  .ticker-track{
-    display:inline-block;white-space:nowrap;
-    font-family:'Roboto Mono',monospace;font-size:1.95vh;letter-spacing:.03em;
-    color:#5a6b80;padding-left:100%;
-    animation:ticker-scroll 60s linear infinite;
-  }
-  .ticker-track:empty{animation:none}
-  @keyframes ticker-scroll{
-    0%{transform:translateX(0)}
-    100%{transform:translateX(-100%)}
-  }
+        .logo-image {
+            height: 45px;
+            width: auto;
+            max-width: 150px;
+        }
 
-  /* ---------- ALARM ---------- */
-  .alarm{display:none;flex:1;flex-direction:column}
-  #screen.is-alarm .idle{display:none}
-  #screen.is-alarm .alarm{display:flex}
-  #screen.is-alarm .topbar{background:#0e1524}
+        .logo-accent {
+            color: var(--orange);
+        }
 
-  .alarm-strip{
-    flex:0 0 auto;display:flex;align-items:center;gap:1rem;
-    padding:1.6vh 3vw;
-    font-family:'Oswald',sans-serif;font-weight:700;
-    text-transform:uppercase;letter-spacing:.14em;
-    font-size:2.8vh;
-    color:#0a0f1a;
-  }
-  .alarm-strip .when{
-    margin-left:auto;font-family:'Roboto Mono',monospace;
-    font-weight:500;letter-spacing:.02em;font-size:.8em;
-  }
-  #screen.prio-1 .alarm-strip{background:#ff3b30}
-  #screen.prio-2 .alarm-strip{background:#ffc400}
+        nav a {
+            color: var(--white);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
 
-  .alarm-body{flex:1;display:flex;min-height:0}
-  .alarm-main{
-    flex:1;display:flex;flex-direction:column;justify-content:center;
-    gap:3vh;padding:4vw;min-width:0;
-  }
-  .eyebrow{
-    font-family:'Oswald',sans-serif;text-transform:uppercase;
-    letter-spacing:.24em;color:#8395ad;
-    font-size:1.7vh;
-  }
-  .incident{
-    font-family:'Oswald',sans-serif;font-weight:700;
-    text-transform:uppercase;line-height:.94;
-    font-size:9.5vh;
-    word-break:normal;overflow-wrap:break-word;
-  }
-  #screen.prio-1 .incident{color:#ff3b30}
-  #screen.prio-2 .incident{color:#ffc400}
-  .addr{
-    display:flex;flex-direction:column;gap:.35rem;
-    border-left:4px solid #20304a;padding-left:1.1rem;
-  }
-  .addr .street{
-    font-weight:600;font-size:4.4vh;line-height:1.05;
-  }
-  .addr .place{
-    color:#8395ad;font-size:2.4vh;
-    font-family:'Roboto Mono',monospace;letter-spacing:.02em;
-  }
-  .units{display:flex;flex-direction:column;gap:.7rem;padding-top:.3rem}
-  .kanaal-regel{
-    margin-top:.4rem;font-size:2.6vh;
-    font-family:'Roboto Mono',monospace;letter-spacing:.06em;
-  }
-  #screen.prio-1 .kanaal-regel{color:#ff3b30}
-  #screen.prio-2 .kanaal-regel{color:#ffc400}
-  .unit-chips{display:flex;flex-direction:column;gap:.4rem}
-  .chip{
-    display:flex;align-items:baseline;gap:.7rem;
-    font-size:2.6vh;font-weight:600;
-  }
-  .chip .cc{
-    font-family:'Roboto Mono',monospace;font-weight:500;
-    color:#8395ad;font-size:.72em;letter-spacing:.02em;
-  }
-  .chip.known .name{color:#3ec1ff}
-  .chip.unknown .name{color:#8395ad;font-weight:500}
-  .chip .eta{
-    font-family:'Roboto Mono',monospace;font-weight:700;
-    color:#3ec1ff;font-size:.8em;letter-spacing:.02em;
-  }
-  .footer-line{
-    color:#8395ad;font-size:1.6vh;
-    font-family:'Roboto Mono',monospace;letter-spacing:.04em;padding-top:.2rem;
-  }
+        nav a:hover {
+            color: var(--orange);
+        }
 
-  .alarm-side{
-    flex:0 0 42%;max-width:42%;position:relative;
-    border-left:1px solid #20304a;
-    background:#0e1524;
-    display:flex;flex-direction:column;
-  }
-  #map{flex:1;width:100%;background:#e6ecf2}
-  .route-badge{
-    position:absolute;top:1rem;left:1rem;z-index:600;
-    display:flex;gap:1.1rem;align-items:stretch;
-    background:rgba(10,15,26,.86);backdrop-filter:blur(6px);
-    border:1px solid #20304a;border-radius:12px;
-    padding:.7rem 1.1rem;
-  }
-  .route-badge .item{display:flex;flex-direction:column;gap:.15rem}
-  .route-badge .k{
-    color:#8395ad;text-transform:uppercase;letter-spacing:.14em;
-    font-size:1.4vh;
-  }
-  .route-badge .v{
-    font-family:'Roboto Mono',monospace;font-weight:700;
-    font-size:3.8vh;line-height:1;
-  }
-  .route-badge .v.time{color:#3ec1ff}
-  .route-badge .vsep{width:1px;background:#20304a}
-  .wind-wrap{display:flex;align-items:center;gap:.5rem}
-  .windrose{width:6.5vh;height:6.5vh;display:block}
-  .wind-lbl{font-size:2.6vh !important}
-  .route-badge.loading .v{color:#8395ad;font-weight:500}
+        /* Hero Section */
+        .hero {
+            width: 100%;
+            max-height: 500px;
+            overflow: hidden;
+        }
 
-  .leaflet-container{font-family:'Roboto Mono',monospace}
-  .kaart-merk{
-    width:34px;height:34px;display:block;
-    filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));
-  }
-  .kaart-merk.start{color:#1565c0}
-  .kaart-merk.inc-1{color:#ff3b30}
-  .kaart-merk.inc-2{color:#f0a500}
+        .hero-image-main {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
 
-  /* ---------- Testpaneel ---------- */
-  .screen-footer{
-    margin-top:auto;padding:.6rem 0 .5rem;width:100%;
-    text-align:center;display:flex;flex-direction:column;gap:.3rem;
-    pointer-events:none;transition:opacity .3s;
-  }
-  #screen.is-alarm .screen-footer{opacity:0}
-  .task-bar{
-    position:fixed;left:0;right:0;top:9.6vh;z-index:500;
-    display:flex;flex-wrap:wrap;justify-content:center;
-    gap:.6rem 2.2vw;padding:0 3vw;
-    pointer-events:none;transition:opacity .3s;
-  }
-  .task-bar:empty{display:none}
-  #screen.is-alarm ~ .task-bar{opacity:0}
-  .task-bar .task{
-    display:flex;align-items:center;gap:.5rem;
-    color:#8395ad;font-size:2.9vh;letter-spacing:.02em;
-  }
-  .task-bar .task::before{
-    content:'';width:.45rem;height:.45rem;border-radius:50%;
-    background:#3ec1ff;opacity:.8;flex:0 0 auto;
-  }
-  .source-credit{
-    font-family:'Inter',sans-serif;font-size:.85vh;font-weight:500;
-    letter-spacing:.03em;color:#8395ad;opacity:.45;
-  }
-  .source-credit a{color:#8395ad;text-decoration:none;pointer-events:auto}
-  .source-credit a:hover{text-decoration:underline}
-  .brand-credit{
-    color:#a8b6c9;opacity:.85;
-    font-family:'Inter',sans-serif;font-size:.85vh;font-weight:600;
-    letter-spacing:.04em;line-height:1.5;
-  }
-  .brand-credit .mail{opacity:.8;font-weight:500}
+        /* Hero Text Section */
+        .hero-text {
+            padding: 4rem 2rem;
+            background: var(--light-gray);
+        }
 
-  #testPanel, #cfgPanel{
-    position:fixed;inset:auto 0 0 0;z-index:1001;
-    background:#111a2b;border-top:1px solid #20304a;
-    padding:1.1rem 3vw 1.4rem;
-    transform:translateY(110%);transition:transform .28s ease;
-    box-shadow:0 -12px 40px rgba(0,0,0,.45);
-  }
-  #cfgPanel{max-height:88vh;overflow-y:auto}
-  #cfgPanel.open{transform:translateY(0)}
-  .cfg-grid{display:flex;flex-direction:column;gap:.8rem}
-  .cfg-grid textarea{
-    background:#0e1524;border:1px solid #20304a;color:#eaf1fa;
-    border-radius:9px;padding:.7rem .8rem;font-size:.95rem;
-    font-family:'Roboto Mono',monospace;width:100%;resize:vertical;
-  }
-  .cfg-grid textarea:focus, #cfgPanel input:focus{outline:2px solid #3ec1ff;border-color:#3ec1ff}
-  .cfg-grid code{font-family:'Roboto Mono',monospace;color:#3ec1ff;font-size:.9em}
-  .task-row{
-    display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
-    padding:.55rem 0;border-bottom:1px solid #20304a;
-  }
-  .task-row input.taskname{
-    flex:1 1 12rem;min-width:9rem;
-    background:#0e1524;border:1px solid #20304a;color:#eaf1fa;
-    border-radius:9px;padding:.6rem .7rem;font-size:.95rem;
-  }
-  .day-picker{display:flex;gap:.25rem;flex-wrap:wrap}
-  .day-picker button{
-    width:2.3rem;padding:.45rem 0;cursor:pointer;
-    background:#0e1524;border:1px solid #20304a;color:#8395ad;
-    border-radius:7px;font-family:'Oswald',sans-serif;font-weight:600;
-    text-transform:uppercase;font-size:.75rem;letter-spacing:.04em;
-  }
-  .day-picker button.on{background:#3ec1ff;border-color:#3ec1ff;color:#04121f}
-  .task-row .del{
-    background:none;border:1px solid #20304a;color:#8395ad;
-    border-radius:7px;width:2.1rem;height:2.1rem;cursor:pointer;font-size:1rem;line-height:1;
-  }
-  #cfgTaskAdd{margin-top:.6rem}
-  #testPanel.open{transform:translateY(0)}
-  .tp-head{
-    display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem;
-  }
-  .tp-head .tag{
-    background:#e30613;color:#fff;font-family:'Oswald',sans-serif;
-    font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-    font-size:.7rem;padding:.2rem .5rem;border-radius:5px;
-  }
-  .tp-head h2{font-size:1rem;font-weight:600}
-  .tp-head .close{
-    margin-left:auto;background:none;border:1px solid #20304a;
-    color:#8395ad;border-radius:8px;width:2rem;height:2rem;
-    cursor:pointer;font-size:1.1rem;line-height:1;
-  }
-  .tp-grid{
-    display:grid;grid-template-columns:1fr 1fr;
-    gap:.8rem;align-items:end;
-  }
-  .field.wide{grid-column:1 / -1}
-  .tp-actions{grid-column:1 / -1}
-  .field{display:flex;flex-direction:column;gap:.35rem;min-width:0}
-  .field label{
-    color:#8395ad;font-size:.7rem;text-transform:uppercase;
-    letter-spacing:.12em;
-  }
-  .field input{
-    background:#0e1524;border:1px solid #20304a;
-    color:#eaf1fa;border-radius:9px;padding:.7rem .8rem;
-    font-size:1rem;font-family:'Inter',sans-serif;width:100%;
-  }
-  .field input:focus{outline:2px solid #3ec1ff;border-color:#3ec1ff}
-  .prio-pick{display:flex;gap:.4rem}
-  .prio-pick button{
-    flex:1;border:1px solid #20304a;background:#0e1524;
-    color:#8395ad;border-radius:9px;padding:.7rem .5rem;cursor:pointer;
-    font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.06em;
-    text-transform:uppercase;font-size:.85rem;white-space:nowrap;
-  }
-  .prio-pick button.sel[data-prio="1"]{background:#ff3b30;color:#0a0f1a;border-color:#ff3b30}
-  .prio-pick button.sel[data-prio="2"]{background:#ffc400;color:#0a0f1a;border-color:#ffc400}
-  .tp-actions{display:flex;gap:.6rem}
-  .btn{
-    border:none;border-radius:9px;padding:.75rem 1.1rem;cursor:pointer;
-    font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.08em;
-    text-transform:uppercase;font-size:.85rem;white-space:nowrap;
-  }
-  .btn.primary{background:#3ec1ff;color:#04121f}
-  .btn.ghost{background:#0e1524;color:#eaf1fa;border:1px solid #20304a}
-  .btn:focus-visible{outline:2px solid #fff}
-  .tp-hint{color:#8395ad;font-size:.75rem;margin-top:.7rem;line-height:1.4}
-  .tp-hint b{color:#eaf1fa;font-weight:600}
+        .hero-text-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
 
-  @media(prefers-reduced-motion:reduce){
-    *{transition:none!important}
-  }
-.duty{font-size:2rem;font-weight:bold;color:#0b63b8;text-align:center;}
+        .hero-text h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -1px;
+            color: var(--navy);
+        }
 
+        .hero-description {
+            font-size: clamp(1rem, 2vw, 1.1rem);
+            color: var(--slate);
+            margin-bottom: 2rem;
+            font-weight: 400;
+            line-height: 1.8;
+        }
 
+        .cta-button {
+            display: inline-block;
+            background: var(--orange);
+            color: var(--white);
+            padding: 1rem 2.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+            border: 2px solid var(--orange);
+            cursor: pointer;
+            border: none;
+        }
 
-.last-run > *{
-  margin:0.05rem 0;
-  padding:0.05rem;
-}
+        .cta-button:hover {
+            background: transparent;
+            color: var(--orange);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
 
+        /* Features Section */
+        .features {
+            background: var(--light-gray);
+            padding: 5rem 2rem;
+        }
 
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-.last-run{
-  max-height:40vh;
-  overflow:hidden;
-  font-size:0.65rem;
-  line-height:1;
-  padding:0.05rem;
-}
-</style>
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--orange);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: var(--navy);
+        }
+
+        .feature-card p {
+            color: var(--slate);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Benefits Section */
+        .benefits {
+            padding: 5rem 2rem;
+            background: var(--white);
+        }
+
+        .benefits-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .benefits h2 {
+            font-size: 2rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .benefits-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .benefit-item {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .benefit-check {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            background: var(--orange);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: bold;
+            margin-top: 0.2rem;
+        }
+
+        .benefit-text {
+            font-size: 1rem;
+            color: var(--slate);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--navy) 0%, #1e293b 100%);
+            color: var(--white);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: rgba(255,255,255,0.9);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button-light {
+            display: inline-block;
+            background: var(--orange);
+            color: var(--navy);
+            padding: 1rem 2.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .cta-button-light:hover {
+            background: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+        }
+
+        /* Footer */
+        footer {
+            background: #030712;
+            color: var(--slate);
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            color: var(--slate);
+            text-decoration: none;
+            margin: 0 1rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--orange);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav {
+                display: flex;
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            nav a {
+                margin: 0;
+                font-size: 0.85rem;
+            }
+
+            .hero {
+                max-height: 300px;
+            }
+
+            .hero-text {
+                padding: 2rem 1rem;
+            }
+
+            .hero-text h1 {
+                font-size: 1.8rem;
+            }
+
+            .section-title {
+                font-size: 1.8rem;
+            }
+
+            .features {
+                padding: 3rem 1rem;
+            }
+
+            .benefits {
+                padding: 3rem 1rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<div id="screen">
-  <!-- Topbalk -->
-  <header class="topbar">
-    <a class="mark" id="logoLink" role="button" aria-label="Naar testversie" title="Naar testversie">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -.01 30.31 35.04"><path d="m13.23 20.65-.22-.52-.24-.5-.27-.47-.6-.93-.3-.46-.34-.45-.3-.44-.33-.45-.3-.43-.3-.44-.26-.43-.26-.44-.23-.44-.2-.44-.16-.45-.14.04-.14.06-.14.05-.15.05-.14.04-.14.06-.14.05-.27.1-.14.07-.1.04-.13.08-.14.04-.12.07-.12.05-.1.06.08 1.13.11 1.05.23 1.03.27.98.32.93.4.88.4.84.44.78.48.72.5.7.52.63.53.6.52.53.55.5.53.45.53.42.15-.46.13-.42.12-.42.07-.4.05-.38.04-.37v-1.03l-.05-.33-.05-.32-.15-.63-.1-.3-.22-.62m6.09-10.79.5.07.5.08.5.1.5.1.47.1.5.13.46.13.47.15.44.15.45.16.42.15.44.17.4.18.8.4.38.22-.02.8-.04.77-.08.77-.1.73-.1.74-.16.7-.16.7-.18.67-.2.67-.23.64-.24.62-.26.6-.27.58-.3.58-.28.54-.3.54 2.6 2.98.43-.7.4-.7.42-.74.37-.76.36-.8.35-.8.3-.84.3-.86.25-.9.23-.9.2-.95.18-.98.13-1 .1-1.03.06-1.07.02-1.07-.6-.4-.63-.42-.67-.37-.68-.34-.7-.34-.76-.3-.76-.28-.8-.26-.8-.23-.82-.2-.84-.2-.85-.18-.87-.15-.88-.12-.9-.1-.88-.07.06.13.08.13.08.14.08.13.17.27.07.14.1.13.18.27.08.13.2.27.1.12.1.12.1.14m-15.47 2.32v.8l.04.77.07.77.1.73.12.74.14.7.16.7.18.67.22.67.22.64.23.62.26.6.28.58.3.58.3.54.32.54-2.62 2.98-.45-.7-.4-.7-.42-.74-.37-.76-.36-.8-.34-.8-.3-.84-.3-.86-.26-.9-.23-.9-.2-.95-.16-.98-.13-1-.1-1.03-.1-1.07v-1.07l.45-.32.45-.3.5-.3.5-.28.5-.26.55-.26.55-.23.56-.22.58-.2.6-.2.6-.2.62-.18.62-.16.64-.15.65-.14.65-.12-.1.27-.03.15-.05.14-.04.12-.02.14-.04.13-.03.13v.13l-.06.28-.02.12-.02.13-.02.24v.13l-.35.08-.33.08-.32.1-.33.1-.32.1-.3.1-.32.1-.28.12-.3.12-.3.12-.28.12-.3.13-.26.14-.54.26-.25.16m11.34 22.86-.37-.13-.4-.16-.42-.2-.44-.2-.46-.24-.48-.26-.5-.3-.5-.3-.5-.35-.55-.38-.53-.4-.54-.4-.55-.45-.53-.48-.55-.5-.53-.53 2.58-2.95.36.34.7.64.37.3.36.3.36.25.35.26.34.25.35.23.32.2.32.2.3.2.3.15.3.14.28.15.27.12.26-.12.3-.15.3-.14.3-.16.3-.2.32-.18.34-.22.33-.23.34-.24.34-.25.36-.26.35-.3.35-.3.72-.64.37-.34 2.58 2.95-.54.52-.55.5-.54.47-.55.44-.55.43-.53.4-.53.36-.52.34-.5.3-.5.3-.48.26-.45.23-.46.2-.42.2-.4.17-.37.13m3.97-14.37.37-.55.34-.54.28-.53.25-.5.2-.52.17-.5.12-.5.1-.48.07-.47.03-.46.03-.44v-.42l-.03-.4-.04-.37-.05-.37-.05-.33.17.04.17.05.35.1.33.13.18.04.17.06.17.06.16.07.16.05.17.06.16.1.14.06.14.08.16.07-.12 1.4-.22 1.34-.32 1.24-.4 1.17-.48 1.1-.54 1-.58.95-.63.86-.65.78-.67.72-.68.65-.67.57-.66.5-.63.44-.6.37-.55.3-.07-.02-.08-.04-.07-.04-.08-.04-.07-.03-.07-.06-.07-.04-.1-.05-.06-.05-.1-.05-.06-.05-.08-.05-.07-.05-.1-.06-.07-.05-.08-.06.8-1.1.6-1.1.4-1.08.24-1.04.12-1-.03-1-.14-.93-.22-.88-.28-.84-.32-.76-.36-.7-.36-.6-.36-.55-.3-.46-.28-.36-.2-.26-.15-.22-.16-.23-.15-.25-.16-.25-.18-.26-.16-.27-.15-.3-.15-.27-.15-.3-.28-.58-.1-.3-.13-.3-.1-.3-.1-.3-.06-.28-.1-.5-.07-.5-.04-.53v-.57l.04-.58.07-.58.13-.6.17-.62.23-.64.3-.64.32-.65.4-.67.5-.68.54-.67.62-.7.72-.68.27.1-.34.65-.28.6-.23.6-.2.56-.17.54-.13.5-.08.5-.04.47-.03.45.02.45.03.43.08.43.08.4.12.42.12.42.15.42.18.45.24.5.28.48.3.52.35.53.36.54.37.54.37.57.37.55.36.56.33.57.33.57.28.56.25.57.2.56.16.54.03.2.03.23.08.47v.24l.03.23v1.02l-.03.27-.04.25-.04.27-.01.28-.1.55z" fill="#c9af53"/></svg>
-    </a>
-    <div class="post-id">
-      <span class="name" id="topbarPostnaam">Post Veluwsekant</span>
-      <span class="sub" id="topbarBrandweer">Brandweer Flevoland</span>
-    </div>
-    <div class="status">
-      <img class="rb-logo" src="data:image/png;base64,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" alt="RB Data Solutions" />
-      <svg class="wifi-icon" id="wifiIcon" viewBox="0 0 24 24">
-        <path d="M12 20.5a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z"/>
-        <path d="M6.3 14.7a8 8 0 0 1 11.4 0" fill="none" stroke-width="2" stroke-linecap="round"/>
-        <path d="M3 11.4a12.5 12.5 0 0 1 18 0" fill="none" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <button id="testBtn" style="margin-left:1.5rem;padding:0.4rem 1rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.4vh;cursor:pointer;">Test</button>
-      <button id="cfgBtn" style="margin-left:0.5rem;padding:0.4rem 1rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.4vh;cursor:pointer;">⚙ Menu</button>
-    </div>
-  </header>
-
-  <!-- Rustweergave -->
-  <section class="idle">
-    <div class="duty" id="dutyPloeg">—</div>
-    <div class="clock"><span id="hm">--:--</span><span class="sec" id="ss">:--</span></div>
-    <div class="date" id="dateText">—</div>
-    <div class="weather" id="weatherCard">
-      <div class="glyph" id="wxGlyph">·</div>
-      <div class="sep"></div>
-      <div class="temp" id="wxTemp">--°</div>
-      <div class="wx-meta">
-        <div class="cond" id="wxCond">Weer laden…</div>
-        <div class="wind" id="wxWind">Almere</div>
-      </div>
-    </div>
-    <div class="stats-row" id="statsRow">
-      <div class="stat">
-        <div class="stat-label">Deze dienst</div>
-        <div class="stat-value" id="statDienst">—</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Totaal meldingen <span id="jaarLabelStat"></span></div>
-        <div class="stat-value" id="statJaar">—</div>
-      </div>
-    </div>
-    <div class="ticker-wrap" id="tickerWrap"><div class="ticker-track" id="tickerTrack"></div></div>
-    <div class="ploegen-kop" id="ploegenKop"></div>
-    <div class="ploegen-row" id="ploegenRow"></div>
-  </section>
-
-  <!-- Alarmweergave -->
-  <section class="alarm">
-    <div class="alarm-strip">
-      <span id="prioLabel">Prioriteit —</span>
-      <span class="when" id="alarmWhen">--:--</span>
-    </div>
-    <div class="alarm-body">
-      <div class="alarm-main">
-        <div class="eyebrow">Melding</div>
-        <div class="incident" id="incidentType">—</div>
-        <div class="kanaal-regel" id="kanaalRegel"></div>
-        <div class="addr">
-          <div class="street" id="incidentStreet">—</div>
-          <div class="place" id="incidentPlace"></div>
-        </div>
-        <div class="units">
-          <div class="eyebrow">Ingezette eenheden</div>
-          <div class="unit-chips" id="unitChips"></div>
-        </div>
-      </div>
-      <aside class="alarm-side">
-        <div class="route-badge loading" id="routeBadge">
-          <div class="item">
-            <span class="k">Rijtijd</span>
-            <span class="v time" id="routeTime">—</span>
-          </div>
-          <div class="vsep"></div>
-          <div class="item">
-            <span class="k">Afstand</span>
-            <span class="v" id="routeDist">—</span>
-          </div>
-          <div class="vsep"></div>
-          <div class="item wind-item">
-            <span class="k">Wind</span>
-            <div class="wind-wrap">
-              <svg class="windrose" viewBox="0 0 100 100" aria-hidden="true">
-                <circle cx="50" cy="50" r="46" fill="none" stroke="#20304a" stroke-width="4"/>
-                <text x="50" y="19" text-anchor="middle" fill="#8395ad" font-size="17" font-family="Roboto Mono, monospace">N</text>
-                <text x="84" y="56" text-anchor="middle" fill="#8395ad" font-size="17" font-family="Roboto Mono, monospace">O</text>
-                <text x="50" y="92" text-anchor="middle" fill="#8395ad" font-size="17" font-family="Roboto Mono, monospace">Z</text>
-                <text x="16" y="56" text-anchor="middle" fill="#8395ad" font-size="17" font-family="Roboto Mono, monospace">W</text>
-                <g id="windArrow" transform="rotate(0 50 50)">
-                  <polygon points="50,20 43,52 57,52" fill="#3ec1ff"/>
-                  <polygon points="50,80 43,52 57,52" fill="#5a6b82"/>
-                </g>
-              </svg>
-              <span class="v wind-lbl" id="windLabel">—</span>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <div class="logo-container">
+                <img src="./images/logo.jpg" alt="RB Data Solutions Logo" class="logo-image">
+                <div class="logo">RB Data <span class="logo-accent">Solutions</span></div>
             </div>
-          </div>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#benefits">Voordelen</a>
+                <a href="#contact">Contact</a>
+            </nav>
         </div>
-        <div id="map"></div>
-      </aside>
-    </div>
-  </section>
-  <div class="screen-footer">
-    <div class="brand-credit">© 2026 RB Data Solutions. Alle rechten voorbehouden.<br><span class="mail">Info@rbdatasolutions.nl</span></div>
-    
-  </div>
-</div>
+    </header>
 
-<!-- Testknop + paneel -->
-<div class="task-bar" id="taskBar"></div>
+    <!-- Hero Section -->
+    <section class="hero">
+        <img src="./images/homepage.jpg" alt="P2000 Dispatch Screen" class="hero-image-main">
+    </section>
 
-<div id="testPanel">
-  <div class="tp-head">
-    <span class="tag">Test</span>
-    <h2>Melding simuleren</h2>
-    <button class="close" id="tpClose" aria-label="Sluiten">×</button>
-  </div>
-  <div class="tp-grid">
-    <div class="field wide">
-      <label for="fRaw">P2000-bericht plakken</label>
-      <input id="fRaw" type="text" placeholder="P 1 BMD-01 WONINGBRAND KERKSTRAAT ALMERE 254133 254152" value="P 2 BMD-01 DIER TE WATER WINKELWEG ZEEWOLDE 254133 254152" autocomplete="off">
-    </div>
-    <div class="tp-actions">
-      <button class="btn primary" id="fireBtn">Maak melding</button>
-      <button class="btn primary" id="allesBtn">Naar alle schermen</button>
-      <button class="btn ghost" id="clearBtn">Terug naar rust</button>
-    </div>
-  </div>
-  <p class="tp-hint">Plak de P2000-regel en tik <b>Maak melding</b>. Prio (P 1 → prio 1, P 2 → prio 2), soort melding, adres en eenheden worden er automatisch uit gehaald. Adres wordt live opgezocht (PDOK); rijtijd vanaf de eigen post (OSRM).</p>
-</div>
-
-<div id="cfgPanel">
-  <div class="tp-head">
-    <span class="tag">Instellingen</span>
-    <h2>Configuratie</h2>
-    <button class="close" id="cfgClose" aria-label="Opslaan" onclick="document.getElementById('cfgSave').click();return false;">✓</button>
-  </div>
-  <div class="cfg-grid">
-    <div class="field">
-      <label for="cfgPostnaam">Postnaam</label>
-      <input id="cfgPostnaam" type="text" autocomplete="off" placeholder="bijv. Post Hendrik">
-    </div>
-    <div class="field">
-      <label for="cfgBrandweer">Brandweer</label>
-      <input id="cfgBrandweer" type="text" autocomplete="off" placeholder="bijv. Brandweer Amsterdam">
-    </div>
-    <div class="field">
-      <label>Ploegen</label>
-      <table id="ploegenTable" style="width:100%;border-collapse:collapse;margin:1rem 0">
-        <thead>
-          <tr style="background:#111a2b;border-bottom:1px solid #20304a">
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Ploegnaam</th>
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Starttijd</th>
-            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">Vandaag</th>
-            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">—</th>
-          </tr>
-        </thead>
-        <tbody id="ploegenTableBody"></tbody>
-      </table>
-      <button type="button" id="addPloegBtn" class="btn ghost" style="margin-top:0.5rem">+ Ploeg toevoegen</button>
-    </div>
-    <div class="field">
-      <label for="cfgAdres">Adres post (voor locatie routering)</label>
-      <input id="cfgAdres" type="text" autocomplete="off" placeholder="bijv. Hendrik Jacobszstraat 12, Almere">
-      <button type="button" id="cfgGeocode" class="btn ghost" style="margin-top:0.5rem">🔍 Geocoden (PDOK)</button>
-      <div id="geocodeHint" style="margin-top:0.5rem;font-size:0.9rem;color:#8395ad"></div>
-    </div>
-    <div class="field">
-      <label>Nachtmodus (donker scherm)</label>
-      <div style="display:flex;gap:1rem;align-items:center">
-        <div>
-          <label for="cfgNachtVan" style="display:block;font-size:0.9rem;color:#8395ad">Van:</label>
-          <input id="cfgNachtVan" type="time" style="width:120px">
+    <!-- Hero Text Section -->
+    <section class="hero-text">
+        <div class="hero-text-content">
+            <h1>P2000 Kazernescherm</h1>
+            <p class="hero-description">Toon P2000-meldingen overzichtelijk op een tv of monitor in de kazerne.<br><br>
+            Ontvang alarmeringen direct, zie welke eenheden zijn gealarmeerd en bekijk de incidentinformatie. Zo is de uitrukploeg altijd snel en goed geïnformeerd.</p>
+            <button class="cta-button" onclick="document.getElementById('contact').scrollIntoView();">Meer informatie</button>
         </div>
-        <div>
-          <label for="cfgNachtTot" style="display:block;font-size:0.9rem;color:#8395ad">Tot:</label>
-          <input id="cfgNachtTot" type="time" style="width:120px">
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-container">
+            <h2 class="section-title">Hoe het werkt</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📡</div>
+                    <h3>Live P2000-alarmeringen</h3>
+                    <p>Ontvang alle P2000-meldingen in real-time direct op je scherm in de kazerne.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>Duidelijke incidentinformatie</h3>
+                    <p>Zie direct welke eenheden zijn gealarmeerd en alle relevante incidentdetails.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚒</div>
+                    <h3>Overzicht gealarmeerde eenheden</h3>
+                    <p>Zie welke voertuigen zijn gealarmeerd en wat hun geschatte ETA is.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📺</div>
+                    <h3>Flexibel display</h3>
+                    <p>Werkt op elke tv of monitor — ideaal voor kazerne, huiskamer of computerscherm.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Altijd betrouwbaar</h3>
+                    <p>Ontworpen voor kritieke emergency dispatch situaties 24/7.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Extra informatie op maat</h3>
+                    <p>Het scherm toont ook weersinformatie, kazerne taken of andere informatie die je graag wil zien.</p>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    <div class="field">
-      <label for="cfgCaps">Capcodes van de post (spatie of komma gescheiden)</label>
-      <input id="cfgCaps" type="text" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="cfgHold">Melding blijft staan (minuten)</label>
-      <input id="cfgHold" type="number" min="1" max="120" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="cfgPosts">Posten — één per regel: <code>sleutel = naam, lat, lon</code></label>
-      <textarea id="cfgPosts" rows="4" spellcheck="false"></textarea>
-    </div>
-    <div class="field">
-      <label>Voertuigen & Capcodes</label>
-      <table id="voertuigenConfigTable" style="width:100%;border-collapse:collapse;margin:1rem 0">
-        <thead>
-          <tr style="background:#111a2b;border-bottom:1px solid #20304a">
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Capcode</th>
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Voertuignaam</th>
-            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">—</th>
-          </tr>
-        </thead>
-        <tbody id="voertuigenConfigBody"></tbody>
-      </table>
-      <button class="btn ghost" id="addVoertuigConfigBtn" type="button" style="margin-top:0.5rem">+ Voertuig toevoegen</button>
-      <textarea id="cfgUnits" rows="0" spellcheck="false" style="display:none"></textarea>
-    </div>
-    <div class="field">
-      <label>Werkzaamheden — kies per taak de dagen (niets aan = elke dag)</label>
-      <div id="cfgTaskList"></div>
-      <button class="btn ghost" id="cfgTaskAdd" type="button">+ Taak toevoegen</button>
-    </div>
-    <div class="tp-actions">
-      <button class="btn primary" id="cfgSave">Opslaan</button>
-      <button class="btn ghost" id="cfgReset">Standaard herstellen</button>
-    </div>
-  </div>
-  <p class="tp-hint" id="cfgMsg">Instellingen gelden voor alle schermen.</p>
-</div>
-
-<script>
-/* ================= Config ================= */
-var START_COORDS = { lat: 52.356938, lon: 5.247188 }; // Post Veluwsekant, Plus Code 964W+QV
-var ALMERE = { lat: 52.3746, lon: 5.2653 };           // weer
-
-/* ===== POST LOCATIE ===== */
-var POST_LOCATION = {
-  lat: 52.3667,      // Standaard: Almere
-  lon: 5.2210,
-  nachtVan: '22:00',
-  nachtTot: '07:00'
-};
-var ALARM_TIMEOUT_MS = 5 * 60 * 1000;                 // 5 min
-
-// >>> Vul in na het deployen <<<
-var TEST_URL = "";  // URL van de TESTversie (waar de logo-klik op de live-pagina naartoe gaat)
-
-// Zet op true voor de LIVE-pagina: de Test-knop verdwijnt, logo-klik gaat naar de test.
-var IS_LIVE = false;
-
-/* ===== Standaardinstellingen (te overschrijven via het verborgen menu) ===== */
-var DEFAULT_CAPCODES = ["0700140", "0700143"]; // postcapcodes waarop gefilterd wordt
-var DEFAULT_POSTS = {
-  veluwsekant: { naam:'Veluwsekant', lat:52.356938, lon:5.247188 },
-  poort:       { naam:'Poort',       lat:52.353063, lon:5.171188 },
-  buiten:      { naam:'Buiten',      lat:52.399938, lon:5.293188 },
-  lelystad:    { naam:'Lelystad',    lat:52.501812, lon:5.478438 }
-};
-var DEFAULT_UNITS = {
-  "4111": { naam:"Waterongevallenvoertuig Almere", post:"poort" },
-  "4112": { naam:"Brandweerboot",                  post:"veluwsekant" },
-  "4131": { naam:"Tankautospuit Poort",            post:"poort" },
-  "4132": { naam:"Tankautospuit Buiten",           post:"buiten" },
-  "4133": { naam:"Tankautospuit Veluwsekant",      post:"veluwsekant" },
-  "4134": { naam:"Tankautospuit",                  post:"poort" },
-  "4152": { naam:"Autoladder Veluwsekant",         post:"veluwsekant" },
-  "4171": { naam:"Hulpverleningsvoertuig",         post:"buiten" },
-  "5111": { naam:"Waterongevallenvoertuig Lelystad", post:"lelystad" },
-  "5152": { naam:"Autoladder Lelystad",            post:"lelystad" },
-  "8131": { naam:"Reserve Tankautospuit",          post:null }
-};
-var DEFAULT_HOLD_MIN = 5;
-var DEFAULT_TASKS = [
-  { tekst:"Materiaalcontrole", dagen:["ma"] },
-  { tekst:"Oefenavond",        dagen:["di"] },
-  { tekst:"Voertuigcontrole",  dagen:[] }
-];
-
-/* Actieve instellingen */
-var FILTER_CAPCODES = DEFAULT_CAPCODES.slice();
-var POSTS = DEFAULT_POSTS;
-var UNITS = DEFAULT_UNITS;
-var HOLD_MIN = DEFAULT_HOLD_MIN;
-var TASKS = DEFAULT_TASKS.slice();
-var POST_CAPCODES = [];
-
-function refreshPostCapcodes(){
-  POST_CAPCODES = [];
-  for(var i=0;i<FILTER_CAPCODES.length;i++){
-    var c = String(FILTER_CAPCODES[i]).trim();
-    if(!c) continue;
-    POST_CAPCODES.push(c);
-    if(c.charAt(0)==='0') POST_CAPCODES.push(c.replace(/^0+/,''));
-    else POST_CAPCODES.push('0'+c);
-  }
-}
-function loadCfg(){
-  var cfg = null;
-  try{ cfg = JSON.parse(localStorage.getItem('p2000_cfg')); }catch(e){}
-  if(cfg){
-    if(cfg.capcodes && cfg.capcodes.length) FILTER_CAPCODES = cfg.capcodes;
-    if(cfg.posts) POSTS = cfg.posts;
-    if(cfg.units) UNITS = cfg.units;
-    if(cfg.holdMin) HOLD_MIN = cfg.holdMin;
-    if(cfg.tasks) TASKS = normaliseerTaken(cfg.tasks);
-  }
-  refreshPostCapcodes();
-}
-var DAGCODES = ['zo','ma','di','wo','do','vr','za'];
-function normaliseerTaken(lijst){
-  var out=[], i;
-  for(i=0;i<lijst.length;i++){
-    var t=lijst[i];
-    if(t && typeof t==='object'){
-      out.push({ tekst:String(t.tekst||'').trim(), dagen:t.dagen||[] });
-      continue;
-    }
-    // oude notatie: "ma: Materiaalcontrole"
-    var r=String(t||'').trim(); if(!r) continue;
-    var dagen=[], tekst=r, dp=r.indexOf(':');
-    if(dp>0 && dp<=9){
-      var d=r.slice(0,dp).trim().toLowerCase().slice(0,2);
-      if(DAGCODES.indexOf(d)!==-1){ dagen=[d]; tekst=r.slice(dp+1).trim(); }
-    }
-    out.push({ tekst:tekst, dagen:dagen });
-  }
-  return out;
-}
-function saveCfg(){
-  try{
-    localStorage.setItem('p2000_cfg', JSON.stringify({
-      capcodes: FILTER_CAPCODES, posts: POSTS, units: UNITS,
-      holdMin: HOLD_MIN, tasks: TASKS
-    }));
-  }catch(e){}
-}
-loadCfg();
-
-/* Werkzaamheden van vandaag tonen */
-function renderTasks(){
-  var bar = document.getElementById('taskBar');
-  if(!bar) return;
-  var vandaag = DAGCODES[new Date().getDay()];
-  bar.innerHTML = '';
-  for(var i=0;i<TASKS.length;i++){
-    var t = TASKS[i];
-    if(!t || !t.tekst) continue;
-    var dagen = t.dagen || [];
-    if(dagen.length && dagen.indexOf(vandaag) === -1) continue;
-    var el = document.createElement('div');
-    el.className = 'task';
-    el.textContent = t.tekst;
-    bar.appendChild(el);
-  }
-  taskDag = new Date().getDay();
-}
-var taskDag = -1;
-renderTasks();
-
-/* Alle instellingen centraal ophalen (zodat elk scherm hetzelfde toont) */
-function haalTakenCentraal(){
-  return fetch('/api/taken',{cache:'no-store'}).then(function(r){ return r.json(); })
-    .then(function(d){
-      if(!d) return false;
-      var gewijzigd = false;
-      if(d.tasks && d.tasks.length){
-        TASKS = normaliseerTaken(d.tasks);
-        renderTasks();
-        gewijzigd = true;
-      }
-      if(d.capcodes && d.capcodes.length){
-        FILTER_CAPCODES = d.capcodes;
-        refreshPostCapcodes();
-        gewijzigd = true;
-      }
-      if(d.posts){
-        var telP = 0, k;
-        for(k in d.posts){ if(d.posts.hasOwnProperty(k)) telP++; }
-        if(telP){ POSTS = d.posts; gewijzigd = true; }
-      }
-      if(d.units){
-        var telU = 0, u;
-        for(u in d.units){ if(d.units.hasOwnProperty(u)) telU++; }
-        if(telU){ UNITS = d.units; gewijzigd = true; }
-      }
-      if(d.holdMin){ HOLD_MIN = d.holdMin; gewijzigd = true; }
-      if(typeof renderTellingen === 'function') renderTellingen(d.tellingen || null);
-      return gewijzigd;
-    }).catch(function(){ return false; });
-}
-function bewaarTakenCentraal(){
-  return fetch('/api/taken',{
-    method:'PUT',
-    headers:{'content-type':'application/json'},
-    body: JSON.stringify({
-      tasks: TASKS,
-      capcodes: FILTER_CAPCODES,
-      posts: POSTS,
-      units: UNITS,
-      holdMin: HOLD_MIN
-    })
-  }).then(function(r){ return r.json(); }).catch(function(){ return { error:'niet bereikbaar' }; });
-}
-haalTakenCentraal();
-setInterval(haalTakenCentraal, 20*1000);
-
-/* Scherm verversen op vaste momenten - nooit tijdens een melding */
-var HERLAAD_MOMENTEN = [
-  {u: 3, m: 0}
-];
-var laatsteHerlaad = '';
-setInterval(function(){
-  var nu = new Date();
-  var uur = nu.getHours(), min = nu.getMinutes();
-  var past = false;
-  for(var i=0;i<HERLAAD_MOMENTEN.length;i++){
-    if(HERLAAD_MOMENTEN[i].u === uur && HERLAAD_MOMENTEN[i].m === min){ past = true; break; }
-  }
-  if(!past) return;
-  var merk = uur + ':' + min;
-  if(merk === laatsteHerlaad) return;
-  if(document.getElementById('screen').className.indexOf('is-alarm') !== -1) return;
-  laatsteHerlaad = merk;
-  location.reload();
-}, 20000);
-
-// Ploeg-rotatie: 24-uursdienst, wisselt om 07:00. 17 juni 2026 = D-ploeg.
-var PLOEG_ANKER = new Date(2026, 5, 17);   // maand 5 = juni
-var PLOEGEN = ['D', 'A', 'B', 'C'];
-function currentPloeg(now){
-  var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if(now.getHours() < 7) d.setDate(d.getDate() - 1);
-  var days = Math.round((d - PLOEG_ANKER) / 86400000);
-  return PLOEGEN[((days % 4) + 4) % 4];
-}
-
-function parseUnits(str){
-  var codes = (str||'').match(/\d{4,7}/g) || [];
-  var out = [];
-  codes.forEach(function(code){
-    var u = UNITS[code] || UNITS[code.slice(-4)];
-    if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
-    out.push({
-      code: code,
-      name: u ? u.naam : ('Eenheid ' + code),
-      post: u ? u.post : null,
-      known: !!u
-    });
-  });
-  return out;
-}
-function renderUnits(units){
-  var wrap = document.getElementById('unitChips');
-  wrap.innerHTML = '';
-  if(!units.length){
-    wrap.innerHTML = '<span class="chip unknown"><span class="name">Geen eenheden</span></span>';
-    return;
-  }
-  units.forEach(function(u){
-    var el = document.createElement('div');
-    el.className = 'chip ' + (u.known ? 'known' : 'unknown');
-    var n = document.createElement('span'); n.className='name'; n.textContent=u.name;
-    var c = document.createElement('span'); c.className='cc'; c.textContent=u.code;
-    el.appendChild(n); el.appendChild(c);
-    if(u.post){
-      var e = document.createElement('span');
-      e.className='eta';
-      e.id='eta-'+u.code;
-      e.textContent='…';
-      el.appendChild(e);
-    }
-    wrap.appendChild(el);
-  });
-}
-
-/* Rijtijd per eenheid vanaf de eigen kazerne (één OSRM-aanvraag voor alle posten) */
-function loadUnitETAs(units, dest){
-  var keys = [], i;
-  for(i=0;i<units.length;i++){
-    if(units[i].post && keys.indexOf(units[i].post)===-1) keys.push(units[i].post);
-  }
-  if(!keys.length) return;
-
-  function toonTijden(perPost){
-    units.forEach(function(u){
-      var el = document.getElementById('eta-'+u.code);
-      if(!el) return;
-      var min = perPost[u.post];
-      el.textContent = (min==null) ? 'n.b.' : (min + ' min');
-    });
-  }
-
-  /* Terugval: OSRM (gewone auto) */
-  function viaOSRM(){
-    var coords = [];
-    for(var j=0;j<keys.length;j++){
-      coords.push(POSTS[keys[j]].lon + ',' + POSTS[keys[j]].lat);
-    }
-    coords.push(dest.lon + ',' + dest.lat);
-    var srcIdx = [];
-    for(j=0;j<keys.length;j++) srcIdx.push(j);
-    var url = 'https://router.project-osrm.org/table/v1/driving/' + coords.join(';') +
-              '?sources=' + srcIdx.join(';') + '&destinations=' + keys.length;
-    fetch(url).then(function(r){ return r.json(); }).then(function(d){
-      if(!d.durations) throw new Error('geen tijden');
-      var perPost = {};
-      for(var k=0;k<keys.length;k++){
-        var row = d.durations[k];
-        var sec = row && row[0];
-        perPost[keys[k]] = (sec==null) ? null : Math.round(sec/60);
-      }
-      toonTijden(perPost);
-    }).catch(function(){
-      var leeg = {};
-      for(var k=0;k<keys.length;k++) leeg[keys[k]] = null;
-      toonTijden(leeg);
-    });
-  }
-
-  /* Valhalla-matrix met bus-profiel (busbanen meegerekend) */
-  var bronnen = [];
-  for(i=0;i<keys.length;i++){
-    bronnen.push({lat: POSTS[keys[i]].lat, lon: POSTS[keys[i]].lon});
-  }
-  var verzoek = {
-    sources: bronnen,
-    targets: [{lat: dest.lat, lon: dest.lon}],
-    costing: 'auto',
-    units: 'kilometers'
-  };
-  var vUrl = '/api/route?soort=matrix&json=' +
-             encodeURIComponent(JSON.stringify(verzoek));
-
-  fetch(vUrl).then(function(r){ return r.json(); }).then(function(d){
-    var matrix = d && d.sources_to_targets;
-    if(!matrix || !matrix.length) throw new Error('geen matrix');
-    var perPost = {};
-    for(var k=0;k<keys.length;k++){
-      var rij = matrix[k];
-      var cel = rij && rij[0];
-      perPost[keys[k]] = (cel && cel.time != null) ? Math.round(cel.time/60) : null;
-    }
-    toonTijden(perPost);
-  }).catch(function(){
-    viaOSRM();
-  });
-}
-
-var selectedPrio = 2;
-var map, startMarker, incMarker, routeLine;
-var routeBounds=null, mapObserver=null;
-function fitToRoute(){
-  if(!map||!routeBounds) return;
-  map.invalidateSize();
-  map.fitBounds(routeBounds,{padding:[18,18],maxZoom:16});
-}
-var alarmTimer = null;
-var alarmTick = null;
-var startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };  // dynamic van POST_LOCATION
-function pad2(n){ n = String(n); return n.length < 2 ? '0' + n : n; }
-
-/* ================= Klok ================= */
-function tick(){
-  var now = new Date();
-  var p = pad2;
-  document.getElementById('dutyPloeg').textContent = currentPloeg(now) + '-ploeg';
-  document.getElementById('hm').textContent = p(now.getHours())+':'+p(now.getMinutes());
-  document.getElementById('ss').textContent = ':'+p(now.getSeconds());
-  document.getElementById('dateText').textContent =
-    now.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  if(now.getDay() !== taskDag) renderTasks();
-}
-setInterval(tick,1000); tick();
-
-/* ===== Muispijl verbergen bij stilstand ===== */
-var muisTimer = null;
-function verbergMuis(){ document.body.className += ' geen-muis'; }
-function toonMuis(){
-  document.body.className = document.body.className.replace(/\s*geen-muis/g, '');
-  clearTimeout(muisTimer);
-  muisTimer = setTimeout(verbergMuis, 1000);
-}
-document.addEventListener('mousemove', toonMuis);
-document.addEventListener('mousedown', toonMuis);
-muisTimer = setTimeout(verbergMuis, 1000);
-
-/* ================= Weer (Open-Meteo) ================= */
-var WMO = {
-  0:['Onbewolkt','☀️'],1:['Overwegend helder','🌤️'],2:['Half bewolkt','⛅'],3:['Bewolkt','☁️'],
-  45:['Mist','🌫️'],48:['Aanvriezende mist','🌫️'],
-  51:['Lichte motregen','🌦️'],53:['Motregen','🌦️'],55:['Dichte motregen','🌦️'],
-  56:['IJzel','🌧️'],57:['IJzel','🌧️'],
-  61:['Lichte regen','🌦️'],63:['Regen','🌧️'],65:['Zware regen','🌧️'],
-  66:['IJzelregen','🌧️'],67:['IJzelregen','🌧️'],
-  71:['Lichte sneeuw','🌨️'],73:['Sneeuw','🌨️'],75:['Zware sneeuw','❄️'],77:['Sneeuwkorrels','🌨️'],
-  80:['Regenbuien','🌦️'],81:['Regenbuien','🌧️'],82:['Zware buien','⛈️'],
-  85:['Sneeuwbuien','🌨️'],86:['Sneeuwbuien','❄️'],
-  95:['Onweer','⛈️'],96:['Onweer met hagel','⛈️'],99:['Zwaar onweer','⛈️']
-};
-function windDir(deg){
-  var dirs=['N','NO','O','ZO','Z','ZW','W','NW'];
-  return dirs[Math.round(deg/45)%8];
-}
-/* Windsnelheid (km/u) omrekenen naar windkracht Beaufort (0-12) */
-function naarBeaufort(kmh){
-  var grenzen=[1,6,12,20,29,39,50,62,75,89,103,118];
-  for(var i=0;i<grenzen.length;i++){
-    if(kmh < grenzen[i]) return i;
-  }
-  return 12;
-}
-var windDeg = null;
-function updateWindRose(){
-  var arrow=document.getElementById('windArrow');
-  var lbl=document.getElementById('windLabel');
-  if(windDeg==null){ if(lbl) lbl.textContent='—'; return; }
-  if(arrow) arrow.setAttribute('transform','rotate('+windDeg+' 50 50)');
-  if(lbl) lbl.textContent=windDir(windDeg);
-}
-function loadWeather(){
-  var url='https://api.open-meteo.com/v1/forecast?latitude='+POST_LOCATION.lat+'&longitude='+POST_LOCATION.lon+
-    '&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&timezone=Europe%2FAmsterdam';
-  fetch(url).then(function(r){ return r.json(); }).then(function(d){
-    var c=d.current;
-    var w=WMO[c.weather_code]||['—','·'];
-    document.getElementById('wxGlyph').textContent=w[1];
-    document.getElementById('wxTemp').textContent=Math.round(c.temperature_2m)+'°';
-    document.getElementById('wxCond').textContent=w[0];
-    document.getElementById('wxWind').textContent=
-      'Wind '+windDir(c.wind_direction_10m)+' windkracht '+naarBeaufort(c.wind_speed_10m)+' · '+POST_CONFIG.postnaam;
-    windDeg = c.wind_direction_10m;
-    updateWindRose();
-    setConn(true);
-  }).catch(function(e){
-    document.getElementById('wxCond').textContent='Weer niet beschikbaar';
-    document.getElementById('wxWind').textContent=POST_CONFIG.postnaam;
-    setConn(false);
-  });
-}
-loadWeather();
-setInterval(loadWeather,15*60*1000);
-
-/* ===== Dag/nacht-thema: licht rustscherm tussen zonsopgang en -ondergang ===== */
-var zonOp = null, zonOnder = null;
-function haalZontijden(){
-  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + ALMERE.lat +
-            '&longitude=' + ALMERE.lon +
-            '&daily=sunrise,sunset&timezone=Europe%2FAmsterdam&forecast_days=1';
-  fetch(url).then(function(r){ return r.json(); }).then(function(d){
-    if(d && d.daily && d.daily.sunrise && d.daily.sunset){
-      zonOp = new Date(d.daily.sunrise[0]);
-      zonOnder = new Date(d.daily.sunset[0]);
-      pasThemaToe();
-    }
-  }).catch(function(){ /* geen zontijden: blijft donker */ });
-}
-function isDag(){
-  // tijdens een melding altijd het donkere thema
-  var scherm = document.getElementById('screen');
-  if(scherm && scherm.className.indexOf('is-alarm') !== -1) return false;
-
-  var nu = new Date();
-  var minutenNu = nu.getHours()*60 + nu.getMinutes();
-
-  // zonder zontijden: terugval op vaste tijden (07:00 - 21:00)
-  if(!zonOp || !zonOnder){
-    return minutenNu >= 7*60 && minutenNu < 21*60;
-  }
-  var minOp = zonOp.getHours()*60 + zonOp.getMinutes();
-  var minOnder = zonOnder.getHours()*60 + zonOnder.getMinutes();
-  return minutenNu >= minOp && minutenNu < minOnder;
-}
-function pasThemaToe(){
-  var klassen = document.body.className.replace(/\s*dag/g, '');
-  if(isDag()) klassen += ' dag';
-  document.body.className = klassen;
-}
-haalZontijden();
-pasThemaToe();                              // meteen toepassen (terugval-tijden)
-setInterval(haalZontijden, 6*60*60*1000);   // 4x per dag verversen
-setInterval(pasThemaToe, 60*1000);          // elke minuut controleren
-
-/* ================= Verbindingsindicator ================= */
-function setConn(ok){
-  var online = ok && navigator.onLine;
-  document.getElementById('wifiIcon').style.fill = online ? '#37d67a' : '#ff3b30';
-  document.querySelectorAll('#wifiIcon path').forEach(function(p){ p.style.stroke = online ? '#37d67a' : '#ff3b30'; });
-  document.querySelector('#wifiIcon path:first-child').style.stroke = 'none';
-}
-window.addEventListener('online',function(){ setConn(true); });
-window.addEventListener('offline',function(){ setConn(false); });
-setConn(navigator.onLine);
-
-/* ================= Laatste uitruk + tellingen ================= */
-/* Tellingen (dienst + jaar), komen mee met de taken-poll (zelfde 20-seconden-cyclus) */
-function renderTellingen(tellingen){
-  var dienstEl = document.getElementById('statDienst');
-  var jaarEl = document.getElementById('statJaar');
-  var ploegenEl = document.getElementById('ploegenRow');
-  var jaarLabelStat = document.getElementById('jaarLabelStat');
-  var ploegenKop = document.getElementById('ploegenKop');
-  var huidigJaar = new Date().getFullYear();
-  if(!tellingen){
-    dienstEl.textContent='—'; jaarEl.textContent='—'; ploegenEl.innerHTML='';
-    jaarLabelStat.textContent = huidigJaar;
-    ploegenKop.textContent = '';
-    return;
-  }
-  if(tellingen.dienst){
-    var aantal = tellingen.dienst.aantal || 0;
-    dienstEl.textContent = aantal + (aantal===1?' melding':' meldingen') + ' (' + tellingen.dienst.ploeg + '-ploeg)';
-
-  }
-  if(tellingen.jaar){
-    var j = tellingen.jaar;
-    jaarLabelStat.textContent = j.jaar || huidigJaar;
-    ploegenKop.textContent = 'Totaal meldingen per ploeg ' + (j.jaar || huidigJaar);
-    jaarEl.textContent = (j.totaal||0) + (j.totaal===1?' melding':' meldingen');
-
-    var lijst = ['A','B','C','D'].map(function(naam){
-      return { naam: naam, aantal: j[naam] || 0 };
-    });
-
-    var html = lijst.map(function(p){
-      return '<span class="ploeg-item"><span class="naam">'+p.naam+'-ploeg</span><span>'+p.aantal+'</span></span>';
-    }).join('');
-    ploegenEl.innerHTML = html;
-  }
-  renderMeldingenLijst(tellingen.dienst);
-}
-renderTellingen(null);
-
-/* Ticker over de volle breedte: schuift vanzelf door alle meldingen van de
-   huidige dienst, aaneengesloten. Geen interactie nodig - werkt op elke TV. */
-function renderMeldingenLijst(dienst){
-  var track = document.getElementById('tickerTrack');
-  if(!dienst || !dienst.meldingen || !dienst.meldingen.length){
-    track.textContent = '';
-    return;
-  }
-  var MAX_TONEN = 8;
-  var recent = dienst.meldingen.slice(-MAX_TONEN).reverse(); // nieuwste eerst
-  var tekst = recent.map(function(m){
-    var p = parseP2000(m.text || '');
-    var d = new Date(m.ts);
-    var datum = d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'});
-    var tijd = pad2(d.getHours())+':'+pad2(d.getMinutes());
-    return datum + ' ' + tijd + ' · ' + (p.type||'—') + (p.addr ? (' · '+p.addr) : '');
-  }).join('     •     ');
-  track.textContent = tekst;
-}
-
-/* ================= Live feed (112-nu, via de Worker) ================= */
-var lastFeedId = null;
-function parseFeed(item){
-  // 112-nu: de omschrijving is de volledige P2000-regel; anders de titel
-  var src = (item.desc && item.desc.trim()) ? item.desc : (item.title||'');
-  var resultaat = parseP2000(src);
-  resultaat.raw = src; // de ONGESCHOONDE tekst, nodig om later correct te kunnen herparsen
-  return resultaat;
-}
-function matchtCapcode(item){
-  var tekst = (item.desc || '') + ' ' + (item.title || '');
-  for(var i=0;i<POST_CAPCODES.length;i++){
-    var c = POST_CAPCODES[i];
-    if(!c) continue;
-    if(tekst.indexOf(c) !== -1) return true;
-  }
-  return false;
-}
-var firstPoll = true;
-function pollFeed(){
-  fetch('/api/melding',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
-    setConn(!d.error);
-    var lijst = d.meldingen || [];
-    var m = null;
-    for(var i=0;i<lijst.length;i++){
-      if(matchtCapcode(lijst[i])){ m = lijst[i]; break; }
-    }
-    if(m && m.id !== lastFeedId){
-      var ageMs = m.pub ? (Date.now() - new Date(m.pub).getTime()) : 0;
-      var recent = ageMs >= 0 && ageMs < 20*60*1000;
-      lastFeedId = m.id;
-      // bij openen alleen tonen als recent; daarna elke echt nieuwe melding
-      if(!firstPoll || recent){
-        var p = parseFeed(m);
-        showAlarm(p.type, p.addr, p.prio, p.units, HOLD_MIN*60*1000, p.mid, p.kanaal);
-        meldFeedVoorTelling(p.raw, m.id);
-      }
-    }
-    firstPoll = false;
-  }).catch(function(e){ setConn(false); });
-}
-setInterval(pollFeed, 10000);
-pollFeed();
-
-/* Feed-melding (112-nu) laten meetellen bij de dienst/jaar-statistieken.
-   bronId (het unieke feed-item-id) voorkomt dat meerdere open schermen
-   dezelfde melding elk apart laten meetellen - de Worker telt 'm maar één keer. */
-function meldFeedVoorTelling(ruweTekst, bronId){
-  if(!ruweTekst || !bronId) return;
-  fetch('/api/pi',{
-    method:'POST',
-    headers:{'content-type':'application/json'},
-    body: JSON.stringify({ text: ruweTekst, sleutel: 'veluwsekant2026', bronId: 'feed-'+bronId })
-  }).catch(function(){ /* telling niet gelukt: geen probleem, scherm blijft werken */ });
-}
-
-/* ===== Eigen ontvanger (Raspberry Pi, seriële poort) — heeft voorrang ===== */
-var lastPiId = null;
-var eersteP2000Poll = true;
-function pollEigenOntvanger(){
-  fetch('/api/pi',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
-    if(!d || !d.text || !d.id) return;
-    if(d.id === lastPiId) return;
-    var leeftijd = d.ts ? (Date.now() - d.ts) : 0;
-    lastPiId = d.id;
-    // bij openen alleen tonen als recent; daarna elke nieuwe melding meteen
-    if(eersteP2000Poll && leeftijd > 20*60*1000){ eersteP2000Poll = false; return; }
-    eersteP2000Poll = false;
-    var p = parseP2000(d.text);
-    showAlarm(p.type, p.addr, p.prio, p.units, HOLD_MIN*60*1000, p.mid, p.kanaal);
-  }).catch(function(){ /* eigen ontvanger niet bereikbaar: feed blijft draaien */ });
-}
-setInterval(pollEigenOntvanger, 2000);
-pollEigenOntvanger();
-
-/* ================= Geocoding (PDOK Locatieserver) ================= */
-function geocode(q, type, verwacht){
-  var url='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q='+encodeURIComponent(q)+
-    '&fl=weergavenaam,centroide_ll,type&rows=5';
-  if(type) url += '&fq=type:' + encodeURIComponent(type);
-  return fetch(url).then(function(r){ return r.json(); }).then(function(d){
-    var docs = d && d.response && d.response.docs;
-    if(!docs || !docs.length) return null;
-    var doc = docs[0];
-    // Bij een hectometerpaal-zoekopdracht: alleen accepteren als de teruggegeven
-    // naam ook echt de gevraagde weg EN hectometer bevat. PDOK's vrije zoekfunctie
-    // kan anders een niet-passend resultaat teruggeven (bv. verkeerde regio).
-    if(type === 'hectometerpaal' && verwacht && verwacht.weg && verwacht.hm){
-      var wegPatroon = verwacht.weg.toUpperCase();
-      var hmPatroon = verwacht.hm.replace(',', '[,.]');
-      var hmRegex = new RegExp('\\b' + hmPatroon + '\\b');
-      var passend = docs.filter(function(d){
-        var naam = (d.weergavenaam || '').toUpperCase();
-        return naam.indexOf(wegPatroon) !== -1 && hmRegex.test(naam);
-      });
-      if(!passend.length) return null; // geen betrouwbare match: val terug op alternatief
-      doc = passend[0];
-    }
-    var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/); // lon lat
-    if(!m) return null;
-    return { lon:parseFloat(m[1]), lat:parseFloat(m[2]), label:doc.weergavenaam };
-  }).catch(function(){ return null; });
-}
-
-/* Hectometeraanduiding herkennen, bv. "A6 102,7" of "N307 - HANZEWEG 102,7 DRONTEN" */
-function vindHectometer(tekst){
-  var t = (tekst||'').toUpperCase();
-  var weg = t.match(/\b([AN]\s?\d{1,3})\b/);
-  if(!weg) return null;
-  var hm = t.match(/\b(\d{1,3}[,.]\d)\b/);
-  if(!hm) return null;
-  return {
-    weg: weg[1].replace(/\s+/g,''),
-    hm: hm[1].replace('.', ',')
-  };
-}
-// startpunt vast opzoeken
-// Startpunt (post) staat vast op vaste coördinaten; geen geocoding nodig.
-
-/* ================= Route (OSRM) ================= */
-/* Valhalla geeft de route als gecodeerde reeks terug; deze functie zet dat om naar punten */
-function decodeerVorm(str, precisie){
-  var index=0, lat=0, lon=0, punten=[], factor=Math.pow(10, precisie || 6);
-  while(index < str.length){
-    var b, shift=0, resultaat=0;
-    do { b=str.charCodeAt(index++)-63; resultaat |= (b & 0x1f) << shift; shift+=5; } while(b >= 0x20);
-    lat += ((resultaat & 1) ? ~(resultaat >> 1) : (resultaat >> 1));
-    shift=0; resultaat=0;
-    do { b=str.charCodeAt(index++)-63; resultaat |= (b & 0x1f) << shift; shift+=5; } while(b >= 0x20);
-    lon += ((resultaat & 1) ? ~(resultaat >> 1) : (resultaat >> 1));
-    punten.push([lat/factor, lon/factor]);
-  }
-  return punten;
-}
-
-function toonRoute(minuten, kilometers, latlngs){
-  var badge=document.getElementById('routeBadge');
-  document.getElementById('routeTime').textContent=minuten+' min';
-  document.getElementById('routeDist').textContent=kilometers+' km';
-  badge.classList.remove('loading');
-  if(routeLine) routeLine.remove();
-  routeLine=L.polyline(latlngs,{color:'#1565c0',weight:5,opacity:.9}).addTo(map);
-  routeBounds=routeLine.getBounds();
-  fitToRoute();
-  setTimeout(fitToRoute,250);
-}
-
-/* Terugval: OSRM (gewone auto, dus zonder busbanen) */
-function loadRouteOSRM(dest){
-  var url='https://router.project-osrm.org/route/v1/driving/'+
-    startCoords.lon+','+startCoords.lat+';'+dest.lon+','+dest.lat+'?overview=full&geometries=geojson';
-  fetch(url).then(function(r){ return r.json(); }).then(function(d){
-    var route=d.routes && d.routes[0];
-    if(!route) throw new Error('geen route');
-    var latlngs=route.geometry.coordinates.map(function(c){ return [c[1],c[0]]; });
-    toonRoute(Math.round(route.duration/60), (route.distance/1000).toFixed(1), latlngs);
-  }).catch(function(){
-    document.getElementById('routeTime').textContent='n.b.';
-    document.getElementById('routeDist').textContent='n.b.';
-    document.getElementById('routeBadge').classList.remove('loading');
-  });
-}
-
-/* Valhalla met bus-profiel: mag over busbanen, net als hulpdiensten */
-function loadRoute(dest){
-  var badge=document.getElementById('routeBadge');
-  badge.classList.add('loading');
-  document.getElementById('routeTime').textContent='…';
-  document.getElementById('routeDist').textContent='…';
-
-  var verzoek={
-    locations:[
-      {lat:startCoords.lat, lon:startCoords.lon},
-      {lat:dest.lat, lon:dest.lon}
-    ],
-    costing:'auto',
-    directions_options:{units:'kilometers'}
-  };
-  var url='/api/route?json='+encodeURIComponent(JSON.stringify(verzoek));
-
-  fetch(url).then(function(r){ return r.json(); }).then(function(d){
-    var samenvatting = d && d.trip && d.trip.summary;
-    if(!samenvatting) throw new Error('geen route');
-    var latlngs=[];
-    var stukken = d.trip.legs || [];
-    for(var i=0;i<stukken.length;i++){
-      if(stukken[i].shape){
-        latlngs = latlngs.concat(decodeerVorm(stukken[i].shape, 6));
-      }
-    }
-    if(!latlngs.length) throw new Error('geen vorm');
-    toonRoute(Math.round(samenvatting.time/60), samenvatting.length.toFixed(1), latlngs);
-  }).catch(function(){
-    loadRouteOSRM(dest);   // terugval als Valhalla niet reageert
-  });
-}
-
-/* ================= Kaart ================= */
-/* Huisje voor de kazerne, ster voor het incident */
-function huisIcoon(){
-  var svg = '<svg class="kaart-merk start" viewBox="0 0 24 24" fill="currentColor" ' +
-            'stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round">' +
-            '<path d="M12 3 2.5 11h2.6v9h5.1v-5.4h3.6V20h5.1v-9h2.6z"/></svg>';
-  return L.divIcon({className:'', html:svg, iconSize:[34,34], iconAnchor:[17,30]});
-}
-function sterIcoon(prio){
-  var svg = '<svg class="kaart-merk inc-' + prio + '" viewBox="0 0 24 24" ' +
-            'fill="currentColor" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round">' +
-            '<path d="M12 1.8 15.1 8.3 22.2 9.3 17.1 14.3 18.3 21.4 12 18.0 5.7 21.4 6.9 14.3 1.8 9.3 8.9 8.3z"/>' +
-            '</svg>';
-  return L.divIcon({className:'', html:svg, iconSize:[34,34], iconAnchor:[17,17]});
-}
-function initMap(dest){
-  if(!map){
-    map=L.map('map',{zoomControl:false,attributionControl:false}).setView([dest.lat,dest.lon],13);
-    var kaartlaag = L.tileLayer(
-      'https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:3857/{z}/{x}/{y}.png',
-      { maxZoom: 19, attribution: 'Kaart: PDOK' }
-    );
-    // valt terug op de vorige kaart als PDOK niet reageert
-    kaartlaag.on('tileerror', function(){
-      if(!map._pdokTerugval){
-        map._pdokTerugval = true;
-        map.removeLayer(kaartlaag);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          {maxZoom:19,subdomains:'abcd'}).addTo(map);
-      }
-    });
-    kaartlaag.addTo(map);
-    if('ResizeObserver' in window){
-      mapObserver=new ResizeObserver(function(){ fitToRoute(); });
-      mapObserver.observe(document.getElementById('map'));
-    }
-  }
-  if(startMarker) startMarker.remove();
-  if(incMarker) incMarker.remove();
-  startMarker=L.marker([startCoords.lat,startCoords.lon],{icon:huisIcoon()})
-    .addTo(map).bindTooltip(POST_CONFIG.postnaam);
-  incMarker=L.marker([dest.lat,dest.lon],{icon:sterIcoon(selectedPrio)})
-    .addTo(map);
-  map.setView([dest.lat,dest.lon],13);
-  setTimeout(function(){ map.invalidateSize(); },80);
-}
-
-/* ================= Alarm tonen / wissen ================= */
-function fitIncident(text){
-  var el=document.getElementById('incidentType');
-  el.textContent=text||'Melding';
-  el.style.fontSize=''; // reset naar CSS-standaard
-  var maxW=el.clientWidth-4;
-  if(maxW<=0) return; // niet zichtbaar
-  var cs=getComputedStyle(el);
-  var longest=(text||'Melding').split(/\s+/).reduce(function(a,b){ return b.length>a.length?b:a; },'');
-  var probe=document.createElement('span');
-  probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;'+
-    'font-family:'+cs.fontFamily+';font-weight:'+cs.fontWeight+';'+
-    'text-transform:'+cs.textTransform+';letter-spacing:'+cs.letterSpacing+';';
-  probe.textContent=longest;
-  document.body.appendChild(probe);
-  var size=parseFloat(cs.fontSize), guard=0;
-  probe.style.fontSize=size+'px';
-  while(probe.getBoundingClientRect().width>maxW && size>18 && guard<200){
-    size-=2; probe.style.fontSize=size+'px'; guard++;
-  }
-  probe.remove();
-  el.style.fontSize=size+'px';
-}
-window.addEventListener('resize',function(){
-  if(document.getElementById('screen').classList.contains('is-alarm')){
-    fitIncident(document.getElementById('incidentType').textContent);
-  }
-});
-function showAlarm(type,addr,prio,unitsStr,timeoutMs,geoHint,kanaal){
-  // Zorg dat route van huidigelokatie start
-  startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
-  var screen=document.getElementById('screen');
-  selectedPrio=prio;
-  screen.classList.remove('prio-1','prio-2');
-  screen.classList.add('is-alarm','prio-'+prio);
-  if(typeof pasThemaToe === 'function') pasThemaToe();
-
-  document.getElementById('prioLabel').textContent='Prioriteit '+prio;
-  document.getElementById('kanaalRegel').textContent=kanaal || '';
-  fitIncident(type||'Melding');
-  updateWindRose();
-  var unitList=parseUnits(unitsStr);
-  renderUnits(unitList);
-  var t0=Date.now();
-  document.getElementById('alarmWhen').textContent='00:00';
-  clearInterval(alarmTick);
-  alarmTick=setInterval(function(){
-    var s=Math.floor((Date.now()-t0)/1000);
-    document.getElementById('alarmWhen').textContent=
-      pad2(Math.floor(s/60))+':'+pad2(s%60);
-  },1000);
-
-  clearTimeout(alarmTimer);
-  alarmTimer=setTimeout(clearAlarm, timeoutMs || ALARM_TIMEOUT_MS);
-
-  // adres tonen (voorlopig ruwe invoer, daarna verrijkt)
-  var lastAddr=addr;
-  document.getElementById('incidentStreet').textContent=addr;
-  document.getElementById('incidentPlace').textContent='Locatie opzoeken…';
-
-  // kandidaten opbouwen: meer context = betere straat-treffer
-  var cand=[];
-  // hectometerpaal heeft voorrang (bv. "A6 102,7")
-  var hmInfo = vindHectometer((geoHint||'') + ' ' + (addr||''));
-  if(hmInfo){
-    cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm, type: 'hectometerpaal' });
-    cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm });
-  }
-  var hw=(geoHint||'').split(' ').filter(Boolean);
-  if(hw.length>=3) cand.push({ q: hw.slice(-3).join(' ') });
-  if(hw.length>=2) cand.push({ q: hw.slice(-2).join(' ') });
-  if(addr) cand.push({ q: addr });
-  if(hmInfo) cand.push({ q: hmInfo.weg });
-  var plaats=(geoHint||addr||'').split(/[,\s]+/).filter(Boolean).pop();
-  if(plaats) cand.push({ q: plaats });
-
-  function tryGeocode(i){
-    if(i>=cand.length) return Promise.resolve(null);
-    var c = cand[i];
-    var uniq = c && c.q && c.q.trim();
-    if(!uniq) return tryGeocode(i+1);
-    return geocode(uniq, c.type, hmInfo).then(function(g){ return g || tryGeocode(i+1); }, function(){ return tryGeocode(i+1); });
-  }
-  tryGeocode(0).then(function(geo){
-    if(geo){
-      // label opsplitsen in straat / plaats waar mogelijk
-      var street=geo.label.split(',')[0];
-      var place=geo.label.split(',').slice(1).join(',').trim()||'Almere';
-      document.getElementById('incidentStreet').textContent=street;
-      document.getElementById('incidentPlace').textContent=place;
-      lastAddr=street+', '+place;
-      initMap({lat:geo.lat,lon:geo.lon});
-      loadRoute({lat:geo.lat,lon:geo.lon});
-      loadUnitETAs(unitList,{lat:geo.lat,lon:geo.lon});
-    }else{
-      document.getElementById('incidentPlace').textContent='Locatie niet gevonden';
-      document.getElementById('routeTime').textContent='n.b.';
-      document.getElementById('routeDist').textContent='n.b.';
-      document.getElementById('routeBadge').classList.remove('loading');
-    }
-  });
-}
-function clearAlarm(){
-  clearTimeout(alarmTimer);
-  clearInterval(alarmTick);
-  var screen=document.getElementById('screen');
-  screen.classList.remove('is-alarm','prio-1','prio-2');
-  if(typeof pasThemaToe === 'function') pasThemaToe();
-}
-
-/* ================= Testpaneel ================= */
-var panel=document.getElementById('testPanel');
-document.getElementById('tpClose').onclick=function(){ panel.classList.remove('open'); };
-
-/* Koppeling: logo -> testversie (alleen op de live-pagina actief) */
-document.getElementById('logoLink').onclick=function(){ if(IS_LIVE && TEST_URL) location.href=TEST_URL; };
-if(!IS_LIVE){
-  document.getElementById('logoLink').style.cursor='default';
-}
-
-/* Verborgen triggers (niet zichtbaar):
-   - toets 'T'  of 3x snel op het logo  -> testpaneel
-   - toets 'S'  of 5x snel op het logo  -> instellingen */
-var cfgPanel = document.getElementById('cfgPanel');
-document.addEventListener('keydown',function(e){
-  var tag=(e.target && e.target.tagName)||'';
-  if(tag==='INPUT'||tag==='TEXTAREA') return;
-  var code=e.keyCode||e.which;
-  if(code===84){ cfgPanel.classList.remove('open'); panel.classList.toggle('open'); }
-  if(code===83){ panel.classList.remove('open'); openCfg(); }
-});
-var logoTaps=[];
-document.getElementById('logoLink').addEventListener('click',function(){
-  var now=Date.now();
-  logoTaps.push(now);
-  logoTaps=logoTaps.filter(function(t){ return now-t<1600; });
-  if(logoTaps.length>=5){ logoTaps=[]; panel.classList.remove('open'); openCfg(); return; }
-  if(logoTaps.length===3){ panel.classList.add('open'); }
-});
-
-/* ---- Instellingenpaneel ---- */
-function postsNaarTekst(){
-  var r=[], k;
-  for(k in POSTS){ if(POSTS.hasOwnProperty(k)){
-    r.push(k+' = '+POSTS[k].naam+', '+POSTS[k].lat+', '+POSTS[k].lon);
-  }}
-  return r.join('\n');
-}
-function unitsNaarTekst(){
-  var r=[], k;
-  for(k in UNITS){ if(UNITS.hasOwnProperty(k)){
-    r.push(k+' = '+UNITS[k].naam+(UNITS[k].post ? ' @ '+UNITS[k].post : ''));
-  }}
-  return r.join('\n');
-}
-function tekstNaarPosts(txt){
-  var out={}, regels=(txt||'').split('\n'), i;
-  for(i=0;i<regels.length;i++){
-    var r=regels[i].trim(); if(!r) continue;
-    var d=r.split('='); if(d.length<2) continue;
-    var sleutel=d[0].trim().toLowerCase();
-    var v=d.slice(1).join('=').split(',');
-    if(v.length<3) continue;
-    var lat=parseFloat(v[v.length-2]), lon=parseFloat(v[v.length-1]);
-    if(isNaN(lat)||isNaN(lon)) continue;
-    out[sleutel]={ naam:v.slice(0,v.length-2).join(',').trim(), lat:lat, lon:lon };
-  }
-  return out;
-}
-function tekstNaarUnits(txt){
-  var out={}, regels=(txt||'').split('\n'), i;
-  for(i=0;i<regels.length;i++){
-    var r=regels[i].trim(); if(!r) continue;
-    var d=r.split('='); if(d.length<2) continue;
-    var nummer=d[0].trim();
-    var rest=d.slice(1).join('=');
-    var post=null, naam=rest;
-    var at=rest.indexOf('@');
-    if(at!==-1){ naam=rest.slice(0,at); post=rest.slice(at+1).trim().toLowerCase()||null; }
-    out[nummer]={ naam:naam.trim(), post:post };
-  }
-  return out;
-}
-/* ---- Takeneditor met dagknoppen ---- */
-var DAGLABELS = [['ma','Ma'],['di','Di'],['wo','Wo'],['do','Do'],['vr','Vr'],['za','Za'],['zo','Zo']];
-function taakRij(taak){
-  if(!taak) taak = {tekst:'',dagen:[]};
-  var rij = document.createElement('div');
-  rij.className = 'task-row';
-
-  var naam = document.createElement('input');
-  naam.type = 'text'; naam.className = 'taskname';
-  naam.placeholder = 'bijv. Auto wassen';
-  naam.value = taak.tekst || '';
-  rij.appendChild(naam);
-
-  var picker = document.createElement('div');
-  picker.className = 'day-picker';
-  picker.style.display = 'flex';
-  picker.style.gap = '0.3rem';
-  picker.style.flexWrap = 'wrap';
-  var gekozen = (taak.dagen || []).slice();
-  if(!DAGLABELS || DAGLABELS.length === 0){
-    console.warn('DAGLABELS niet gedefinieerd!');
-    return rij;  // Safety fallback
-  }
-  for(var i=0;i<DAGLABELS.length;i++){
-    (function(code,label){
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = label;
-      b.setAttribute('data-dag', code);
-      if(gekozen.indexOf(code) !== -1) b.className = 'on';
-      b.onclick = function(){
-        if(b.className === 'on') b.className = '';
-        else b.className = 'on';
-      };
-      picker.appendChild(b);
-    })(DAGLABELS[i][0], DAGLABELS[i][1]);
-  }
-  rij.appendChild(picker);
-
-  var del = document.createElement('button');
-  del.type = 'button'; del.className = 'del'; del.textContent = '×';
-  del.title = 'Verwijderen';
-  del.onclick = function(){ rij.parentNode.removeChild(rij); };
-  rij.appendChild(del);
-
-  return rij;
-}
-function vulTaakEditor(){
-  var lijst = document.getElementById('cfgTaskList');
-  if(!lijst) return;
-  lijst.innerHTML = '';
-  if(!TASKS || TASKS.length === 0){
-    lijst.appendChild(taakRij({tekst:'',dagen:[]}));
-  } else {
-    for(var i=0;i<TASKS.length;i++) {
-      lijst.appendChild(taakRij(TASKS[i]));
-    }
-  }
-}
-function leesTaakEditor(){
-  var out = [], rijen = document.getElementById('cfgTaskList').children;
-  for(var i=0;i<rijen.length;i++){
-    var naam = rijen[i].querySelector('.taskname');
-    var tekst = naam ? naam.value.trim() : '';
-    if(!tekst) continue;
-    var dagen = [], knoppen = rijen[i].querySelectorAll('.day-picker button');
-    for(var j=0;j<knoppen.length;j++){
-      if(knoppen[j].className === 'on') dagen.push(knoppen[j].getAttribute('data-dag'));
-    }
-    out.push({ tekst:tekst, dagen:dagen });
-  }
-  return out;
-}
-// Task add knop
-var taskAddBtn = document.getElementById('cfgTaskAdd');
-if(taskAddBtn){
-  taskAddBtn.onclick = function(){
-    var list = document.getElementById('cfgTaskList');
-    if(list){
-      list.appendChild(taakRij({tekst:'',dagen:[]}));
-      console.log('Task toegevoegd');
-    }
-  };
-}
-
-function openCfg(){
-  // Post config
-  var pn = document.getElementById('cfgPostnaam');
-  var bw = document.getElementById('cfgBrandweer');
-  if(pn) pn.value = POST_CONFIG.postnaam || 'Post';
-  if(bw) bw.value = POST_CONFIG.brandweer || 'Brandweer';
-  
-  var nv = document.getElementById('cfgNachtVan');
-  var nt = document.getElementById('cfgNachtTot');
-  if(nv) nv.value = POST_LOCATION.nachtVan || '22:00';
-  if(nt) nt.value = POST_LOCATION.nachtTot || '07:00';
-  
-  // Originele config
-  document.getElementById('cfgCaps').value = FILTER_CAPCODES.join(' ');
-  document.getElementById('cfgHold').value = HOLD_MIN;
-  document.getElementById('cfgPosts').value = postsNaarTekst();
-  document.getElementById('cfgUnits').value = unitsNaarTekst();
-  
-  // Voertuigen & taken tabel
-  vulPloegenTabel();
-  vulVoertuigenConfigTable();
-  vulTaakEditor();
-  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
-  cfgPanel.classList.add('open');
-}
-// Close button
-var cfgCloseBtn = document.getElementById('cfgClose');
-if(cfgCloseBtn){
-  cfgCloseBtn.onclick = function(){ 
-    var cp = document.getElementById('cfgPanel');
-    if(cp) cp.classList.remove('open');
-    return false;
-  };
-}
-document.getElementById('cfgSave').onclick=function(){
-  var msg=document.getElementById('cfgMsg');
-  
-  // 1. Update voertuigen tabel → textarea
-  updateCfgUnitsFromTable();
-  
-  // 2. Save post info
-  POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
-  POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
-  POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
-  POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
-  
-  // 3. Ploegen en taken
-  leesPloegenTabel();
-  var tks=leesTaakEditor();
-  TASKS=tks;
-  
-  // 4. Update voertuigen
-  var u=tekstNaarUnits(document.getElementById('cfgUnits').value);
-  if(Object.keys(u).length > 0) UNITS=u;
-  
-  // 5. Update scherm
-  updateTopbar();
-  updatePloegenDisplay();
-  startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
-  loadWeather();
-  applyNachtmodus();
-  renderTasks();
-  
-  msg.textContent='✓ Alles opgeslagen!';
-  
-  // 6. SAVE TO LOCALSTORAGE
-  saveToLocalStorage();
-  
-  // 7. Menu automatisch sluiten
-  setTimeout(function(){
-    var cp = document.getElementById('cfgPanel');
-    if(cp) cp.classList.remove('open');
-  }, 800);
-  
-  // Rest van config
-  var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
-  var hold=parseInt(document.getElementById('cfgHold').value,10);
-  var p=tekstNaarPosts(document.getElementById('cfgPosts').value);
-  var u=tekstNaarUnits(document.getElementById('cfgUnits').value);
-  if(!caps.length){ msg.textContent='Let op: vul minstens één capcode in voor de rest.'; return; }
-  FILTER_CAPCODES=caps;
-  HOLD_MIN=(!isNaN(hold)&&hold>0)?hold:DEFAULT_HOLD_MIN;
-  var telP=0,k; for(k in p){ if(p.hasOwnProperty(k)) telP++; }
-  var telU=0; for(k in u){ if(u.hasOwnProperty(k)) telU++; }
-  if(telP) POSTS=p;
-  if(telU) UNITS=u;
-
-  var tks=leesTaakEditor();
-  TASKS=tks;
-  refreshPostCapcodes();
-  // saveCfg();  // LOKAAL TEST: geen worker
-  renderTasks();
-  lastFeedId=null; firstPoll=true;
-  msg.textContent='✓ Opgeslagen lokaal (test mode - geen worker)';
-  // bewaarTakenCentraal() // LOKAAL TEST: geen worker
-};
-document.getElementById('cfgReset').onclick=function(){
-  FILTER_CAPCODES=DEFAULT_CAPCODES.slice();
-  POSTS=DEFAULT_POSTS; UNITS=DEFAULT_UNITS; HOLD_MIN=DEFAULT_HOLD_MIN;
-  TASKS=DEFAULT_TASKS.slice();
-  refreshPostCapcodes();
-  try{ localStorage.removeItem('p2000_cfg'); }catch(e){}
-  renderTasks();
-  openCfg();
-  document.getElementById('cfgMsg').textContent='Standaardinstellingen hersteld.';
-};
-
-/* P2000-regel ontleden, bijv: "P 2 BMD-01 DIER TE WATER WINKELWEG ZEEWOLDE 254133 254152" */
-/* Meldingssoorten zoals de meldkamer ze schrijft (langste eerst herkennen) */
-var SOORTEN = [
-  // brand - uitgebreid
-  'brand - riet','brand riet','brand - bos','brand bos','brand natuur','brand struiken','brand graslanden',
-  'brand berm/bosschage','brand bijgebouw','brand container','brand afval',
-  'brand woning','brand gebouw','brand voertuig','brand schoorsteen',
-  'brand buiten','brand industrie','brand schuur','brand vaartuig','brand',
-  'brand flatwoning','brand appartement','brand kantoor','brand winkel','brand berging',
-  'brand hooizolder','brand hooi','brand materiaal','brand elektra','brand oven',
-  
-  // water / dier
-  'dier te water','voertuig te water','persoon te water','persoon onder water',
-  'dier op hoogte','dier in problemen','dier in nood','wateroverlast','stormschade',
-  'dier bekneld','dier gewond','vogel in nood','insect plaag','dier slachthuis',
-  
-  // medisch / assistentie
-  'assistentie ambulance','assistentie politie','reanimatie','beknelling',
-  'verkeersongeval','ongeval','valletje','scheur','snijwond','verbranding',
-  'elektrocutie','gaslekkage gaslucht','allergische reactie','bewusteloos',
-  
-  // ongevallen
-  'ongeval wegvervoer','ongeval railvervoer','ongeval watervervoer',
-  'ongeval gevaarlijke stof','ongeval letsel','verkeersongeval',
-  'aanrijding','botsing','spoorwegongeval','scheepsongeval',
-  
-  // overig
-  'openbaar meldsysteem','automatisch alarm','brandmelding','liftopsluiting',
-  'gaslekkage','gaslucht','stankoverlast','nacontrole','hulpverlening',
-  'brandgerucht','luchtafvoer','rook overlast','zwelbranden','koolmonoxide',
-  'CO melder','gasmelder','melding onderzoeken','foutmeldingen','verkeerscontrole'
-];
-
-
-/* Afkortingen van de meldkamer uitschrijven */
-function schrijfUit(t){
-  return t
-    .replace(/\bBR\b\.?/gi, 'Brand').replace(/\briet\b/gi, '- riet')
-    .replace(/\bAss\.?\s*Ambu\b/gi, 'Assistentie Ambulance')
-    .replace(/\bAss\.?\s*Pol\b/gi, 'Assistentie Politie')
-    .replace(/\bgev\.?\s*stof/gi, 'gevaarlijke stof')
-    .replace(/\bOMS\b/gi, 'Openbaar Meldsysteem')
-    // meldkamer herhaalt de OMS-omschrijving soms voluit; dat is ruis
-    .replace(/Openbaar Meldsysteem\s+OPENBAAR MELDSYSTEEM(\s+BEHEERSSYSTEEM)?/gi, 'Openbaar Meldsysteem')
-    .replace(/\bBEHEERSSYSTEEM\b/gi, '')
-    .replace(/\bVKO\b/gi, 'Verkeersongeval')
-    .replace(/\bAMBU\b/gi, 'Ambulance')
-    .replace(/\s+/g,' ').trim();
-}
-function parseP2000(raw){
-  var s=(raw||'').replace(/\s+/g,' ').trim();
-  var pm=s.match(/\bP\s*([12])\b/i) || s.match(/\bPRIO\s*([12])\b/i);
-  var prio=pm?parseInt(pm[1],10):selectedPrio;
-  var caps=s.match(/\d{6,7}/g)||[];
-  var kanaal='';
-  var km = s.match(/\bBMD[-\s]?(\d{1,2})\b/i);
-  if(km) kanaal = 'Incidentkanaal ' + parseInt(km[1],10);
-  var mid=s
-    .replace(/\bPRIO\s*[12]\b/i,'')
-    .replace(/\bP\s*[12]\b/i,'')
-    .replace(/\d{6,7}/g,'')
-    .replace(/\b[A-Za-z]{2,4}[-\s]?\d{1,2}\b/,'')   // meldkamer/regiocode, bv. BMD-01 / bmd-04
-    .replace(/\s+/g,' ').trim();
-
-  mid = schrijfUit(mid);
-
-  // toevoeging(en) tussen haakjes horen bij de soort, niet bij het adres
-  var extras = [];
-  mid = mid.replace(/\(([^)]*)\)/g, function(m, inhoud){
-    if(inhoud && inhoud.trim()) extras.push(inhoud.trim());
-    return ' ';
-  }).replace(/\s+/g,' ').trim();
-
-  // 1) bekende soort vooraan herkennen -> rest is adres
-  var laag = mid.toLowerCase(), i, gevonden = '';
-  for(i=0;i<SOORTEN.length;i++){
-    if(laag.indexOf(SOORTEN[i]) === 0 && SOORTEN[i].length > gevonden.length) gevonden = SOORTEN[i];
-  }
-  if(gevonden){
-    var type1 = mid.slice(0, gevonden.length).trim();
-    var addr1 = mid.slice(gevonden.length).trim();
-    if(extras.length) type1 = type1 + ' (' + extras.join(', ') + ')';
-    return { prio:prio, type:type1, addr:addr1, units:caps.join(' '), mid:mid, kanaal:kanaal };
-  }
-
-  // 2) terugval: laatste twee woorden als adres (alleen als er genoeg woorden zijn)
-  var words=mid.split(' ').filter(Boolean);
-  var type=mid, addr='';
-  if(words.length>=4){ addr=words.slice(-2).join(' '); type=words.slice(0,-2).join(' '); }
-  if(extras.length) type = type + ' (' + extras.join(', ') + ')';
-  return { prio:prio, type:type, addr:addr, units:caps.join(' '), mid:mid, kanaal:kanaal };
-}
-document.getElementById('fireBtn').onclick=function(){
-  var raw=document.getElementById('fRaw').value.trim();
-  if(!raw){document.getElementById('fRaw').focus();return;}
-  var p=parseP2000(raw);
-  panel.classList.remove('open');
-  showAlarm(p.type,p.addr,p.prio,p.units,undefined,p.mid,p.kanaal);
-};
-
-/* Melding naar alle schermen sturen (via de Worker, net als de eigen ontvanger) */
-document.getElementById('allesBtn').onclick=function(){
-  var knop=document.getElementById('allesBtn');
-  var raw=document.getElementById('fRaw').value.trim();
-  var hint=document.querySelector('#testPanel .tp-hint');
-  if(!raw){document.getElementById('fRaw').focus();return;}
-  knop.textContent='Versturen…';
-  fetch('/api/pi',{
-    method:'POST',
-    headers:{'content-type':'application/json'},
-    body: JSON.stringify({ text: raw, sleutel: 'veluwsekant2026', test: true })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    knop.textContent='Naar alle schermen';
-    if(d && d.ok){
-      panel.classList.remove('open');
-      if(hint) hint.textContent='Melding verstuurd naar alle schermen.';
-    }else{
-      if(hint) hint.textContent='Versturen mislukt' + ((d && d.error) ? ': '+d.error : '') + '.';
-    }
-  }).catch(function(){
-    knop.textContent='Naar alle schermen';
-    if(hint) hint.textContent='Versturen mislukt (geen verbinding).';
-  });
-};
-document.getElementById('clearBtn').onclick=function(){ panel.classList.remove('open'); clearAlarm(); };
-</script>
-<script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun) return;
-  
-  var maxHeight = 0.25 * window.innerHeight; // 25vh
-  lastRun.style.fontSize = '0.7rem';
-  
-  // Check if text overflows
-  if(lastRun.scrollHeight > maxHeight) {
-    var fontSize = 0.7;
-    while(lastRun.scrollHeight > maxHeight && fontSize > 0.4) {
-      fontSize -= 0.05;
-      lastRun.style.fontSize = fontSize + 'rem';
-    }
-  }
-}
-
-// Run on load and when content changes
-fitMeldingText();
-setInterval(fitMeldingText, 2000);
-</script><script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun || !lastRun.innerHTML.trim()) return;
-  
-  var maxHeight = 0.35 * window.innerHeight; // 35vh
-  var fontSize = 0.7;
-  
-  lastRun.style.fontSize = fontSize + 'rem';
-  
-  // Shrink if needed
-  var attempts = 0;
-  while(lastRun.scrollHeight > maxHeight && fontSize > 0.35 && attempts < 10) {
-    fontSize -= 0.05;
-    lastRun.style.fontSize = fontSize + 'rem';
-    attempts++;
-  }
-}
-
-// Run immediately and on interval
-fitMeldingText();
-setInterval(fitMeldingText, 1000);
-
-// Also run when page loads
-window.addEventListener('load', fitMeldingText);
-</script><script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun || !lastRun.innerHTML.trim()) return;
-  
-  // Kleinere max-height op tablet (> 800px)
-  var screenWidth = window.innerWidth;
-  var maxHeight;
-  if(screenWidth > 800) {
-    maxHeight = 0.25 * window.innerHeight; // Tablet: 25vh
-  } else {
-    maxHeight = 0.35 * window.innerHeight; // iPhone: 35vh
-  }
-  
-  var fontSize = 0.7;
-  lastRun.style.fontSize = fontSize + 'rem';
-  
-  // Agressief krimpen als nodig
-  var attempts = 0;
-  while(lastRun.scrollHeight > maxHeight && fontSize > 0.3 && attempts < 15) {
-    fontSize -= 0.05;
-    lastRun.style.fontSize = fontSize + 'rem';
-    attempts++;
-  }
-}
-
-fitMeldingText();
-setInterval(fitMeldingText, 500); // Sneller checken
-window.addEventListener('load', fitMeldingText);
-window.addEventListener('resize', fitMeldingText);
-</script><script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun || !lastRun.innerHTML.trim()) return;
-  
-  var screenWidth = window.innerWidth;
-  var maxHeight;
-  if(screenWidth > 800) {
-    maxHeight = 0.4 * window.innerHeight; // Tablet: 40vh
-  } else {
-    maxHeight = 0.45 * window.innerHeight; // iPhone: 45vh
-  }
-  
-  var fontSize = 0.65;
-  lastRun.style.fontSize = fontSize + 'rem';
-  lastRun.style.lineHeight = '1';
-  
-  // Veel agressiever krimpen
-  var attempts = 0;
-  while(lastRun.scrollHeight > maxHeight && fontSize > 0.25 && attempts < 20) {
-    fontSize -= 0.03;
-    lastRun.style.fontSize = fontSize + 'rem';
-    attempts++;
-  }
-}
-
-fitMeldingText();
-setInterval(fitMeldingText, 500);
-window.addEventListener('load', fitMeldingText);
-window.addEventListener('resize', fitMeldingText);
-
-/* ===== UNIVERSELE KAZERNE CONFIG ===== */
-document.getElementById('testBtn').onclick = function(){ 
-  var panel = document.getElementById('testPanel');
-  if(panel) panel.classList.toggle('open');
-};
-
-document.getElementById('cfgBtn').onclick = function(){ 
-  var cfgPanel = document.getElementById('cfgPanel');
-  if(cfgPanel) cfgPanel.classList.add('open');
-};
-
-
-
-
-/* ===== LOKALE OPSLAG (localStorage) ===== */
-function saveToLocalStorage(){
-  localStorage.setItem('POST_CONFIG', JSON.stringify(POST_CONFIG));
-  localStorage.setItem('POST_LOCATION', JSON.stringify(POST_LOCATION));
-  localStorage.setItem('PLOEGEN_CONFIG', JSON.stringify(PLOEGEN_CONFIG));
-  localStorage.setItem('cfgUnits', document.getElementById('cfgUnits').value);
-  localStorage.setItem('TASKS', JSON.stringify(TASKS));
-}
-
-function loadFromLocalStorage(){
-  var pc = localStorage.getItem('POST_CONFIG');
-  if(pc) POST_CONFIG = JSON.parse(pc);
-  
-  var pl = localStorage.getItem('POST_LOCATION');
-  if(pl) POST_LOCATION = JSON.parse(pl);
-  
-  var ploeg = localStorage.getItem('PLOEGEN_CONFIG');
-  if(ploeg) PLOEGEN_CONFIG = JSON.parse(ploeg);
-  
-  var units = localStorage.getItem('cfgUnits');
-  if(units) document.getElementById('cfgUnits').value = units;
-  
-  var tasks = localStorage.getItem('TASKS');
-  if(tasks) TASKS = JSON.parse(tasks);
-}
-
-// Load bij pagina start
-loadFromLocalStorage();
-
-/* ===== POST CONFIG ===== */
-var POST_CONFIG = {
-  postnaam: 'Post Veluwsekant',
-  brandweer: 'Brandweer Flevoland'
-};
-
-function updateTopbar(){
-  var pn = document.getElementById('cfgPostnaam');
-  var bw = document.getElementById('cfgBrandweer');
-  var postnaam = (pn && pn.value) ? pn.value.trim() : POST_CONFIG.postnaam;
-  var brandweer = (bw && bw.value) ? bw.value.trim() : POST_CONFIG.brandweer;
-  
-  document.getElementById('topbarPostnaam').textContent = postnaam || 'Post';
-  document.getElementById('topbarBrandweer').textContent = brandweer || 'Brandweer';
-  
-  // Update ook POST_CONFIG voor volgende keer
-  POST_CONFIG.postnaam = postnaam;
-  POST_CONFIG.brandweer = brandweer;
-  
-  console.log('updateTopbar():', postnaam, brandweer);
-}
-
-// Hook in openCfg - vul config fields
-var originalOpenCfg = window.openCfg || function(){};
-window.openCfg = function(){
-  originalOpenCfg();
-  document.getElementById('cfgPostnaam').value = POST_CONFIG.postnaam;
-  document.getElementById('cfgBrandweer').value = POST_CONFIG.brandweer;
-};
-
-// Hook in cfgSave - sla config op
-var cfgSaveBtn = document.getElementById('cfgSave');
-if(cfgSaveBtn){
-  var originalSave = cfgSaveBtn.onclick || function(){};
-  cfgSaveBtn.onclick = function(){
-    POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
-    POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
-    updateTopbar();
-    if(originalSave) originalSave();
-  };
-}
-
-// Init
-updateTopbar();
-
-
-
-/* ===== PLOEGEN CONFIG ===== */
-var PLOEGEN_CONFIG = [
-  {naam:'Ploeg A',start:'07:00',vandaag:true},
-  {naam:'Ploeg B',start:'19:00',vandaag:false}
-];
-
-function vulPloegenTabel(){
-  var tbody = document.getElementById('ploegenTableBody');
-  if(!tbody) return;
-  tbody.innerHTML = '';
-  
-  for(var i=0;i<PLOEGEN_CONFIG.length;i++){
-    var p = PLOEGEN_CONFIG[i];
-    var tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid #20304a';
-    
-    var td1 = document.createElement('td');
-    td1.style.padding = '0.8rem';
-    var inp1 = document.createElement('input');
-    inp1.type = 'text';
-    inp1.value = p.naam;
-    inp1.dataset.idx = i;
-    inp1.dataset.prop = 'naam';
-    inp1.style.width = '100%';
-    inp1.style.padding = '0.5rem';
-    inp1.style.background = '#0e1524';
-    inp1.style.border = '1px solid #20304a';
-    inp1.style.color = '#eaf1fa';
-    inp1.style.borderRadius = '.3rem';
-    inp1.style.fontFamily = 'inherit';
-    td1.appendChild(inp1);
-    tr.appendChild(td1);
-    
-    var td2 = document.createElement('td');
-    td2.style.padding = '0.8rem';
-    var inp2 = document.createElement('input');
-    inp2.type = 'time';
-    inp2.value = p.start;
-    inp2.dataset.idx = i;
-    inp2.dataset.prop = 'start';
-    inp2.style.width = '100%';
-    inp2.style.padding = '0.5rem';
-    inp2.style.background = '#0e1524';
-    inp2.style.border = '1px solid #20304a';
-    inp2.style.color = '#eaf1fa';
-    inp2.style.borderRadius = '.3rem';
-    inp2.style.fontFamily = 'inherit';
-    td2.appendChild(inp2);
-    tr.appendChild(td2);
-    
-    var td3 = document.createElement('td');
-    td3.style.padding = '0.8rem';
-    td3.style.textAlign = 'center';
-    var chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.checked = p.vandaag;
-    chk.dataset.idx = i;
-    chk.dataset.prop = 'vandaag';
-    chk.style.width = '1.2rem';
-    chk.style.height = '1.2rem';
-    chk.style.cursor = 'pointer';
-    td3.appendChild(chk);
-    tr.appendChild(td3);
-    
-    var td4 = document.createElement('td');
-    td4.style.padding = '0.8rem';
-    td4.style.textAlign = 'center';
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '×';
-    btn.dataset.idx = i;
-    btn.style.background = '#e30613';
-    btn.style.border = 'none';
-    btn.style.color = '#fff';
-    btn.style.padding = '0.4rem 0.8rem';
-    btn.style.cursor = 'pointer';
-    btn.style.borderRadius = '.2rem';
-    btn.style.fontWeight = '600';
-    btn.onclick = function(){ 
-      var idx = parseInt(this.dataset.idx, 10);
-      PLOEGEN_CONFIG.splice(idx, 1);
-      vulPloegenTabel();  // config
-    };
-    td4.appendChild(btn);
-    tr.appendChild(td4);
-    
-    tbody.appendChild(tr);
-  }
-}
-
-function leesPloegenTabel(){
-  var inputs = document.querySelectorAll('#ploegenTableBody input');
-  var nieuw = {};
-  for(var i=0;i<inputs.length;i++){
-    var inp = inputs[i];
-    var idx = parseInt(inp.dataset.idx, 10);
-    var prop = inp.dataset.prop;
-    if(!nieuw[idx]) nieuw[idx] = {};
-    if(prop === 'vandaag') nieuw[idx][prop] = inp.checked;
-    else nieuw[idx][prop] = inp.value;
-  }
-  PLOEGEN_CONFIG = [];
-  for(var k in nieuw){
-    if(nieuw.hasOwnProperty(k)) PLOEGEN_CONFIG.push(nieuw[k]);
-  }
-}
-
-document.getElementById('addPloegBtn').onclick = function(){
-  PLOEGEN_CONFIG.push({naam:'Nieuwe ploeg',start:'07:00',vandaag:false});
-  vulPloegenTabel();  // config
-};
-
-// Hook in openCfg - vul ploegen tabel
-var origOpenCfg = window.openCfgOrig || function(){};
-if(typeof openCfg === 'function'){
-  window.openCfgOrig = openCfg;
-} else {
-  window.openCfgOrig = function(){};
-}
-
-// Hook in cfgSave - sla ploegen op
-var cfgSaveBtn = document.getElementById('cfgSave');
-if(cfgSaveBtn){
-  var origSave = cfgSaveBtn.onclick || function(){};
-  cfgSaveBtn.onclick = function(){
-    leesPloegenTabel();  // config
-    if(origSave.call) origSave.call(this);
-  };
-}
-
-// Init
-vulPloegenTabel();  // config
-
-
-
-/* ===== UPDATE PLOEGEN DISPLAY OP SCHERM ===== */
-function updatePloegenDisplay(){
-  var ploegenRow = document.getElementById('ploegenRow');
-  if(!ploegenRow) return;
-  
-  ploegenRow.innerHTML = '';
-  
-  for(var i=0;i<PLOEGEN_CONFIG.length;i++){
-    if(PLOEGEN_CONFIG[i].vandaag){
-      var item = document.createElement('div');
-      item.className = 'ploeg-item';
-      
-      var naam = document.createElement('span');
-      naam.className = 'naam';
-      naam.textContent = PLOEGEN_CONFIG[i].naam;
-      item.appendChild(naam);
-      
-      var tijd = document.createElement('span');
-      tijd.textContent = ' (' + PLOEGEN_CONFIG[i].start + ')';
-      item.appendChild(tijd);
-      
-      ploegenRow.appendChild(item);
-    }
-  }
-}
-
-// Roep aan als ploegen opgeslagen worden
-var cfgSaveBtn2 = document.getElementById('cfgSave');
-if(cfgSaveBtn2){
-  var origSave2 = cfgSaveBtn2.onclick || function(){};
-  cfgSaveBtn2.onclick = function(){
-    origSave2.call(this);
-    updatePloegenDisplay();  // display
-  };
-}
-
-updatePloegenDisplay();  // display
-
-
-
-/* ===== POST LOCATIE & NACHTMODUS ===== */
-
-function applyNachtmodus(){
-  var now = new Date();
-  var hhMm = ('0' + now.getHours()).slice(-2) + ('0' + now.getMinutes()).slice(-2);
-  var van = POST_LOCATION.nachtVan.replace(':','');
-  var tot = POST_LOCATION.nachtTot.replace(':','');
-  
-  // Check of we in nachtmodus zitten
-  var isNacht = false;
-  if(van < tot){
-    isNacht = (hhMm >= van && hhMm < tot);
-  } else {
-    isNacht = (hhMm >= van || hhMm < tot);
-  }
-  
-  var body = document.body;
-  if(isNacht){
-    body.classList.add('dag');
-  } else {
-    body.classList.remove('dag');
-  }
-}
-
-// Check nachtmodus elke minuut
-setInterval(applyNachtmodus, 60000);
-applyNachtmodus();
-
-// Geocoden via Nominatim (OpenStreetMap)
-document.getElementById('cfgGeocode').onclick = function(){
-  var adres = document.getElementById('cfgAdres').value.trim();
-  var hint = document.getElementById('geocodeHint');
-  
-  if(!adres){
-    hint.textContent = '❌ Voer een adres in';
-    hint.style.color = '#ff3b30';
-    return;
-  }
-  
-  hint.textContent = '⏳ Zoeken...';
-  hint.style.color = '#3ec1ff';
-  
-  var query = encodeURIComponent(adres + ', Nederland');
-  fetch('https://nominatim.openstreetmap.org/search?q=' + query + '&format=json')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.length > 0){
-        POST_LOCATION.lat = parseFloat(d[0].lat);
-        POST_LOCATION.lon = parseFloat(d[0].lon);
-        startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };  // route update
-        hint.textContent = '✓ Locatie ingesteld: ' + POST_LOCATION.lat.toFixed(4) + ', ' + POST_LOCATION.lon.toFixed(4);
-        hint.style.color = '#37d67a';
-        setTimeout(loadWeather, 500);  // Weer ophalen voor nieuwe locatie
-      } else {
-        hint.textContent = '❌ Adres niet gevonden';
-        hint.style.color = '#ff3b30';
-      }
-    })
-    .catch(function(e){
-      hint.textContent = '❌ Geocoding mislukt: ' + e.message;
-      hint.style.color = '#ff3b30';
-    });
-};
-
-// Hook in openCfg - vul nachtmodus velden
-var origOpenCfg3 = window.openCfgOrig3 || function(){};
-var oldOpenCfg = window.openCfg || function(){};
-window.openCfgOrig3 = oldOpenCfg;
-
-// Hook in cfgSave - sla nachtmodus op
-var cfgSaveBtn3 = document.getElementById('cfgSave');
-if(cfgSaveBtn3){
-  var origSave3 = cfgSaveBtn3.onclick || function(){};
-  cfgSaveBtn3.onclick = function(){
-    POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
-    POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
-    applyNachtmodus();
-    if(origSave3.call) origSave3.call(this);
-  };
-}
-
-
-
-/* ===== VOERTUIGEN CONFIG TABEL ===== */
-function vulVoertuigenConfigTable(){
-  var tbody = document.getElementById('voertuigenConfigBody');
-  if(!tbody) return;
-  tbody.innerHTML = '';
-  
-  var unitTxt = document.getElementById('cfgUnits').value || '';
-  var units = tekstNaarUnits(unitTxt);
-  
-  var rows = [];
-  for(var cap in units){
-    if(units.hasOwnProperty(cap)){
-      rows.push({cap: cap, unit: units[cap]});
-    }
-  }
-  
-  for(var i=0;i<rows.length;i++){
-    var tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid #20304a';
-    
-    var td1 = document.createElement('td');
-    td1.style.padding = '0.8rem';
-    var inp1 = document.createElement('input');
-    inp1.type = 'text';
-    inp1.value = rows[i].cap;
-    inp1.dataset.idx = i;
-    inp1.dataset.prop = 'cap';
-    inp1.style.width = '100%';
-    inp1.style.padding = '0.5rem';
-    inp1.style.background = '#0e1524';
-    inp1.style.border = '1px solid #20304a';
-    inp1.style.color = '#eaf1fa';
-    inp1.style.borderRadius = '.3rem';
-    inp1.style.fontFamily = 'inherit';
-    td1.appendChild(inp1);
-    tr.appendChild(td1);
-    
-    var td2 = document.createElement('td');
-    td2.style.padding = '0.8rem';
-    var inp2 = document.createElement('input');
-    inp2.type = 'text';
-    inp2.value = rows[i].unit.naam || '';
-    inp2.dataset.idx = i;
-    inp2.dataset.prop = 'naam';
-    inp2.style.width = '100%';
-    inp2.style.padding = '0.5rem';
-    inp2.style.background = '#0e1524';
-    inp2.style.border = '1px solid #20304a';
-    inp2.style.color = '#eaf1fa';
-    inp2.style.borderRadius = '.3rem';
-    inp2.style.fontFamily = 'inherit';
-    td2.appendChild(inp2);
-    tr.appendChild(td2);
-    
-    var td3 = document.createElement('td');
-    td3.style.padding = '0.8rem';
-    td3.style.textAlign = 'center';
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '×';
-    btn.dataset.idx = i;
-    btn.style.background = '#e30613';
-    btn.style.border = 'none';
-    btn.style.color = '#fff';
-    btn.style.padding = '0.4rem 0.8rem';
-    btn.style.cursor = 'pointer';
-    btn.style.borderRadius = '.2rem';
-    btn.style.fontWeight = '600';
-    btn.onclick = function(){ 
-      rows.splice(parseInt(this.dataset.idx, 10), 1);
-      updateCfgUnitsFromTable();
-      vulVoertuigenConfigTable();
-    };
-    td3.appendChild(btn);
-    tr.appendChild(td3);
-    
-    tbody.appendChild(tr);
-  }
-}
-
-function updateCfgUnitsFromTable(){
-  var rows = [];
-  var trs = document.querySelectorAll('#voertuigenConfigBody tr');
-  
-  for(var i=0;i<trs.length;i++){
-    var capInput = trs[i].querySelector('input[data-prop="cap"]');
-    var naamInput = trs[i].querySelector('input[data-prop="naam"]');
-    if(!capInput || !naamInput) continue;
-    
-    var cap = capInput.value.trim();
-    var naam = naamInput.value.trim();
-    if(cap && naam){
-      rows.push(cap + ' = ' + naam);
-    }
-  }
-  
-  document.getElementById('cfgUnits').value = rows.join('\n');
-}
-
-document.getElementById('addVoertuigConfigBtn').onclick = function(){
-  updateCfgUnitsFromTable();
-  var textarea = document.getElementById('cfgUnits');
-  if(textarea.value) textarea.value += '\n';
-  textarea.value += ' = ';
-  vulVoertuigenConfigTable();
-};
-
-// Vul tabel bij openCfg
-var origOpenCfg2 = window.openCfgOrig2 || function(){};
-window.openCfgOrig2 = window.openCfg || function(){};
-if(typeof openCfg === 'function'){
-  var oldOpenCfg = window.openCfg;
-}
-
-vulVoertuigenConfigTable();
-
-</script></body>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits" id="benefits">
+        <div class="benefits-container">
+            <h2>Waarom kiezen voor P2000 Kazernescherm?</h2>
+            <div class="benefits-list">
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <div class="benefit-text"><strong>Realtime P2000-alarmeringen</strong> — Geen vertraging, altijd actueel</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <div class="benefit-text"><strong>Duidelijke incidentinformatie</strong> — Alle details in één overzicht</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <div class="benefit-text"><strong>Overzicht gealarmeerde eenheden</strong> — Weet wie er uitrikt</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <div class="benefit-text"><strong>Geschikt voor tv's en monitoren</strong> — Eenvoudige installatie</div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-check">✓</div>
+                    <div class="benefit-text"><strong>Extra informatie op maat</strong> — Weer, taken, en meer zoals jij wilt</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="contact">
+        <h2>Klaar om je kazerne op niveau te brengen?</h2>
+        <p>Neem contact op voor een demo of meer informatie over P2000 Kazernescherm.</p>
+        <a href="mailto:info@rbdatasolutions.nl" class="cta-button-light">Stuur een e-mail</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="#features">Features</a>
+                <a href="#benefits">Voordelen</a>
+                <a href="mailto:info@rbdatasolutions.nl">Contact</a>
+            </div>
+            <p>&copy; 2026 RB Data Solutions. Alle rechten voorbehouden.</p>
+            <p style="margin-top: 1rem; font-size: 0.85rem;">Real-time emergency dispatch system voor Nederlandse brandweerkazernes</p>
+        </div>
+    </footer>
+</body>
 </html>
