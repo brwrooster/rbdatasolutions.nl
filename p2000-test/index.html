@@ -983,6 +983,8 @@ function loadUnitETAs(units, dest){
   /* Terugval: OSRM (gewone auto) */
   function viaOSRM(){
     var coords = [];
+    var validKeys = [];  // Track alleen voertuigen MET locatie
+    
     for(var j=0;j<keys.length;j++){
       var u = unitsByKey[keys[j]];
       var loc = null;
@@ -999,21 +1001,25 @@ function loadUnitETAs(units, dest){
         if(!loc && keys[j]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
       }
       
-      if(!loc) continue;
+      if(!loc) continue;  // Skip voertuigen zonder locatie
+      validKeys.push(keys[j]);  // Track deze key
       coords.push(loc.lon + ',' + loc.lat);
     }
+    
+    if(!coords.length) return;  // Geen voertuigen om te routen
+    
     coords.push(dest.lon + ',' + dest.lat);
     var srcIdx = [];
-    for(j=0;j<keys.length;j++) srcIdx.push(j);
+    for(j=0;j<validKeys.length;j++) srcIdx.push(j);
     var url = 'https://router.project-osrm.org/table/v1/driving/' + coords.join(';') +
               '?sources=' + srcIdx.join(';') + '&destinations=' + keys.length;
     fetch(url).then(function(r){ return r.json(); }).then(function(d){
       if(!d.durations) throw new Error('geen tijden');
       var perPost = {};
-      for(var k=0;k<keys.length;k++){
+      for(var k=0;k<validKeys.length;k++){
         var row = d.durations[k];
         var sec = row && row[0];
-        perPost[keys[k]] = (sec==null) ? null : Math.round(sec/60);
+        perPost[validKeys[k]] = (sec==null) ? null : Math.round(sec/60);
       }
       toonTijden(perPost);
     }).catch(function(){
@@ -1025,6 +1031,8 @@ function loadUnitETAs(units, dest){
 
   /* Valhalla-matrix met bus-profiel (busbanen meegerekend) */
   var bronnen = [];
+  var valhallaBronIndices = {};  // Track welke index → welke key
+  
   for(i=0;i<keys.length;i++){
     var u = unitsByKey[keys[i]];
     var loc = null;
@@ -1041,8 +1049,13 @@ function loadUnitETAs(units, dest){
       if(!loc && keys[i]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
     }
     
-    if(loc) bronnen.push({lat: loc.lat, lon: loc.lon});
+    if(loc) {
+      valhallaBronIndices[bronnen.length] = keys[i];  // Index → key mapping
+      bronnen.push({lat: loc.lat, lon: loc.lon});
+    }
   }
+  
+  if(!bronnen.length) return;  // Geen voertuigen om te routen
   var verzoek = {
     sources: bronnen,
     targets: [{lat: dest.lat, lon: dest.lon}],
@@ -1056,10 +1069,11 @@ function loadUnitETAs(units, dest){
     var matrix = d && d.sources_to_targets;
     if(!matrix || !matrix.length) throw new Error('geen matrix');
     var perPost = {};
-    for(var k=0;k<keys.length;k++){
-      var rij = matrix[k];
+    for(var idx in valhallaBronIndices){
+      var rij = matrix[idx];
       var cel = rij && rij[0];
-      perPost[keys[k]] = (cel && cel.time != null) ? Math.round(cel.time/60) : null;
+      var key = valhallaBronIndices[idx];
+      perPost[key] = (cel && cel.time != null) ? Math.round(cel.time/60) : null;
     }
     toonTijden(perPost);
   }).catch(function(){
@@ -2275,6 +2289,45 @@ window.openCfg = function(){
 
 
 /* Geocode voertuigen-adressen via Nominatim */
+
+/* Voertuigen met geocoded adressen toevoegen als POSTEN */
+function updatePostenFromVoertuigen() {
+  var nieuwePosten = {};
+  
+  // Voor elk voertuig met adres + lat/lon
+  for(var cap in UNITS) {
+    if(UNITS.hasOwnProperty(cap)) {
+      var u = UNITS[cap];
+      if(u.adres && u.lat && u.lon) {
+        // Maak sleutel van adres (lowercase, spaties naar underscore)
+        var key = u.adres.toLowerCase().replace(/\s+/g, '_').substring(0, 20);
+        
+        // Voeg toe aan POSTS als nog niet aanwezig
+        if(!POSTS[key] && !nieuwePosten[key]) {
+          nieuwePosten[key] = {
+            naam: u.adres,
+            lat: u.lat,
+            lon: u.lon
+          };
+        }
+      }
+    }
+  }
+  
+  // Merge nieuwe posten
+  for(var k in nieuwePosten) {
+    POSTS[k] = nieuwePosten[k];
+  }
+  
+  // Update POSTEN textarea
+  if(Object.keys(nieuwePosten).length > 0) {
+    var tekst = postsNaarTekst();
+    var txt = document.getElementById('cfgPosts');
+    if(txt) txt.value = tekst;
+    console.log('✓ ' + Object.keys(nieuwePosten).length + ' posten toegevoegd uit voertuig-adressen');
+  }
+}
+
 function geocodeVoertuigenAdressen() {
   var toGeocode = [];
   
@@ -2299,6 +2352,7 @@ function geocodeVoertuigenAdressen() {
       // Klaar! Refresh tabel EN slaag op
       vulVoertuigenConfigTable();
       updateCfgUnitsFromTable();  // Schrijf geocoded coords terug naar cfgUnits
+      updatePostenFromVoertuigen();  // Update POSTEN uit voertuig-adressen
       saveToLocalStorage();  // Slaag persistent op
       return;
     }
