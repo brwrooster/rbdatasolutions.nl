@@ -1366,19 +1366,17 @@ pollEigenOntvanger();
 
 /* ================= Geocoding (PDOK Locatieserver) ================= */
 function geocode(q, type, verwacht){
-  // EERST: PDOK proberen
-  var url='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q='+encodeURIComponent(q)+
-    '&fl=weergavenaam,centroide_ll,type&rows=5';
-  if(type) url += '&fq=type:' + encodeURIComponent(type);
-  
-  return fetch(url)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      var docs = d && d.response && d.response.docs;
-      if(!docs || !docs.length) return null;
-      
-      // Voor hectometerpaal: valideer weg + hectometer
-      if(type === 'hectometerpaal' && verwacht && verwacht.weg && verwacht.hm){
+  // Voor hectometerpaal: gebruik PDOK met validatie
+  if(type === 'hectometerpaal' && verwacht && verwacht.weg && verwacht.hm){
+    var url='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q='+encodeURIComponent(q)+
+      '&fl=weergavenaam,centroide_ll,type&rows=5&fq=type:hectometerpaal';
+    
+    return fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var docs = d && d.response && d.response.docs;
+        if(!docs || !docs.length) return null;
+        
         var wegPatroon = verwacht.weg.toUpperCase();
         var hmPatroon = verwacht.hm.replace(',', '[,.]');
         var hmRegex = new RegExp('\\b' + hmPatroon + '\\b');
@@ -1386,55 +1384,31 @@ function geocode(q, type, verwacht){
           var naam = (d.weergavenaam || '').toUpperCase();
           return naam.indexOf(wegPatroon) !== -1 && hmRegex.test(naam);
         });
-        if(!passend.length) return null;
-        var doc = passend[0];
-      } else {
-        // Voor normale adressen: controleer dat straatnaam erin zit
-        var qLower = (q || '').toLowerCase();
-        var searchTerms = qLower.split(/[,\s]+/).filter(function(t){ return t.length > 2; });
-        
-        var passend = docs.filter(function(d){
-          var naam = (d.weergavenaam || '').toLowerCase();
-          return searchTerms.some(function(term){ return naam.indexOf(term) !== -1; });
-        });
         
         if(!passend.length) return null;
         var doc = passend[0];
+        var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
+        if(!m) return null;
+        return { lon:parseFloat(m[1]), lat:parseFloat(m[2]), label:doc.weergavenaam };
+      })
+      .catch(function(){ return null; });
+  }
+  
+  // VOOR NORMALE ADRESSEN: Nominatim (betrouwbaarder voor straatnamen!)
+  return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + 
+    encodeURIComponent(q) + '&countrycodes=nl&limit=1')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.length > 0) {
+        return { 
+          lon:parseFloat(data[0].lon), 
+          lat:parseFloat(data[0].lat), 
+          label:data[0].display_name 
+        };
       }
-      
-      var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
-      if(!m) return null;
-      return { lon:parseFloat(m[1]), lat:parseFloat(m[2]), label:doc.weergavenaam };
+      return null;
     })
-    .catch(function(err){ 
-      console.log('PDOK failed:', err);
-      return null; 
-    })
-    .then(function(pdokResult){
-      // Als PDOK gelukt: gebruik dat
-      if(pdokResult) return pdokResult;
-      
-      // FALLBACK: Nominatim
-      console.log('PDOK geen match, fallback naar Nominatim: ' + q);
-      return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + 
-        encodeURIComponent(q) + '&countrycodes=nl&limit=1')
-        .then(function(r){ return r.json(); })
-        .then(function(data){
-          if(data && data.length > 0) {
-            console.log('Nominatim found:', data[0].display_name);
-            return { 
-              lon:parseFloat(data[0].lon), 
-              lat:parseFloat(data[0].lat), 
-              label:data[0].display_name 
-            };
-          }
-          return null;
-        })
-        .catch(function(err){ 
-          console.log('Nominatim also failed:', err);
-          return null; 
-        });
-    });
+    .catch(function(){ return null; });
 }
 
 /* Hectometeraanduiding herkennen, bv. "A6 102,7" of "N307 - HANZEWEG 102,7 DRONTEN" */
