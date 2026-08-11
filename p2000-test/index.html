@@ -1889,16 +1889,10 @@ document.getElementById('cfgSave').onclick=function(){
   saveToLocalStorage();
   console.log('✓ localStorage opgeslagen');
   
-  // 7. Geocode voertuigen-adressen (asynchron)
-  geocodeVoertuigenAdressen();
-  console.log('⏳ Geocoding gestart...');
-  
-  // 8. Menu automatisch sluiten (wacht op geocoding)
-  setTimeout(function(){
-    var cp = document.getElementById('cfgPanel');
-    if(cp) cp.classList.remove('open');
-    console.log('✓ Menu gesloten');
-  }, 3000);
+  // 7. Menu sluit direct (geocoding HANDMATIG via ✓ knoppen)
+  var cp = document.getElementById('cfgPanel');
+  if(cp) cp.classList.remove('open');
+  console.log('✓ Menu gesloten');
   
   // Rest van config (posten, capcodes, taken)
   var caps = (document.getElementById('cfgCaps').value.match(/\d{4,7}/g) || []);
@@ -2346,14 +2340,76 @@ function updatePostenFromVoertuigen() {
   }
 }
 
+
+/* Geocode ÉÉN voertuig via klik op ✓ knop */
+function geocodeOneUnit(capcode, adres, btn) {
+  if(!adres) return;
+  
+  var originalText = btn.textContent;
+  btn.textContent = '...';
+  btn.style.background = '#666';
+  btn.disabled = true;
+  
+  var query = adres + ', Nederland';
+  var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + 
+            encodeURIComponent(query) + '&limit=1';
+  
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if(data.length > 0) {
+        var lat = parseFloat(data[0].lat);
+        var lon = parseFloat(data[0].lon);
+        var coords = lat + ',' + lon;
+        
+        // Update UNITS
+        UNITS[capcode].lat = lat;
+        UNITS[capcode].lon = lon;
+        UNITS[capcode].coords = coords;
+        
+        // Update tabel (kolom 4)
+        vulVoertuigenConfigTable();
+        
+        // Slaag op
+        updateCfgUnitsFromTable();
+        saveToLocalStorage();
+        
+        // Feedback
+        btn.textContent = '✓';
+        btn.style.background = '#00c853';
+        setTimeout(function() {
+          btn.style.background = '#3ec1ff';
+          btn.disabled = false;
+        }, 2000);
+      } else {
+        btn.textContent = '✗';
+        btn.style.background = '#e30613';
+        setTimeout(function() {
+          btn.textContent = originalText;
+          btn.style.background = '#3ec1ff';
+          btn.disabled = false;
+        }, 2000);
+      }
+    })
+    .catch(function(err) {
+      btn.textContent = '✗';
+      btn.style.background = '#e30613';
+      setTimeout(function() {
+        btn.textContent = originalText;
+        btn.style.background = '#3ec1ff';
+        btn.disabled = false;
+      }, 2000);
+    });
+}
+
 function geocodeVoertuigenAdressen() {
   var toGeocode = [];
   
-  // Vind voertuigen MET adres maar ZONDER lat/lon
+  // Vind voertuigen MET adres maar ZONDER coords (noch lat/lon)
   for(var cap in UNITS) {
     if(UNITS.hasOwnProperty(cap)) {
       var u = UNITS[cap];
-      if(u.adres && !u.lat && !u.lon) {
+      if(u.adres && !u.coords) {  // Geocode als nog geen coords
         toGeocode.push({cap: cap, adres: u.adres});
       }
     }
@@ -2660,8 +2716,9 @@ function vulVoertuigenConfigTable(){
   if(!tbody) return;
   tbody.innerHTML = '';
   
-  var unitTxt = document.getElementById('cfgUnits').value || '';
-  var units = tekstNaarUnits(unitTxt);
+  // Lees van UNITS (geheugen), niet van textarea!
+  // UNITS bevat gecoded coords, textarea niet
+  var units = UNITS || {};
   
   var rows = [];
   for(var cap in units){
@@ -2708,23 +2765,60 @@ function vulVoertuigenConfigTable(){
     td2.appendChild(inp2);
     tr.appendChild(td2);
     
-    // Kolom 3: Adres
+    // Kolom 3: Adres + Geocode knop (✓)
     var td3 = document.createElement('td');
     td3.style.padding = '0.8rem';
+    td3.style.display = 'flex';
+    td3.style.gap = '0.5rem';
+    td3.style.alignItems = 'center';
+    
     var inp3 = document.createElement('input');
     inp3.type = 'text';
     inp3.value = rows[i].unit.adres || '';
     inp3.placeholder = 'bijv. Veluwsekant';
     inp3.dataset.idx = i;
     inp3.dataset.prop = 'adres';
-    inp3.style.width = '100%';
+    inp3.style.flex = '1';
     inp3.style.padding = '0.5rem';
     inp3.style.background = '#0e1524';
     inp3.style.border = '1px solid #20304a';
     inp3.style.color = '#eaf1fa';
     inp3.style.borderRadius = '.3rem';
     inp3.style.fontFamily = 'inherit';
+    inp3.onkeypress = function(e) {
+      if(e.key === 'Enter') {
+        btnGeocode.click();
+      }
+    };
     td3.appendChild(inp3);
+    
+    // Geocode knop (✓)
+    var btnGeocode = document.createElement('button');
+    btnGeocode.type = 'button';
+    btnGeocode.textContent = '✓';
+    btnGeocode.dataset.capcode = rows[i].cap;  // Slaag capcode op button
+    btnGeocode.style.background = '#3ec1ff';
+    btnGeocode.style.border = 'none';
+    btnGeocode.style.color = '#000';
+    btnGeocode.style.padding = '0.5rem 0.8rem';
+    btnGeocode.style.cursor = 'pointer';
+    btnGeocode.style.borderRadius = '.3rem';
+    btnGeocode.style.fontWeight = 'bold';
+    btnGeocode.style.fontSize = '1rem';
+    btnGeocode.style.minWidth = '2.5rem';
+    (function(btn, inp, adresInput) {  // Closure voor adres/button
+      btn.onclick = function(){
+        var cap = btn.dataset.capcode;
+        var adres = adresInput.value.trim();
+        if(!adres) {
+          alert('Voer eerst adres in');
+          return;
+        }
+        geocodeOneUnit(cap, adres, btn);
+      };
+    })(btnGeocode, inp3, inp3);
+    td3.appendChild(btnGeocode);
+    
     tr.appendChild(td3);
     
     // Kolom 4: Coördinaten (read-only)
