@@ -2095,7 +2095,11 @@ function loadFromLocalStorage(){
   if(ploeg) PLOEGEN_CONFIG = JSON.parse(ploeg);
   
   var units = localStorage.getItem('cfgUnits');
-  if(units) document.getElementById('cfgUnits').value = units;
+  if(units) {
+    document.getElementById('cfgUnits').value = units;
+    // Parse voertuigen EN zet UNITS
+    UNITS = tekstNaarUnits(units);
+  }
   
   var tasks = localStorage.getItem('TASKS');
   if(tasks) TASKS = JSON.parse(tasks);
