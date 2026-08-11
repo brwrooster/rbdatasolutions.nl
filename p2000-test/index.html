@@ -2602,7 +2602,7 @@ function vulVoertuigenConfigTable(){
     var inpCoords = document.createElement('input');
     inpCoords.type = 'text';
     inpCoords.value = rows[i].unit.coords || '';
-    inpCoords.placeholder = 'auto';
+    inpCoords.placeholder = '';  // Leeg totdat geocoded
     inpCoords.dataset.idx = i;
     inpCoords.dataset.prop = 'coords';
     inpCoords.readOnly = true;
