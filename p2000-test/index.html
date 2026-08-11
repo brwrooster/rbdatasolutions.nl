@@ -1372,10 +1372,8 @@ function geocode(q, type, verwacht){
   return fetch(url).then(function(r){ return r.json(); }).then(function(d){
     var docs = d && d.response && d.response.docs;
     if(!docs || !docs.length) return null;
-    var doc = docs[0];
-    // Bij een hectometerpaal-zoekopdracht: alleen accepteren als de teruggegeven
-    // naam ook echt de gevraagde weg EN hectometer bevat. PDOK's vrije zoekfunctie
-    // kan anders een niet-passend resultaat teruggeven (bv. verkeerde regio).
+    
+    // Voor hectometerpaal: valideer weg + hectometer
     if(type === 'hectometerpaal' && verwacht && verwacht.weg && verwacht.hm){
       var wegPatroon = verwacht.weg.toUpperCase();
       var hmPatroon = verwacht.hm.replace(',', '[,.]');
@@ -1384,10 +1382,24 @@ function geocode(q, type, verwacht){
         var naam = (d.weergavenaam || '').toUpperCase();
         return naam.indexOf(wegPatroon) !== -1 && hmRegex.test(naam);
       });
-      if(!passend.length) return null; // geen betrouwbare match: val terug op alternatief
-      doc = passend[0];
+      if(!passend.length) return null;
+      var doc = passend[0];
+    } else {
+      // Voor normale adressen: controleer dat straatnaam erin zit
+      var qLower = (q || '').toLowerCase();
+      var searchTerms = qLower.split(/[,\s]+/).filter(function(t){ return t.length > 2; });
+      
+      var passend = docs.filter(function(d){
+        var naam = (d.weergavenaam || '').toLowerCase();
+        // Minstens 1 zoekterm moet in het resultaat voorkomen
+        return searchTerms.some(function(term){ return naam.indexOf(term) !== -1; });
+      });
+      
+      if(!passend.length) return null; // Geen match - val terug op alternatief
+      var doc = passend[0];
     }
-    var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/); // lon lat
+    
+    var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
     if(!m) return null;
     return { lon:parseFloat(m[1]), lat:parseFloat(m[2]), label:doc.weergavenaam };
   }).catch(function(){ return null; });
