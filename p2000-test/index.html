@@ -1721,9 +1721,19 @@ function tekstNaarUnits(txt){
     var at=naam.indexOf('@');
     if(at!==-1){ post=naam.slice(at+1).trim().toLowerCase()||null; naam=naam.slice(0,at).trim(); }
     
+    // Parse lat/lon UIT coords string
+    var lat = null, lon = null;
+    if(coords) {
+      var coordParts = coords.split(',');
+      if(coordParts.length === 2) {
+        lat = parseFloat(coordParts[0]);
+        lon = parseFloat(coordParts[1]);
+      }
+    }
+    
     // Geen @post = voertuig van HUIGE post
     if(!post) post='current';
-    out[nummer]={ naam:naam.trim(), post:post, adres:adres, coords:coords };
+    out[nummer]={ naam:naam.trim(), post:post, adres:adres, coords:coords, lat:lat, lon:lon };
   }
   return out;
 }
@@ -1848,6 +1858,7 @@ if(cfgCloseBtn){
 }
 document.getElementById('cfgSave').onclick=function(){
   var msg=document.getElementById('cfgMsg');
+  msg.textContent='⏳ Opslaan...';
   
   // 1. Update voertuigen tabel → textarea
   updateCfgUnitsFromTable();
@@ -1858,14 +1869,13 @@ document.getElementById('cfgSave').onclick=function(){
   POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
   POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
   
-  // 3. Ploegen en taken
+  // 3. Parse ploegen en taken
   leesPloegenTabel();
-  var tks=leesTaakEditor();
-  TASKS=tks;
+  TASKS = leesTaakEditor();
   
-  // 4. Update voertuigen
-  var u=tekstNaarUnits(document.getElementById('cfgUnits').value);
-  if(Object.keys(u).length > 0) UNITS=u;
+  // 4. Parse voertuigen EENMAAL
+  var cfgUnitsValue = document.getElementById('cfgUnits').value;
+  UNITS = tekstNaarUnits(cfgUnitsValue) || {};
   
   // 5. Update scherm
   updateTopbar();
@@ -1875,40 +1885,44 @@ document.getElementById('cfgSave').onclick=function(){
   applyNachtmodus();
   renderTasks();
   
-  msg.textContent='✓ Alles opgeslagen!';
-  
-  // 6. SAVE TO LOCALSTORAGE (lokaal)
+  // 6. SAVE TO LOCALSTORAGE EERST
   saveToLocalStorage();
+  console.log('✓ localStorage opgeslagen');
   
   // 7. Geocode voertuigen-adressen (asynchron)
   geocodeVoertuigenAdressen();
+  console.log('⏳ Geocoding gestart...');
   
   // 8. Menu automatisch sluiten (wacht op geocoding)
   setTimeout(function(){
     var cp = document.getElementById('cfgPanel');
     if(cp) cp.classList.remove('open');
-  }, 3000);  // 3 seconden voor geocoding + tabel refresh
+    console.log('✓ Menu gesloten');
+  }, 3000);
   
-  // Rest van config
-  var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
-  var hold=parseInt(document.getElementById('cfgHold').value,10);
-  var p=tekstNaarPosts(document.getElementById('cfgPosts').value);
-  var u=tekstNaarUnits(document.getElementById('cfgUnits').value);
-  if(!caps.length){ msg.textContent='Let op: vul minstens één capcode in voor de rest.'; return; }
-  FILTER_CAPCODES=caps;
-  HOLD_MIN=(!isNaN(hold)&&hold>0)?hold:DEFAULT_HOLD_MIN;
-  var telP=0,k; for(k in p){ if(p.hasOwnProperty(k)) telP++; }
-  var telU=0; for(k in u){ if(u.hasOwnProperty(k)) telU++; }
-  if(telP) POSTS=p;
-  if(telU) UNITS=u;
-
-  var tks=leesTaakEditor();
-  TASKS=tks;
+  // Rest van config (posten, capcodes, taken)
+  var caps = (document.getElementById('cfgCaps').value.match(/\d{4,7}/g) || []);
+  var hold = parseInt(document.getElementById('cfgHold').value, 10);
+  var p = tekstNaarPosts(document.getElementById('cfgPosts').value) || {};
+  
+  if(!caps.length){ 
+    msg.textContent='Let op: vul minstens één capcode in voor de rest.'; 
+    return; 
+  }
+  
+  FILTER_CAPCODES = caps;
+  HOLD_MIN = (!isNaN(hold) && hold > 0) ? hold : DEFAULT_HOLD_MIN;
+  
+  var telP = 0, k;
+  for(k in p){ if(p.hasOwnProperty(k)) telP++; }
+  if(telP) POSTS = p;
+  
   refreshPostCapcodes();
   // saveCfg();  // LOKAAL TEST: geen worker
   renderTasks();
-  lastFeedId=null; firstPoll=true;
-  msg.textContent='✓ Opgeslagen lokaal (test mode - geen worker)';
+  lastFeedId = null;
+  firstPoll = true;
+  msg.textContent = '✓ Opgeslagen lokaal (test mode - geen worker)';
   // bewaarTakenCentraal() // LOKAAL TEST: geen worker
 };
 document.getElementById('cfgReset').onclick=function(){
@@ -2357,6 +2371,7 @@ function geocodeVoertuigenAdressen() {
       vulVoertuigenConfigTable();
       updateCfgUnitsFromTable();  // Schrijf geocoded coords terug naar cfgUnits
       updatePostenFromVoertuigen();  // Update POSTEN uit voertuig-adressen
+      console.log('✓ Posten geupdate uit voertuigen');
       saveToLocalStorage();  // Slaag persistent op
       return;
     }
