@@ -1402,7 +1402,26 @@ function geocode(q, type, verwacht){
     var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
     if(!m) return null;
     return { lon:parseFloat(m[1]), lat:parseFloat(m[2]), label:doc.weergavenaam };
-  }).catch(function(){ return null; });
+  }).catch(function(){ return null; }).then(function(result){
+    // Als PDOK niets geeft: fallback naar Nominatim
+    if(!result) {
+      return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + 
+        encodeURIComponent(q) + '&countrycodes=nl&limit=1')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if(data && data.length > 0) {
+            return { 
+              lon:parseFloat(data[0].lon), 
+              lat:parseFloat(data[0].lat), 
+              label:data[0].display_name 
+            };
+          }
+          return null;
+        })
+        .catch(function(){ return null; });
+    }
+    return result;
+  });
 }
 
 /* Hectometeraanduiding herkennen, bv. "A6 102,7" of "N307 - HANZEWEG 102,7 DRONTEN" */
