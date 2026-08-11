@@ -664,9 +664,11 @@
       <table id="voertuigenConfigTable" style="width:100%;border-collapse:collapse;margin:1rem 0">
         <thead>
           <tr style="background:#111a2b;border-bottom:1px solid #20304a">
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Capcode</th>
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Voertuignaam</th>
-            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">—</th>
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:18%">Capcode</th>
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:35%">Voertuignaam</th>
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:30%">Adres (optioneel)</th>
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:12%">Coördinaten</th>
+            <th style="padding:0.8rem;text-align:center;color:#3ec1ff;width:5%">—</th>
           </tr>
         </thead>
         <tbody id="voertuigenConfigBody"></tbody>
@@ -935,8 +937,14 @@ function renderUnits(units){
 /* Rijtijd per eenheid vanaf de eigen kazerne (één OSRM-aanvraag voor alle posten) */
 function loadUnitETAs(units, dest){
   var keys = [], i;
+  var unitsByKey = {};  // Map post -> unit
+  
   for(i=0;i<units.length;i++){
-    if(units[i].post && keys.indexOf(units[i].post)===-1) keys.push(units[i].post);
+    if(!units[i].post) continue;
+    if(keys.indexOf(units[i].post)===-1) {
+      keys.push(units[i].post);
+      unitsByKey[units[i].post] = units[i];
+    }
   }
   if(!keys.length) return;
 
@@ -953,7 +961,11 @@ function loadUnitETAs(units, dest){
   function viaOSRM(){
     var coords = [];
     for(var j=0;j<keys.length;j++){
-      coords.push(POSTS[keys[j]].lon + ',' + POSTS[keys[j]].lat);
+      var u = unitsByKey[keys[j]];
+      var loc = (u && u.lat && u.lon) ? {lat:u.lat, lon:u.lon} : POSTS[keys[j]];
+      if(!loc && keys[j]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
+      if(!loc) continue;
+      coords.push(loc.lon + ',' + loc.lat);
     }
     coords.push(dest.lon + ',' + dest.lat);
     var srcIdx = [];
@@ -979,7 +991,10 @@ function loadUnitETAs(units, dest){
   /* Valhalla-matrix met bus-profiel (busbanen meegerekend) */
   var bronnen = [];
   for(i=0;i<keys.length;i++){
-    bronnen.push({lat: POSTS[keys[i]].lat, lon: POSTS[keys[i]].lon});
+    var u = unitsByKey[keys[i]];
+    var loc = (u && u.lat && u.lon) ? {lat:u.lat, lon:u.lon} : POSTS[keys[i]];
+    if(!loc && keys[i]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
+    if(loc) bronnen.push({lat: loc.lat, lon: loc.lon});
   }
   var verzoek = {
     sources: bronnen,
@@ -1629,10 +1644,21 @@ function tekstNaarUnits(txt){
     var d=r.split('='); if(d.length<2) continue;
     var nummer=d[0].trim();
     var rest=d.slice(1).join('=');
-    var post=null, naam=rest;
-    var at=rest.indexOf('@');
-    if(at!==-1){ naam=rest.slice(0,at); post=rest.slice(at+1).trim().toLowerCase()||null; }
-    out[nummer]={ naam:naam.trim(), post:post };
+    var post=null, naam=rest, adres=null, coords=null;
+    
+    // Check voor adres EN coördinaten (| scheidingskarakter)
+    var pipes = rest.split('|');
+    naam = pipes[0].trim();
+    if(pipes.length > 1) adres = pipes[1].trim();
+    if(pipes.length > 2) coords = pipes[2].trim();
+    
+    // Check voor @post
+    var at=naam.indexOf('@');
+    if(at!==-1){ post=naam.slice(at+1).trim().toLowerCase()||null; naam=naam.slice(0,at).trim(); }
+    
+    // Geen @post = voertuig van HUIGE post
+    if(!post) post='current';
+    out[nummer]={ naam:naam.trim(), post:post, adres:adres, coords:coords };
   }
   return out;
 }
@@ -1789,7 +1815,10 @@ document.getElementById('cfgSave').onclick=function(){
   // 6. SAVE TO LOCALSTORAGE (lokaal)
   saveToLocalStorage();
   
-  // 7. Menu automatisch sluiten
+  // 7. Geocode voertuigen-adressen (asynchron)
+  geocodeVoertuigenAdressen();
+  
+  // 8. Menu automatisch sluiten
   setTimeout(function(){
     var cp = document.getElementById('cfgPanel');
     if(cp) cp.classList.remove('open');
@@ -2099,6 +2128,32 @@ function loadFromLocalStorage(){
     document.getElementById('cfgUnits').value = units;
     // Parse voertuigen EN zet UNITS
     UNITS = tekstNaarUnits(units);
+    
+    // Voertuigen met adres/coords: zet lat/lon
+    for(var cap in UNITS) {
+      if(UNITS.hasOwnProperty(cap)) {
+        var u = UNITS[cap];
+        // Eerst: coords gebruiken (lat,lon)
+        if(u.coords) {
+          var parts = u.coords.split(',');
+          if(parts.length === 2) {
+            u.lat = parseFloat(parts[0]);
+            u.lon = parseFloat(parts[1]);
+          }
+        }
+        // Fallback: adres opzoeken in POSTS of POST_LOCATION
+        if(!u.lat && u.adres) {
+          var postKey = u.adres.toLowerCase();
+          if(POSTS[postKey]) {
+            u.lat = POSTS[postKey].lat;
+            u.lon = POSTS[postKey].lon;
+          } else if(postKey.indexOf('dirk') >= 0 || postKey === 'current') {
+            u.lat = POST_LOCATION.lat;
+            u.lon = POST_LOCATION.lon;
+          }
+        }
+      }
+    }
   }
   
   var tasks = localStorage.getItem('TASKS');
@@ -2170,6 +2225,55 @@ window.openCfg = function(){
   document.getElementById('cfgPostnaam').value = POST_CONFIG.postnaam;
   document.getElementById('cfgBrandweer').value = POST_CONFIG.brandweer;
 };
+
+
+/* Geocode voertuigen-adressen via Nominatim */
+function geocodeVoertuigenAdressen() {
+  var toGeocode = [];
+  
+  // Vind voertuigen MET adres maar ZONDER lat/lon
+  for(var cap in UNITS) {
+    if(UNITS.hasOwnProperty(cap)) {
+      var u = UNITS[cap];
+      if(u.adres && !u.lat && !u.lon) {
+        toGeocode.push({cap: cap, adres: u.adres});
+      }
+    }
+  }
+  
+  if(toGeocode.length === 0) return;
+  
+  // Geocode één voor één (queue)
+  function geocodeNext(idx) {
+    if(idx >= toGeocode.length) {
+      // Klaar! Refresh tabel
+      vulVoertuigenConfigTable();
+      return;
+    }
+    
+    var item = toGeocode[idx];
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + 
+              encodeURIComponent(item.adres) + '&limit=1';
+    
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if(data.length > 0) {
+          UNITS[item.cap].lat = parseFloat(data[0].lat);
+          UNITS[item.cap].lon = parseFloat(data[0].lon);
+          UNITS[item.cap].coords = data[0].lat + ',' + data[0].lon;
+        }
+        // Volgende
+        geocodeNext(idx + 1);
+      })
+      .catch(function() {
+        // Fout? Skip
+        geocodeNext(idx + 1);
+      });
+  }
+  
+  geocodeNext(0);
+}
 
 // Hook in cfgSave - sla config op
 var cfgSaveBtn = document.getElementById('cfgSave');
@@ -2472,9 +2576,51 @@ function vulVoertuigenConfigTable(){
     td2.appendChild(inp2);
     tr.appendChild(td2);
     
+    // Kolom 3: Adres
     var td3 = document.createElement('td');
     td3.style.padding = '0.8rem';
-    td3.style.textAlign = 'center';
+    var inp3 = document.createElement('input');
+    inp3.type = 'text';
+    inp3.value = rows[i].unit.adres || '';
+    inp3.placeholder = 'bijv. Veluwsekant';
+    inp3.dataset.idx = i;
+    inp3.dataset.prop = 'adres';
+    inp3.style.width = '100%';
+    inp3.style.padding = '0.5rem';
+    inp3.style.background = '#0e1524';
+    inp3.style.border = '1px solid #20304a';
+    inp3.style.color = '#eaf1fa';
+    inp3.style.borderRadius = '.3rem';
+    inp3.style.fontFamily = 'inherit';
+    td3.appendChild(inp3);
+    tr.appendChild(td3);
+    
+    // Kolom 4: Coördinaten (read-only)
+    var td4 = document.createElement('td');
+    td4.style.padding = '0.8rem';
+    td4.style.fontSize = '0.8rem';
+    var inpCoords = document.createElement('input');
+    inpCoords.type = 'text';
+    inpCoords.value = rows[i].unit.coords || '';
+    inpCoords.placeholder = 'auto';
+    inpCoords.dataset.idx = i;
+    inpCoords.dataset.prop = 'coords';
+    inpCoords.readOnly = true;
+    inpCoords.style.width = '100%';
+    inpCoords.style.padding = '0.5rem';
+    inpCoords.style.background = '#0a0f1a';
+    inpCoords.style.border = '1px solid #1a2635';
+    inpCoords.style.color = '#7a8c9e';
+    inpCoords.style.borderRadius = '.3rem';
+    inpCoords.style.fontFamily = 'monospace';
+    inpCoords.style.fontSize = '0.7rem';
+    td4.appendChild(inpCoords);
+    tr.appendChild(td4);
+    
+    // Kolom 5: Delete
+    var td5 = document.createElement('td');
+    td5.style.padding = '0.8rem';
+    td5.style.textAlign = 'center';
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = '×';
@@ -2491,8 +2637,8 @@ function vulVoertuigenConfigTable(){
       updateCfgUnitsFromTable();
       vulVoertuigenConfigTable();
     };
-    td3.appendChild(btn);
-    tr.appendChild(td3);
+    td5.appendChild(btn);
+    tr.appendChild(td5);
     
     tbody.appendChild(tr);
   }
@@ -2505,12 +2651,20 @@ function updateCfgUnitsFromTable(){
   for(var i=0;i<trs.length;i++){
     var capInput = trs[i].querySelector('input[data-prop="cap"]');
     var naamInput = trs[i].querySelector('input[data-prop="naam"]');
+    var adresInput = trs[i].querySelector('input[data-prop="adres"]');
+    var coordsInput = trs[i].querySelector('input[data-prop="coords"]');
     if(!capInput || !naamInput) continue;
     
     var cap = capInput.value.trim();
     var naam = naamInput.value.trim();
+    var adres = (adresInput ? adresInput.value.trim() : '');
+    var coords = (coordsInput ? coordsInput.value.trim() : '');
+    
     if(cap && naam){
-      rows.push(cap + ' = ' + naam);
+      var row = cap + ' = ' + naam;
+      if(adres) row += ' | ' + adres;
+      if(coords) row += ' | ' + coords;
+      rows.push(row);
     }
   }
   
