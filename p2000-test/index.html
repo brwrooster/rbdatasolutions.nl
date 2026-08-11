@@ -664,7 +664,7 @@
       <table id="voertuigenConfigTable" style="width:100%;border-collapse:collapse;margin:1rem 0">
         <thead>
           <tr style="background:#111a2b;border-bottom:1px solid #20304a">
-            <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:18%">Capcode</th>
+            <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:18%">Voertuignummer</th>
             <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:35%">Voertuignaam</th>
             <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:30%">Adres (optioneel)</th>
             <th style="padding:0.8rem;text-align:left;color:#3ec1ff;width:12%">Coördinaten</th>
@@ -934,25 +934,48 @@ function renderUnits(units){
   });
 }
 
-/* Rijtijd per eenheid vanaf de eigen kazerne (één OSRM-aanvraag voor alle posten) */
+/* Rijtijd per eenheid vanaf de eigen kazerne */
 function loadUnitETAs(units, dest){
   var keys = [], i;
-  var unitsByKey = {};  // Map post -> unit
+  var unitsByKey = {};  // Map key -> unit
+  var unitsByCode = {};  // Map capcode -> unit
   
+  // Verzamel alle voertuigen met .post OF met lat/lon
   for(i=0;i<units.length;i++){
-    if(!units[i].post) continue;
-    if(keys.indexOf(units[i].post)===-1) {
-      keys.push(units[i].post);
-      unitsByKey[units[i].post] = units[i];
+    unitsByCode[units[i].code] = units[i];
+    
+    // Als voertuig lat/lon heeft: use capcode as key
+    if(units[i].lat && units[i].lon) {
+      var key = 'unit_' + units[i].code;
+      if(keys.indexOf(key) === -1) {
+        keys.push(key);
+        unitsByKey[key] = units[i];
+      }
+    }
+    // Anders: use .post
+    else if(units[i].post) {
+      if(keys.indexOf(units[i].post) === -1) {
+        keys.push(units[i].post);
+        unitsByKey[units[i].post] = units[i];
+      }
     }
   }
+  
   if(!keys.length) return;
 
   function toonTijden(perPost){
     units.forEach(function(u){
       var el = document.getElementById('eta-'+u.code);
       if(!el) return;
-      var min = perPost[u.post];
+      
+      // Eerst: voertuig met eigen lat/lon?
+      var min = null;
+      if(u.lat && u.lon) {
+        min = perPost['unit_' + u.code];
+      } else {
+        min = perPost[u.post];
+      }
+      
       el.textContent = (min==null) ? 'n.b.' : (min + ' min');
     });
   }
@@ -962,8 +985,20 @@ function loadUnitETAs(units, dest){
     var coords = [];
     for(var j=0;j<keys.length;j++){
       var u = unitsByKey[keys[j]];
-      var loc = (u && u.lat && u.lon) ? {lat:u.lat, lon:u.lon} : POSTS[keys[j]];
-      if(!loc && keys[j]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
+      var loc = null;
+      
+      // Voertuig met eigen lat/lon?
+      if(u && u.lat && u.lon) {
+        loc = {lat:u.lat, lon:u.lon};
+      }
+      // Anders: post lookup
+      else if(keys[j].indexOf('unit_') === 0) {
+        // Skip - geen coords
+      } else {
+        loc = POSTS[keys[j]];
+        if(!loc && keys[j]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
+      }
+      
       if(!loc) continue;
       coords.push(loc.lon + ',' + loc.lat);
     }
@@ -992,8 +1027,20 @@ function loadUnitETAs(units, dest){
   var bronnen = [];
   for(i=0;i<keys.length;i++){
     var u = unitsByKey[keys[i]];
-    var loc = (u && u.lat && u.lon) ? {lat:u.lat, lon:u.lon} : POSTS[keys[i]];
-    if(!loc && keys[i]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
+    var loc = null;
+    
+    // Voertuig met eigen lat/lon?
+    if(u && u.lat && u.lon) {
+      loc = {lat:u.lat, lon:u.lon};
+    }
+    // Anders: post lookup
+    else if(keys[i].indexOf('unit_') === 0) {
+      // Skip - geen coords
+    } else {
+      loc = POSTS[keys[i]];
+      if(!loc && keys[i]==='current') loc = {lat:POST_LOCATION.lat, lon:POST_LOCATION.lon};
+    }
+    
     if(loc) bronnen.push({lat: loc.lat, lon: loc.lon});
   }
   var verzoek = {
@@ -2243,9 +2290,12 @@ function geocodeVoertuigenAdressen() {
   
   if(toGeocode.length === 0) return;
   
+  console.log('⏳ Geocoding ' + toGeocode.length + ' voertuigen...');
+  
   // Geocode één voor één (queue)
   function geocodeNext(idx) {
     if(idx >= toGeocode.length) {
+      console.log('✓ Geocoding klaar!');
       // Klaar! Refresh tabel EN slaag op
       vulVoertuigenConfigTable();
       updateCfgUnitsFromTable();  // Schrijf geocoded coords terug naar cfgUnits
@@ -2254,8 +2304,12 @@ function geocodeVoertuigenAdressen() {
     }
     
     var item = toGeocode[idx];
+    // Voeg Nederland toe voor betere geocoding
+    var query = item.adres + ', Nederland';
     var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + 
-              encodeURIComponent(item.adres) + '&limit=1';
+              encodeURIComponent(query) + '&limit=1';
+    
+    console.log('🔍 Geocoding: ' + query);
     
     fetch(url)
       .then(function(r) { return r.json(); })
@@ -2264,12 +2318,15 @@ function geocodeVoertuigenAdressen() {
           UNITS[item.cap].lat = parseFloat(data[0].lat);
           UNITS[item.cap].lon = parseFloat(data[0].lon);
           UNITS[item.cap].coords = data[0].lat + ',' + data[0].lon;
+          console.log('✓ ' + item.cap + ' = ' + UNITS[item.cap].coords);
+        } else {
+          console.warn('✗ Niet gevonden: ' + query);
         }
         // Volgende
         geocodeNext(idx + 1);
       })
-      .catch(function() {
-        // Fout? Skip
+      .catch(function(err) {
+        console.error('❌ Fout geocoding ' + item.cap + ':', err);
         geocodeNext(idx + 1);
       });
   }
