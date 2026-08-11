@@ -2902,6 +2902,10 @@ document.getElementById('addVoertuigConfigBtn').onclick = function(){
   var textarea = document.getElementById('cfgUnits');
   if(textarea.value) textarea.value += '\n';
   textarea.value += ' = ';
+  
+  // Parse textarea naar UNITS (kritiek!)
+  UNITS = tekstNaarUnits(textarea.value);
+  
   vulVoertuigenConfigTable();
 };
 
