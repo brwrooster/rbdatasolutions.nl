@@ -905,6 +905,10 @@ function parseUnits(str){
       code: code,
       name: u ? u.naam : ('Eenheid ' + code),
       post: u ? u.post : null,
+      adres: u ? u.adres : null,
+      lat: u ? u.lat : null,
+      lon: u ? u.lon : null,
+      coords: u ? u.coords : null,
       known: !!u
     });
   });
@@ -1024,7 +1028,7 @@ function loadUnitETAs(units, dest){
       toonTijden(perPost);
     }).catch(function(){
       var leeg = {};
-      for(var k=0;k<keys.length;k++) leeg[keys[k]] = null;
+      for(var k=0;k<validKeys.length;k++) leeg[validKeys[k]] = null;
       toonTijden(leeg);
     });
   }
