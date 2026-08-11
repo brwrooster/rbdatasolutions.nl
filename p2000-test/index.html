@@ -1818,11 +1818,11 @@ document.getElementById('cfgSave').onclick=function(){
   // 7. Geocode voertuigen-adressen (asynchron)
   geocodeVoertuigenAdressen();
   
-  // 8. Menu automatisch sluiten
+  // 8. Menu automatisch sluiten (wacht op geocoding)
   setTimeout(function(){
     var cp = document.getElementById('cfgPanel');
     if(cp) cp.classList.remove('open');
-  }, 800);
+  }, 3000);  // 3 seconden voor geocoding + tabel refresh
   
   // Rest van config
   var caps=document.getElementById('cfgCaps').value.match(/\d{4,7}/g)||[];
@@ -2246,8 +2246,10 @@ function geocodeVoertuigenAdressen() {
   // Geocode één voor één (queue)
   function geocodeNext(idx) {
     if(idx >= toGeocode.length) {
-      // Klaar! Refresh tabel
+      // Klaar! Refresh tabel EN slaag op
       vulVoertuigenConfigTable();
+      updateCfgUnitsFromTable();  // Schrijf geocoded coords terug naar cfgUnits
+      saveToLocalStorage();  // Slaag persistent op
       return;
     }
     
