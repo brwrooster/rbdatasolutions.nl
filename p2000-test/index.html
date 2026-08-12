@@ -460,6 +460,33 @@
   line-height:1;
   padding:0.05rem;
 }
+
+  /* Logs Modal */
+  #logsModal {
+    display: none;
+  }
+  #logsModal.open {
+    display: flex !important;
+  }
+  #logsModal {
+    animation: fadeIn 0.2s;
+  }
+  #logsModalContent {
+    line-height: 1.6;
+    color: #eaf1fa;
+  }
+  #logsModalContent div {
+    padding: 6px 8px;
+    border-bottom: 1px solid #1a2a3a;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  #logsModalContent span {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 8px;
+  }
 </style>
 </head>
 <body>
@@ -683,6 +710,8 @@
     </div>
     <div class="tp-actions">
       <button class="btn primary" id="cfgSave">Opslaan</button>
+      <button id="cfgLogs" class="btn ghost" style="margin-top:0.5rem; width:100%">📋 Logs bekijken</button>
+
       <button class="btn ghost" id="cfgReset">Standaard herstellen</button>
     </div>
   </div>
@@ -1366,30 +1395,29 @@ pollEigenOntvanger();
 
 /* ================= Geocoding (PDOK Locatieserver) ================= */
 function geocode(q, type, verwacht){
-  // Voor hectometerpaal: gebruik PDOK met validatie
+  // Voor hectometerpaal: EERST hmpaal.nl proberen (beter voor NL highways!)
   if(type === 'hectometerpaal' && verwacht && verwacht.weg && verwacht.hm){
-    var url='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q='+encodeURIComponent(q)+
-      '&fl=weergavenaam,centroide_ll,type&rows=5&fq=type:hectometerpaal';
+    var weg = verwacht.weg.replace(/\s+/g, '').toUpperCase();  // "A1" niet "A 1"
+    var hm = verwacht.hm.replace(',', '.');  // hmpaal.nl wil "65.4" niet "65,4"
+    var hmpaaljson = 'https://data.amsterdam.nl/api/Wegen_files/Hectometerpalen.json?q=' +
+      encodeURIComponent(weg + ' ' + hm);
     
-    return fetch(url)
+    // FALLBACK: hmpaal.nl service (als bovenstaande niet werkt)
+    // Voor nu: direct geocoden via Nominatim
+    var nominatimUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + 
+      encodeURIComponent(weg + ' hectometer ' + hm + ' Nederland') + '&countrycodes=nl&limit=1';
+    
+    return fetch(nominatimUrl)
       .then(function(r){ return r.json(); })
-      .then(function(d){
-        var docs = d && d.response && d.response.docs;
-        if(!docs || !docs.length) return null;
-        
-        var wegPatroon = verwacht.weg.toUpperCase();
-        var hmPatroon = verwacht.hm.replace(',', '[,.]');
-        var hmRegex = new RegExp('\\b' + hmPatroon + '\\b');
-        var passend = docs.filter(function(d){
-          var naam = (d.weergavenaam || '').toUpperCase();
-          return naam.indexOf(wegPatroon) !== -1 && hmRegex.test(naam);
-        });
-        
-        if(!passend.length) return null;
-        var doc = passend[0];
-        var m=doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
-        if(!m) return null;
-        return { lon:parseFloat(m[1]), lat:parseFloat(m[2]), label:doc.weergavenaam };
+      .then(function(data){
+        if(data && data.length > 0) {
+          return { 
+            lon:parseFloat(data[0].lon), 
+            lat:parseFloat(data[0].lat), 
+            label: weg + ' hm ' + hm + ' (Nominatim)'
+          };
+        }
+        return null;
       })
       .catch(function(){ return null; });
   }
@@ -1414,13 +1442,22 @@ function geocode(q, type, verwacht){
 /* Hectometeraanduiding herkennen, bv. "A6 102,7" of "N307 - HANZEWEG 102,7 DRONTEN" */
 function vindHectometer(tekst){
   var t = (tekst||'').toUpperCase();
+  
+  // Match: "A1 re 65.4" of "A1 li 65.4" of "A1 65.4"
   var weg = t.match(/\b([AN]\s?\d{1,3})\b/);
   if(!weg) return null;
+  
+  // Match hectometer: "65.4" of "65,4"
   var hm = t.match(/\b(\d{1,3}[,.]\d)\b/);
   if(!hm) return null;
+  
+  // Match richting: "re" (rechts) of "li" (links)
+  var richting = t.match(/\b(re|rechts|li|links)\b/i);
+  
   return {
     weg: weg[1].replace(/\s+/g,''),
-    hm: hm[1].replace('.', ',')
+    hm: hm[1].replace('.', ','),
+    richting: richting ? (richting[1].charAt(0).toUpperCase() + richting[1].slice(1)) : null
   };
 }
 // startpunt vast opzoeken
@@ -1443,6 +1480,7 @@ function decodeerVorm(str, precisie){
 }
 
 function toonRoute(minuten, kilometers, latlngs){
+  logEvent('route', { minuten: minuten, kilometers: kilometers });
   var badge=document.getElementById('routeBadge');
   document.getElementById('routeTime').textContent=minuten+' min';
   document.getElementById('routeDist').textContent=kilometers+' km';
@@ -1639,6 +1677,16 @@ function showAlarm(type,addr,prio,unitsStr,timeoutMs,geoHint,kanaal){
       // label opsplitsen in straat / plaats waar mogelijk
       var street=geo.label.split(',')[0];
       var place=geo.label.split(',').slice(1).join(',').trim()||'Almere';
+      
+      // SPECIALE WEERGAVE VOOR HECTOMETERPALEN
+      if(street && street.match(/hm\s+\d/i)) {
+        // Hectometerpaal: "A1 hm 65.4 Re" → mooier: "A1 Re (hm 65,4)"
+        street = street.replace(/(\w+)\s+(re|li)?\s+hm\s+([\d.]+)/i, function(m, weg, richting, hm) {
+          var richtingStr = richting ? ' ' + richting.charAt(0).toUpperCase() + richting.slice(1).toLowerCase() : '';
+          return weg.toUpperCase() + richtingStr + ' (hm ' + hm.replace('.', ',') + ')';
+        });
+      }
+      
       document.getElementById('incidentStreet').textContent=street;
       document.getElementById('incidentPlace').textContent=place;
       lastAddr=street+', '+place;
@@ -1877,6 +1925,9 @@ if(cfgCloseBtn){
 document.getElementById('cfgSave').onclick=function(){
   var msg=document.getElementById('cfgMsg');
   msg.textContent='⏳ Opslaan...';
+  
+  // Load logs from storage (voor als dit eerste keer is)
+  loadLogsFromLocalStorage();
   
   // 1. Update voertuigen tabel → textarea
   updateCfgUnitsFromTable();
@@ -2202,6 +2253,7 @@ function saveToLocalStorage(){
   localStorage.setItem('PLOEGEN_CONFIG', JSON.stringify(PLOEGEN_CONFIG));
   localStorage.setItem('cfgUnits', document.getElementById('cfgUnits').value);
   localStorage.setItem('TASKS', JSON.stringify(TASKS));
+  localStorage.setItem('FILTER_CAPCODES', JSON.stringify(FILTER_CAPCODES));  // Capcodes per kazerne
 }
 
 function loadFromLocalStorage(){
@@ -2213,6 +2265,9 @@ function loadFromLocalStorage(){
   
   var ploeg = localStorage.getItem('PLOEGEN_CONFIG');
   if(ploeg) PLOEGEN_CONFIG = JSON.parse(ploeg);
+  
+  var caps = localStorage.getItem('FILTER_CAPCODES');
+  if(caps) FILTER_CAPCODES = JSON.parse(caps);  // Laad capcodes per kazerne
   
   var units = localStorage.getItem('cfgUnits');
   if(units) {
@@ -2252,6 +2307,140 @@ function loadFromLocalStorage(){
 }
 
 // ===== DEFAULTS DEFINIEREN =====
+
+/* ===== LOGGING SYSTEM (Alle events tracken) ===== */
+var EVENTS_LOG = [];
+var MAX_LOG_DAYS = 30;
+var MAX_LOG_ENTRIES = 5000;
+
+function logEvent(type, data) {
+  var entry = {
+    timestamp: new Date().toISOString(),
+    type: type,  // "melding", "geocode", "route", "voertuig", "error"
+    data: data
+  };
+  
+  EVENTS_LOG.push(entry);
+  
+  // Bewaar in localStorage
+  saveLogsToLocalStorage();
+  
+  // Bereid ook console voor debugging
+  console.log('[LOG ' + type.toUpperCase() + ']', data);
+}
+
+function saveLogsToLocalStorage() {
+  // Verwijder logs ouder dan 30 dagen
+  var now = Date.now();
+  var thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  
+  EVENTS_LOG = EVENTS_LOG.filter(function(entry) {
+    var entryDate = new Date(entry.timestamp).getTime();
+    return (now - entryDate) < thirtyDaysMs;
+  });
+  
+  // Limit aantal entries
+  if(EVENTS_LOG.length > MAX_LOG_ENTRIES) {
+    EVENTS_LOG = EVENTS_LOG.slice(-MAX_LOG_ENTRIES);
+  }
+  
+  // Slaag op
+  localStorage.setItem('EVENTS_LOG', JSON.stringify(EVENTS_LOG));
+}
+
+function loadLogsFromLocalStorage() {
+  var stored = localStorage.getItem('EVENTS_LOG');
+  if(stored) {
+    try {
+      EVENTS_LOG = JSON.parse(stored);
+    } catch(e) {
+      console.error('Logs corrupt, reset');
+      EVENTS_LOG = [];
+    }
+  }
+}
+
+function clearAllLogs() {
+  if(confirm('Alle logs verwijderen? Dit kan niet ongedaan gemaakt worden.')) {
+    EVENTS_LOG = [];
+    localStorage.removeItem('EVENTS_LOG');
+    alert('✓ Logs gewist');
+    showLogs();
+  }
+}
+
+function exportLogsToCSV() {
+  if(EVENTS_LOG.length === 0) {
+    alert('Geen logs om te exporteren');
+    return;
+  }
+  
+  var csv = 'Timestamp,Type,Details\n';
+  
+  EVENTS_LOG.forEach(function(entry) {
+    var dataStr = JSON.stringify(entry.data).replace(/"/g, '\\"');
+    csv += '"' + entry.timestamp + '","' + entry.type + '","' + dataStr + '"\n';
+  });
+  
+  // Download
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = window.URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'kazerne-logs-' + new Date().toISOString().split('T')[0] + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+function showLogs() {
+  var modal = document.getElementById('logsModal');
+  if(!modal) {
+    console.error('Logs modal niet gevonden');
+    return;
+  }
+  
+  var content = '<h3>Logs (' + EVENTS_LOG.length + ' entries)</h3>';
+  
+  if(EVENTS_LOG.length === 0) {
+    content += '<p style="color:#888">Geen logs beschikbaar</p>';
+  } else {
+    // Toon laatste 50 entries omgekeerd (nieuwste eerst)
+    var recent = EVENTS_LOG.slice(-50).reverse();
+    content += '<div style="max-height:300px; overflow-y:auto; font-size:0.85em; font-family:monospace">';
+    
+    recent.forEach(function(entry) {
+      var time = new Date(entry.timestamp).toLocaleTimeString();
+      var dataStr = typeof entry.data === 'object' ? JSON.stringify(entry.data) : entry.data;
+      content += '<div style="padding:4px; border-bottom:1px solid #333">';
+      content += '<span style="color:#3ec1ff">' + time + '</span> ';
+      content += '<span style="color:#00c853">[' + entry.type + ']</span> ';
+      content += dataStr.substring(0, 100);
+      if(dataStr.length > 100) content += '...';
+      content += '</div>';
+    });
+    
+    content += '</div>';
+  }
+  
+  content += '<div style="margin-top:1rem; display:flex; gap:0.5rem">';
+  content += '<button onclick="exportLogsToCSV()" style="flex:1; padding:0.5rem; background:#3ec1ff; border:none; color:#000; cursor:pointer">📥 Export CSV</button>';
+  content += '<button onclick="clearAllLogs()" style="flex:1; padding:0.5rem; background:#e30613; border:none; color:#fff; cursor:pointer">🗑 Clear</button>';
+  content += '</div>';
+  
+  document.getElementById('logsModalContent').innerHTML = content;
+  modal.classList.add('open');
+}
+
+// Modal sluiten
+document.addEventListener('keydown', function(e) {
+  if(e.key === 'Escape') {
+    document.getElementById('logsModal').classList.remove('open');
+  }
+});
+
+
 var POST_CONFIG = {
   postnaam: 'Post Veluwsekant',
   brandweer: 'Brandweer Flevoland'
@@ -2384,6 +2573,7 @@ function geocodeOneUnit(capcode, adres, btn) {
         UNITS[capcode].lat = lat;
         UNITS[capcode].lon = lon;
         UNITS[capcode].coords = coords;
+        logEvent('geocode_success', { capcode: capcode, adres: adres, coords: coords });
         
         // Update tabel (kolom 4)
         vulVoertuigenConfigTable();
@@ -2916,6 +3106,7 @@ function updateCfgUnitsFromTable(){
 }
 
 document.getElementById('addVoertuigConfigBtn').onclick = function(){
+  logEvent('voertuig', { action: 'add' });
   updateCfgUnitsFromTable();
   var textarea = document.getElementById('cfgUnits');
   if(textarea.value) textarea.value += '\n';
