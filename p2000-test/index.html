@@ -930,7 +930,7 @@ function parseUnits(str){
   codes.forEach(function(code){
     var u = UNITS[code] || UNITS[code.slice(-4)];
     if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
-    out.push({
+    var unit = {
       code: code,
       name: u ? u.naam : ('Eenheid ' + code),
       post: u ? u.post : null,
@@ -939,7 +939,9 @@ function parseUnits(str){
       lon: u ? u.lon : null,
       coords: u ? u.coords : null,
       known: !!u
-    });
+    };
+    console.log('✓ ParseUnits', code, unit);
+    out.push(unit);
   });
   return out;
 }
@@ -969,12 +971,18 @@ function renderUnits(units){
 
 /* Rijtijd per eenheid vanaf de eigen kazerne */
 function loadUnitETAs(units, dest){
+  console.log('╔════════ loadUnitETAs START ════════');
+  console.log('Units input:', units);
+  console.log('UNITS config:', UNITS);
+  console.log('POST_LOCATION:', POST_LOCATION);
+  
   var keys = [], i;
   var unitsByKey = {};  // Map key -> unit
   var unitsByCode = {};  // Map capcode -> unit
   
   // Verzamel alle voertuigen met .post OF met lat/lon
   for(i=0;i<units.length;i++){
+    console.log('Unit', i, ':', units[i]);
     unitsByCode[units[i].code] = units[i];
     
     // Als voertuig lat/lon heeft: use capcode as key
@@ -1015,6 +1023,8 @@ function loadUnitETAs(units, dest){
 
   /* Terugval: OSRM (gewone auto) */
   function viaOSRM(){
+    console.log('🔄 OSRM start - keys:', keys);
+    console.log('🔄 unitsByKey:', unitsByKey);
     var coords = [];
     var validKeys = [];  // Track alleen voertuigen MET locatie
     
@@ -1025,6 +1035,7 @@ function loadUnitETAs(units, dest){
       // Voertuig met eigen lat/lon?
       if(u && u.lat && u.lon) {
         loc = {lat:u.lat, lon:u.lon};
+        console.log('✓ Voertuig', keys[j], 'lat/lon:', loc);
       }
       // Anders: post lookup
       else if(keys[j].indexOf('unit_') === 0) {
@@ -1049,11 +1060,20 @@ function loadUnitETAs(units, dest){
     fetch(url).then(function(r){ return r.json(); }).then(function(d){
       if(!d.durations) throw new Error('geen tijden');
       var perPost = {};
+      
+      // OSRM durations: elk row = [voertuig → destination]
+      // row[0] = naar destination (enig target)
       for(var k=0;k<validKeys.length;k++){
         var row = d.durations[k];
-        var sec = row && row[0];
-        perPost[validKeys[k]] = (sec==null) ? null : Math.round(sec/60);
+        var sec = row && row[0];  // Index 0 = destination
+        if(sec != null && sec < 1000000) {  // OSRM geeft 2147483647 voor unreachable
+          perPost[validKeys[k]] = Math.round(sec / 60);
+        } else {
+          perPost[validKeys[k]] = null;
+        }
       }
+      
+      console.log('✓ OSRM result perPost:', perPost);
       toonTijden(perPost);
     }).catch(function(){
       var leeg = {};
