@@ -1323,9 +1323,19 @@ function renderTellingen(tellingen){
       return { naam: naam, aantal: j[naam] || 0 };
     });
 
-    var html = lijst.map(function(p){
-      return '<span class="ploeg-item"><span class="naam">'+p.naam+'-ploeg</span><span>'+p.aantal+'</span></span>';
-    }).join('');
+    // Toon ENKEL ploegen met vandaag=true
+    var html = '';
+    for(var x=0; x<PLOEGEN_CONFIG.length; x++) {
+      if(PLOEGEN_CONFIG[x].vandaag === true) {
+        var p = PLOEGEN_CONFIG[x];
+        // Toon ploeg + stats
+        var stats = '';
+        // Check statussen (A=j.A, B=j.B, etc.)
+        var letter = p.naam.charAt(p.naam.length-1); // "Ploeg A" → "A"
+        if(j[letter]) stats = j[letter] || 0;
+        html += '<span class="ploeg-item"><span class="naam">'+p.naam+'</span><span>'+stats+'</span></span>';
+      }
+    }
     ploegenEl.innerHTML = html;
   }
   renderMeldingenLijst(tellingen.dienst);
@@ -2509,32 +2519,37 @@ function updateTopbar(){
   document.getElementById('topbarBrandweer').textContent = brandweer;
 }
 function updatePloegenDisplay(){
-  console.log('🎨 updatePloegenDisplay() START');
-  console.log('PLOEGEN_CONFIG:', PLOEGEN_CONFIG);
   var ploegenRow = document.getElementById('ploegenRow');
   if(!ploegenRow) return;
   
-  ploegenRow.innerHTML = '';
+  ploegenRow.innerHTML = '';  // WIST ALLES
   
-  for(var i=0;i<PLOEGEN_CONFIG.length;i++){
-    console.log('  Ploeg', i, '-', PLOEGEN_CONFIG[i].naam, '- vandaag:', PLOEGEN_CONFIG[i].vandaag);
-    if(PLOEGEN_CONFIG[i].vandaag){
-      console.log('    → TOONT deze ploeg!');
+  console.log('DEBUG updatePloegenDisplay: PLOEGEN_CONFIG=', PLOEGEN_CONFIG);
+  
+  // ULTRA-SIMPEL: ENKEL ploegen met vandaag=true
+  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
+    var p = PLOEGEN_CONFIG[i];
+    console.log('  Check ploeg', i, ':', p.naam, 'vandaag=', p.vandaag);
+    
+    // ALS vandaag TRUE → toont
+    if(p.vandaag === true) {
+      console.log('    → TOONT!');
       var item = document.createElement('div');
       item.className = 'ploeg-item';
-      
       var naam = document.createElement('span');
       naam.className = 'naam';
-      naam.textContent = PLOEGEN_CONFIG[i].naam;
+      naam.textContent = p.naam;
       item.appendChild(naam);
-      
       var tijd = document.createElement('span');
-      tijd.textContent = ' (' + PLOEGEN_CONFIG[i].start + ')';
+      tijd.textContent = ' (' + p.start + ')';
       item.appendChild(tijd);
-      
       ploegenRow.appendChild(item);
+    } else {
+      console.log('    → SKIP (vandaag niet true)');
     }
   }
+  
+  console.log('✓ updatePloegenDisplay() DONE - ', ploegenRow.children.length, ' ploegen zichtbaar');
 }
 // Load instellingen van browser
 loadFromLocalStorage();
@@ -2815,26 +2830,29 @@ function vulPloegenTabel(){
 }
 
 function leesPloegenTabel(){
-  console.log('🔄 leesPloegenTabel() START');
   var inputs = document.querySelectorAll('#ploegenTableBody input');
-  console.log('Inputs gevonden:', inputs.length);
-  var nieuw = {};
-  for(var i=0;i<inputs.length;i++){
-    var inp = inputs[i];
-    var idx = parseInt(inp.dataset.idx, 10);
-    var prop = inp.dataset.prop;
-    if(!nieuw[idx]) nieuw[idx] = {};
-    if(prop === 'vandaag') {
-      nieuw[idx][prop] = inp.checked;
-      console.log('  Ploeg', idx, '- vandaag:', inp.checked);
-    }
-    else nieuw[idx][prop] = inp.value;
+  var result = [];
+  
+  // Groepeer inputs per ploeg (elke ploeg = 3 inputs)
+  for(var i=0; i<inputs.length; i+=3) {
+    var obj = {};
+    
+    // Kolom 1: naam (i)
+    if(inputs[i]) obj.naam = inputs[i].value || '';
+    
+    // Kolom 2: start-tijd (i+1)
+    if(inputs[i+1]) obj.start = inputs[i+1].value || '07:00';
+    
+    // Kolom 3: vandaag checkbox (i+2)
+    if(inputs[i+2]) obj.vandaag = inputs[i+2].checked || false;
+    
+    if(obj.naam) result.push(obj);
   }
-  PLOEGEN_CONFIG = [];
-  for(var k in nieuw){
-    if(nieuw.hasOwnProperty(k)) PLOEGEN_CONFIG.push(nieuw[k]);
-  }
-  console.log('✓ PLOEGEN_CONFIG UPDATE:', PLOEGEN_CONFIG);
+  
+  PLOEGEN_CONFIG = result;
+  
+  // TEST: Toon wat we hebben gelezen
+  console.log('✓ leesPloegenTabel() DONE. PLOEGEN_CONFIG:', PLOEGEN_CONFIG);
 }
 
 document.getElementById('addPloegBtn').onclick = function(){
