@@ -489,11 +489,16 @@
   }
 
   /* Test + Menu hidden standaard */
-  #testBtn, #menuBtn {
-    display: none;
+  #testBtn, #menuBtn, #cfgBtn {
+    display: none !important;
   }
-  #testBtn.show, #menuBtn.show {
-    display: block;
+  #testBtn.show, #menuBtn.show, #cfgBtn.show {
+    display: block !important;
+  }
+  
+  /* Menu knop (rechtsboven) ook verbergen */
+  button[aria-label="Menu"], .menu-btn, [id*="menu"]:not(#menuBtn) {
+    display: none !important;
   }
 
 </style>
@@ -2016,6 +2021,14 @@ document.getElementById('cfgSave').onclick=function(){
   firstPoll = true;
   msg.textContent = '✓ Opgeslagen lokaal (test mode - geen worker)';
   // bewaarTakenCentraal() // LOKAAL TEST: geen worker
+  
+  // ✓ Bevestiging tonen
+  setTimeout(function() {
+    var bevestiging = 'Instellingen opgeslagen!\n\n';
+    bevestiging += 'Post: ' + POST_CONFIG.postnaam + '\n';
+    bevestiging += 'Brandweer: ' + POST_CONFIG.brandweer;
+    alert('✓ ' + bevestiging);
+  }, 300);
 };
 document.getElementById('cfgReset').onclick=function(){
   FILTER_CAPCODES=DEFAULT_CAPCODES.slice();
@@ -3161,9 +3174,10 @@ document.addEventListener('click', function(e) {
   clearTimeout(clickTimeout);
   
   if(clickCount === 5) {
-    console.log('✓ 5x geklikt - Test + Menu tonen');
+    console.log('✓ 5x geklikt - Test + Menu + Config tonen');
     document.getElementById('testBtn').classList.add('show');
     document.getElementById('menuBtn').classList.add('show');
+    document.getElementById('cfgBtn').classList.add('show');
     clickCount = 0;
   }
   
