@@ -487,6 +487,15 @@
     border-radius: 3px;
     margin-right: 8px;
   }
+
+  /* Test + Menu hidden standaard */
+  #testBtn, #menuBtn {
+    display: none;
+  }
+  #testBtn.show, #menuBtn.show {
+    display: block;
+  }
+
 </style>
 </head>
 <body>
@@ -2692,16 +2701,7 @@ function geocodeVoertuigenAdressen() {
 }
 
 // Hook in cfgSave - sla config op
-var cfgSaveBtn = document.getElementById('cfgSave');
-if(cfgSaveBtn){
-  var originalSave = cfgSaveBtn.onclick || function(){};
-  cfgSaveBtn.onclick = function(){
-    POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
-    POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
-    updateTopbar();
-    if(originalSave) originalSave();
-  };
-}
+// Duplicate handler removed - using main cfgSave handler above
 
 // Init
 updateTopbar();
@@ -3146,6 +3146,31 @@ if(typeof openCfg === 'function'){
 }
 
 vulVoertuigenConfigTable();
+
+
+
+// 5x klik om Test + Menu te tonen
+var clickCount = 0;
+var clickTimeout;
+document.addEventListener('click', function(e) {
+  if(e.target.id === 'menuBtn' || e.target.id === 'testBtn' || e.target.closest('#menuBtn') || e.target.closest('#testBtn')) {
+    return;  // Ignore klikken op die knoppen zelf
+  }
+  
+  clickCount++;
+  clearTimeout(clickTimeout);
+  
+  if(clickCount === 5) {
+    console.log('✓ 5x geklikt - Test + Menu tonen');
+    document.getElementById('testBtn').classList.add('show');
+    document.getElementById('menuBtn').classList.add('show');
+    clickCount = 0;
+  }
+  
+  clickTimeout = setTimeout(function() {
+    clickCount = 0;
+  }, 1000);  // Reset na 1 seconde
+});
 
 </script></body>
 </html>
