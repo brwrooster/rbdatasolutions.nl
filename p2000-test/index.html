@@ -1976,6 +1976,9 @@ document.getElementById('cfgSave').onclick=function(){
   leesPloegenTabel();
   TASKS = leesTaakEditor();
   
+  // DIRECT update display met NEW ploegen-data
+  updatePloegenDisplay();
+  
   // 4. Parse voertuigen EENMAAL
   var cfgUnitsValue = document.getElementById('cfgUnits').value;
   UNITS = tekstNaarUnits(cfgUnitsValue) || {};
@@ -1983,7 +1986,6 @@ document.getElementById('cfgSave').onclick=function(){
   // 5. Update scherm
   updateTopbar();
   updatePloegenDisplay();  // Update ploegen display na load
-  updatePloegenDisplay();
   startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
   loadWeather();
   applyNachtmodus();
@@ -2507,13 +2509,17 @@ function updateTopbar(){
   document.getElementById('topbarBrandweer').textContent = brandweer;
 }
 function updatePloegenDisplay(){
+  console.log('🎨 updatePloegenDisplay() START');
+  console.log('PLOEGEN_CONFIG:', PLOEGEN_CONFIG);
   var ploegenRow = document.getElementById('ploegenRow');
   if(!ploegenRow) return;
   
   ploegenRow.innerHTML = '';
   
   for(var i=0;i<PLOEGEN_CONFIG.length;i++){
+    console.log('  Ploeg', i, '-', PLOEGEN_CONFIG[i].naam, '- vandaag:', PLOEGEN_CONFIG[i].vandaag);
     if(PLOEGEN_CONFIG[i].vandaag){
+      console.log('    → TOONT deze ploeg!');
       var item = document.createElement('div');
       item.className = 'ploeg-item';
       
@@ -2809,20 +2815,26 @@ function vulPloegenTabel(){
 }
 
 function leesPloegenTabel(){
+  console.log('🔄 leesPloegenTabel() START');
   var inputs = document.querySelectorAll('#ploegenTableBody input');
+  console.log('Inputs gevonden:', inputs.length);
   var nieuw = {};
   for(var i=0;i<inputs.length;i++){
     var inp = inputs[i];
     var idx = parseInt(inp.dataset.idx, 10);
     var prop = inp.dataset.prop;
     if(!nieuw[idx]) nieuw[idx] = {};
-    if(prop === 'vandaag') nieuw[idx][prop] = inp.checked;
+    if(prop === 'vandaag') {
+      nieuw[idx][prop] = inp.checked;
+      console.log('  Ploeg', idx, '- vandaag:', inp.checked);
+    }
     else nieuw[idx][prop] = inp.value;
   }
   PLOEGEN_CONFIG = [];
   for(var k in nieuw){
     if(nieuw.hasOwnProperty(k)) PLOEGEN_CONFIG.push(nieuw[k]);
   }
+  console.log('✓ PLOEGEN_CONFIG UPDATE:', PLOEGEN_CONFIG);
 }
 
 document.getElementById('addPloegBtn').onclick = function(){
