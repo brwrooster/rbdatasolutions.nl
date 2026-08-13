@@ -932,6 +932,17 @@ setInterval(function(){
 var PLOEG_ANKER = new Date(2026, 5, 17);   // maand 5 = juni
 var PLOEGEN = ['D', 'A', 'B', 'C'];
 function currentPloeg(now){
+  // EERST: Check PLOEGEN_CONFIG.vandaag
+  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
+    if(PLOEGEN_CONFIG[i].vandaag === true) {
+      // Return eerste letter (bijv "Ploeg A" → "A")
+      var naam = PLOEGEN_CONFIG[i].naam;
+      var letter = naam.charAt(naam.length - 1);  // Laatste char
+      if(letter.match(/[A-Z]/)) return letter;
+    }
+  }
+  
+  // FALLBACK: oude rotatie-logica (als geen vandaag geselecteerd)
   var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if(now.getHours() < 7) d.setDate(d.getDate() - 1);
   var days = Math.round((d - PLOEG_ANKER) / 86400000);
