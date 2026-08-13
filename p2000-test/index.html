@@ -1982,6 +1982,7 @@ document.getElementById('cfgSave').onclick=function(){
   
   // 5. Update scherm
   updateTopbar();
+  updatePloegenDisplay();  // Update ploegen display na load
   updatePloegenDisplay();
   startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
   loadWeather();
@@ -2837,15 +2838,7 @@ if(typeof openCfg === 'function'){
   window.openCfgOrig = function(){};
 }
 
-// Hook in cfgSave - sla ploegen op
-var cfgSaveBtn = document.getElementById('cfgSave');
-if(cfgSaveBtn){
-  var origSave = cfgSaveBtn.onclick || function(){};
-  cfgSaveBtn.onclick = function(){
-    leesPloegenTabel();  // config
-    if(origSave.call) origSave.call(this);
-  };
-}
+// Duplicate hook removed - leesPloegenTabel() wordt al aangeroepen in hoofdhandler!
 
 // Init
 vulPloegenTabel();  // config
