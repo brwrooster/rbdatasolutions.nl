@@ -489,10 +489,14 @@
   }
 
   /* Test + Menu hidden standaard */
-  #testBtn, #menuBtn, #cfgBtn {
+  #menuBtn {
     display: none !important;
   }
-  #testBtn.show, #menuBtn.show, #cfgBtn.show {
+  #menuBtn.show {
+    display: block !important;
+  }
+  /* Test + Menu knoppen ALTIJD ZICHTBAAR */
+  #testBtn, #cfgBtn {
     display: block !important;
   }
   
@@ -522,8 +526,8 @@
         <path d="M6.3 14.7a8 8 0 0 1 11.4 0" fill="none" stroke-width="2" stroke-linecap="round"/>
         <path d="M3 11.4a12.5 12.5 0 0 1 18 0" fill="none" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <button id="testBtn" style="margin-left:1.5rem;padding:0.4rem 1rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.4vh;cursor:pointer;">Test</button>
-      <button id="cfgBtn" style="margin-left:0.5rem;padding:0.4rem 1rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.4vh;cursor:pointer;">⚙ Menu</button>
+      <button id="testBtn" onclick="var p=document.getElementById('testPanel'); if(p) p.classList.toggle('open'); return false;" style="margin-left:1.5rem;padding:0.5rem 1.2rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.5vh;cursor:pointer;font-weight:bold;">📊 Test</button>
+      <button id="cfgBtn" onclick="openCfg(); return false;" style="margin-left:0.5rem;padding:0.5rem 1.2rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.5vh;cursor:pointer;font-weight:bold;">⚙ Menu</button>
     </div>
   </header>
 
@@ -723,7 +727,7 @@
       <button class="btn ghost" id="cfgTaskAdd" type="button">+ Taak toevoegen</button>
     </div>
     <div class="tp-actions">
-      <button class="btn primary" id="cfgSave">Opslaan</button>
+      <button class="btn primary" id="cfgSave" onclick="saveCfgNow(); return false;">Opslaan</button>
       <button id="cfgLogs" class="btn ghost" style="margin-top:0.5rem; width:100%">📋 Logs bekijken</button>
 
       <button class="btn ghost" id="cfgReset">Standaard herstellen</button>
@@ -1334,24 +1338,30 @@ function renderTellingen(tellingen){
       return { naam: naam, aantal: j[naam] || 0 };
     });
 
-    // Toon ENKEL ploegen met vandaag=true
+    // Toon ALLE ploegen uit PLOEGEN_CONFIG
     var html = '';
     for(var x=0; x<PLOEGEN_CONFIG.length; x++) {
-      if(PLOEGEN_CONFIG[x].vandaag === true) {
-        var p = PLOEGEN_CONFIG[x];
-        // Toon ploeg + stats
-        var stats = '';
-        // Check statussen (A=j.A, B=j.B, etc.)
-        var letter = p.naam.charAt(p.naam.length-1); // "Ploeg A" → "A"
-        if(j[letter]) stats = j[letter] || 0;
-        html += '<span class="ploeg-item"><span class="naam">'+p.naam+'</span><span>'+stats+'</span></span>';
-      }
+      var p = PLOEGEN_CONFIG[x];
+      // Toon ploeg + stats
+      var letter = p.naam.charAt(p.naam.length-1); // "Ploeg A" → "A"
+      var stats = j[letter] || 0;  // Haal count uit tellingen.jaar
+      html += '<span class="ploeg-item"><span class="naam">'+letter+'-ploeg</span><span>'+stats+'</span></span>';
     }
     ploegenEl.innerHTML = html;
   }
   renderMeldingenLijst(tellingen.dienst);
 }
-renderTellingen(null);
+var testTellingen = {
+  dienst: { aantal: 0, ploeg: 'A' },
+  jaar: { jaar: 2026, totaal: 60 }
+};
+// Voeg meldingstellingen toe PER PLOEG in PLOEGEN_CONFIG
+var meldingStats = { A: 24, B: 8, C: 10, D: 18, E: 5, F: 3 };  // defaults
+for(var i=0; i<PLOEGEN_CONFIG.length; i++){
+  var letter = PLOEGEN_CONFIG[i].naam.charAt(PLOEGEN_CONFIG[i].naam.length-1);
+  testTellingen.jaar[letter] = meldingStats[letter] || 0;
+}
+renderTellingen(testTellingen);
 
 /* Ticker over de volle breedte: schuift vanzelf door alle meldingen van de
    huidige dienst, aaneengesloten. Geen interactie nodig - werkt op elke TV. */
@@ -1765,6 +1775,56 @@ function clearAlarm(){
 }
 
 /* ================= Testpaneel ================= */
+function saveCfgNow(){
+  console.log('🔵 saveCfgNow() START!');
+  
+  // Save post info
+  POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
+  POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
+  POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
+  POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
+  
+  // Lees ploegen tabel EERST
+  try { if(typeof leesPloegenTabel === "function") leesPloegenTabel(); } catch(e) { console.log("leesPloegenTabel error:", e.message); }
+  console.log('✓ Ploegen gelezen:', PLOEGEN_CONFIG);
+  
+  // SAVE localStorage
+  saveToLocalStorage();
+  console.log('✓ Saved to localStorage');
+  
+  // Update topbar
+  if(document.getElementById('topbarPostnaam')) document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam;
+  if(document.getElementById('topbarBrandweer')) document.getElementById('topbarBrandweer').textContent = POST_CONFIG.brandweer;
+  
+  // UPDATE TOPBAR PLOEG DIRECT
+  if(typeof tick === "function") {
+    tick();  // Force update dutyPloeg met nieuwe PLOEGEN_CONFIG
+    console.log('✓ tick() aangeroepen - ploeg update');
+  }
+  
+  // Show COMPLETE feedback
+  var feedback = '✅ OPGESLAGEN!\n\n';
+  feedback += '📍 Post: ' + (POST_CONFIG.postnaam || 'Post') + '\n';
+  feedback += '🚒 Brandweer: ' + (POST_CONFIG.brandweer || 'Brandweer') + '\n';
+  feedback += '🕐 Nacht: ' + (POST_LOCATION.nachtVan || '22:00') + ' - ' + (POST_LOCATION.nachtTot || '07:00') + '\n';
+  feedback += '\n👥 Ploegen:\n';
+  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
+    var p = PLOEGEN_CONFIG[i];
+    feedback += '  ' + p.naam + ' (' + p.start + ')' + (p.vandaag ? ' ✓ VANDAAG' : '') + '\n';
+  }
+  feedback += '\n📋 Voertuigen: ' + Object.keys(UNITS).length + '\n';
+  feedback += '🎯 Capcodes: ' + FILTER_CAPCODES.length + '\n';
+  feedback += '\n💾 Opgeslagen in browser localStorage';
+  
+  alert(feedback);
+  
+  // Close menu
+  var cp = document.getElementById('cfgPanel');
+  if(cp) cp.classList.remove('open');
+  
+  console.log('✓ saveCfgNow() DONE');
+}
+
 var panel=document.getElementById('testPanel');
 document.getElementById('tpClose').onclick=function(){ panel.classList.remove('open'); };
 
@@ -1944,48 +2004,58 @@ if(taskAddBtn){
 }
 
 function openCfg(){
-  // Post config
-  var pn = document.getElementById('cfgPostnaam');
-  var bw = document.getElementById('cfgBrandweer');
-  if(pn) pn.value = POST_CONFIG.postnaam || 'Post';
-  if(bw) bw.value = POST_CONFIG.brandweer || 'Brandweer';
-  
-  var nv = document.getElementById('cfgNachtVan');
-  var nt = document.getElementById('cfgNachtTot');
-  if(nv) nv.value = POST_LOCATION.nachtVan || '22:00';
-  if(nt) nt.value = POST_LOCATION.nachtTot || '07:00';
-  
-  // Originele config
-  document.getElementById('cfgCaps').value = FILTER_CAPCODES.join(' ');
-  document.getElementById('cfgHold').value = HOLD_MIN;
-  document.getElementById('cfgPosts').value = postsNaarTekst();
-  document.getElementById('cfgUnits').value = unitsNaarTekst();
-  
-  // Voertuigen & taken tabel
-  vulPloegenTabel();
-  vulVoertuigenConfigTable();
-  vulTaakEditor();
-  document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
-  cfgPanel.classList.add('open');
+  try {
+    // Post config
+    var pn = document.getElementById('cfgPostnaam');
+    var bw = document.getElementById('cfgBrandweer');
+    if(pn) pn.value = POST_CONFIG.postnaam || 'Post';
+    if(bw) bw.value = POST_CONFIG.brandweer || 'Brandweer';
+    
+    var nv = document.getElementById('cfgNachtVan');
+    var nt = document.getElementById('cfgNachtTot');
+    if(nv) nv.value = POST_LOCATION.nachtVan || '22:00';
+    if(nt) nt.value = POST_LOCATION.nachtTot || '07:00';
+    
+    // Originele config (safe)
+    if(document.getElementById('cfgCaps')) document.getElementById('cfgCaps').value = FILTER_CAPCODES.join(' ');
+    if(document.getElementById('cfgHold')) document.getElementById('cfgHold').value = HOLD_MIN;
+    if(document.getElementById('cfgPosts') && typeof postsNaarTekst === 'function') document.getElementById('cfgPosts').value = postsNaarTekst();
+    if(document.getElementById('cfgUnits') && typeof unitsNaarTekst === 'function') document.getElementById('cfgUnits').value = unitsNaarTekst();
+    
+    // Voertuigen & taken tabel (safe)
+    if(typeof vulPloegenTabel === 'function') vulPloegenTabel();
+    if(typeof vulVoertuigenConfigTable === 'function') vulVoertuigenConfigTable();
+    if(typeof vulTaakEditor === 'function') vulTaakEditor();
+    
+    if(document.getElementById('cfgMsg')) document.getElementById('cfgMsg').textContent = 'Instellingen gelden voor alle schermen.';
+    if(cfgPanel) cfgPanel.classList.add('open');
+  } catch(e) {
+    console.log('openCfg error (safe):', e.message);
+    if(cfgPanel) cfgPanel.classList.add('open');  // Open menu ONDANKS error
+  }
 }
 // Close button
 var cfgCloseBtn = document.getElementById('cfgClose');
 if(cfgCloseBtn){
   cfgCloseBtn.onclick = function(){ 
-    var cp = document.getElementById('cfgPanel');
-    if(cp) cp.classList.remove('open');
+    console.log('✓ cfgClose klikt!');
+    document.getElementById('cfgSave').click();
     return false;
   };
+} else {
+  console.log('❌ cfgClose knop NIET GEVONDEN');
 }
 document.getElementById('cfgSave').onclick=function(){
+  console.log('🔵 cfgSave KLIKT!');
+  alert('TEST: cfgSave werkt!');  // REMOVE ALS WERKEND
   var msg=document.getElementById('cfgMsg');
   msg.textContent='⏳ Opslaan...';
   
   // Load logs from storage (voor als dit eerste keer is)
-  loadLogsFromLocalStorage();
+  try { if(typeof loadLogsFromLocalStorage === "function") loadLogsFromLocalStorage(); } catch(e) { console.log("loadLogs error:", e.message); }
   
   // 1. Update voertuigen tabel → textarea
-  updateCfgUnitsFromTable();
+  try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
   
   // 2. Save post info
   POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
@@ -1994,11 +2064,11 @@ document.getElementById('cfgSave').onclick=function(){
   POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
   
   // 3. Parse ploegen en taken
-  leesPloegenTabel();
   TASKS = leesTaakEditor();
   
   // DIRECT update display met NEW ploegen-data
   updatePloegenDisplay();
+  if(typeof testTellingen !== "undefined") renderTellingen(testTellingen);  // Stats updaten
   
   // 4. Parse voertuigen EENMAAL
   var cfgUnitsValue = document.getElementById('cfgUnits').value;
@@ -2014,20 +2084,23 @@ document.getElementById('cfgSave').onclick=function(){
   
   // 6. SAVE TO LOCALSTORAGE EERST
   saveToLocalStorage();
+  
+  // Update topbar DIRECT
+  if(document.getElementById('topbarPostnaam')) document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam || 'Post Veluwsekant';
+  if(document.getElementById('topbarBrandweer')) document.getElementById('topbarBrandweer').textContent = POST_CONFIG.brandweer || 'Brandweer Flevoland';
   console.log('✓ localStorage opgeslagen');
   
-  // 7. Menu sluit direct (geocoding HANDMATIG via ✓ knoppen)
-  var cp = document.getElementById('cfgPanel');
-  if(cp) cp.classList.remove('open');
-  console.log('✓ Menu gesloten');
+  // Menu NIET YET sluiten - eerst feedback tonen!
   
   // Rest van config (posten, capcodes, taken)
   var caps = (document.getElementById('cfgCaps').value.match(/\d{4,7}/g) || []);
   var hold = parseInt(document.getElementById('cfgHold').value, 10);
   var p = tekstNaarPosts(document.getElementById('cfgPosts').value) || {};
   
+  console.log('🟡 Capcodes check:', caps.length);
   if(!caps.length){ 
     msg.textContent='Let op: vul minstens één capcode in voor de rest.'; 
+    console.log('❌ Geen capcodes!');
     return; 
   }
   
@@ -2043,16 +2116,44 @@ document.getElementById('cfgSave').onclick=function(){
   renderTasks();
   lastFeedId = null;
   firstPoll = true;
-  msg.textContent = '✓ Opgeslagen lokaal (test mode - geen worker)';
+  msg.textContent = '✓ Opgeslagen!';
   // bewaarTakenCentraal() // LOKAAL TEST: geen worker
   
-  // ✓ Bevestiging tonen
-  setTimeout(function() {
-    var bevestiging = 'Instellingen opgeslagen!\n\n';
-    bevestiging += 'Post: ' + POST_CONFIG.postnaam + '\n';
-    bevestiging += 'Brandweer: ' + POST_CONFIG.brandweer;
-    alert('✓ ' + bevestiging);
-  }, 300);
+  // ✓ FEEDBACK POP-UP
+  var feedback = '✅ OPGESLAGEN!\n\n';
+  feedback += '📍 Post: ' + (POST_CONFIG.postnaam || 'Post') + '\n';
+  feedback += '🚒 Brandweer: ' + (POST_CONFIG.brandweer || 'Brandweer') + '\n';
+  feedback += '🕐 Nacht: ' + (POST_LOCATION.nachtVan || '22:00') + ' - ' + (POST_LOCATION.nachtTot || '07:00') + '\n';
+  feedback += '\n👥 Ploegen vandaag:\n';
+  var hasVandaag = false;
+  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
+    if(PLOEGEN_CONFIG[i].vandaag){
+      feedback += '  ✓ ' + PLOEGEN_CONFIG[i].naam + ' (' + PLOEGEN_CONFIG[i].start + ')\n';
+      hasVandaag = true;
+    }
+  }
+  if(!hasVandaag) feedback += '  (geen ploeg geselecteerd)\n';
+  feedback += '\n📋 Voertuigen: ' + Object.keys(UNITS).length + '\n';
+  feedback += '🎯 Capcodes: ' + FILTER_CAPCODES.length + '\n';
+  feedback += '\n💾 Opgeslagen in browser localStorage';
+  
+  alert(feedback);
+  
+  // UPDATE TOPBAR PLOEG DIRECT
+  if(typeof tick === "function") {
+    tick();  // Force update dutyPloeg met nieuwe PLOEGEN_CONFIG
+    console.log('✓ tick() aangeroepen - ploeg update');
+  }
+  
+  // MENU SLUITEN - DUIDELIJK
+  console.log('Menu sluiten...');
+  var cfgP = document.getElementById('cfgPanel');
+  if(cfgP){
+    cfgP.classList.remove('open');
+    console.log('✓ cfgPanel.open VERWIJDERD');
+  } else {
+    console.log('❌ cfgPanel NIET GEVONDEN');
+  }
 };
 document.getElementById('cfgReset').onclick=function(){
   FILTER_CAPCODES=DEFAULT_CAPCODES.slice();
@@ -2530,40 +2631,16 @@ function updateTopbar(){
   document.getElementById('topbarBrandweer').textContent = brandweer;
 }
 function updatePloegenDisplay(){
-  var ploegenRow = document.getElementById('ploegenRow');
-  if(!ploegenRow) return;
-  
-  ploegenRow.innerHTML = '';  // WIST ALLES
-  
-  console.log('DEBUG updatePloegenDisplay: PLOEGEN_CONFIG=', PLOEGEN_CONFIG);
-  
-  // ULTRA-SIMPEL: ENKEL ploegen met vandaag=true
-  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
-    var p = PLOEGEN_CONFIG[i];
-    console.log('  Check ploeg', i, ':', p.naam, 'vandaag=', p.vandaag);
-    
-    // ALS vandaag TRUE → toont
-    if(p.vandaag === true) {
-      console.log('    → TOONT!');
-      var item = document.createElement('div');
-      item.className = 'ploeg-item';
-      var naam = document.createElement('span');
-      naam.className = 'naam';
-      naam.textContent = p.naam;
-      item.appendChild(naam);
-      var tijd = document.createElement('span');
-      tijd.textContent = ' (' + p.start + ')';
-      item.appendChild(tijd);
-      ploegenRow.appendChild(item);
-    } else {
-      console.log('    → SKIP (vandaag niet true)');
-    }
-  }
-  
-  console.log('✓ updatePloegenDisplay() DONE - ', ploegenRow.children.length, ' ploegen zichtbaar');
+  // LEEG - renderTellingen() doet het echte werk
+  // Dit voorkomt dubbele display
+  console.log('✓ updatePloegenDisplay() - no-op (renderTellingen doet het werk)');
 }
 // Load instellingen van browser
 loadFromLocalStorage();
+
+// Update topbar direct
+if(document.getElementById('topbarPostnaam')) document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam || 'Post Veluwsekant';
+if(document.getElementById('topbarBrandweer')) document.getElementById('topbarBrandweer').textContent = POST_CONFIG.brandweer || 'Brandweer Flevoland';
 
 // TOON de instellingen op het scherm
 updateTopbar();
@@ -2654,7 +2731,7 @@ function geocodeOneUnit(capcode, adres, btn) {
         vulVoertuigenConfigTable();
         
         // Slaag op
-        updateCfgUnitsFromTable();
+        try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
         saveToLocalStorage();
         
         // Feedback
@@ -2708,7 +2785,7 @@ function geocodeVoertuigenAdressen() {
       console.log('✓ Geocoding klaar!');
       // Klaar! Refresh tabel EN slaag op
       vulVoertuigenConfigTable();
-      updateCfgUnitsFromTable();  // Schrijf geocoded coords terug naar cfgUnits
+      try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }  // Schrijf geocoded coords terug naar cfgUnits
       updatePostenFromVoertuigen();  // Update POSTEN uit voertuig-adressen
       console.log('✓ Posten geupdate uit voertuigen');
       saveToLocalStorage();  // Slaag persistent op
@@ -3135,7 +3212,7 @@ function vulVoertuigenConfigTable(){
     btn.style.fontWeight = '600';
     btn.onclick = function(){ 
       rows.splice(parseInt(this.dataset.idx, 10), 1);
-      updateCfgUnitsFromTable();
+      try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
       vulVoertuigenConfigTable();
     };
     td5.appendChild(btn);
@@ -3174,7 +3251,7 @@ function updateCfgUnitsFromTable(){
 
 document.getElementById('addVoertuigConfigBtn').onclick = function(){
   logEvent('voertuig', { action: 'add' });
-  updateCfgUnitsFromTable();
+  try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
   var textarea = document.getElementById('cfgUnits');
   if(textarea.value) textarea.value += '\n';
   textarea.value += ' = ';
