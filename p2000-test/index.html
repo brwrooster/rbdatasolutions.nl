@@ -627,7 +627,7 @@
   <div class="tp-head">
     <span class="tag">Test</span>
     <h2>Melding simuleren</h2>
-    <button class="close" id="tpClose" aria-label="Sluiten">×</button>
+    <button class="close" id="tpClose" aria-label="Sluiten" onclick="document.getElementById('testPanel').classList.remove('open'); return false;">×</button>
   </div>
   <div class="tp-grid">
     <div class="field wide">
@@ -635,9 +635,9 @@
       <input id="fRaw" type="text" placeholder="P 1 BMD-01 WONINGBRAND KERKSTRAAT ALMERE 254133 254152" value="P 2 BMD-01 DIER TE WATER WINKELWEG ZEEWOLDE 254133 254152" autocomplete="off">
     </div>
     <div class="tp-actions">
-      <button class="btn primary" id="fireBtn">Maak melding</button>
+      <button class="btn primary" id="fireBtn" onclick="fireTestMelding(); return false;">Maak melding</button>
       <button class="btn primary" id="allesBtn">Naar alle schermen</button>
-      <button class="btn ghost" id="clearBtn">Terug naar rust</button>
+      <button class="btn ghost" id="clearBtn" onclick="document.getElementById('testPanel').classList.remove('open'); clearAlarm(); return false;">Terug naar rust</button>
     </div>
   </div>
   <p class="tp-hint">Plak de P2000-regel en tik <b>Maak melding</b>. Prio (P 1 → prio 1, P 2 → prio 2), soort melding, adres en eenheden worden er automatisch uit gehaald. Adres wordt live opgezocht (PDOK); rijtijd vanaf de eigen post (OSRM).</p>
@@ -791,6 +791,37 @@ var UNITS = DEFAULT_UNITS;
 var HOLD_MIN = DEFAULT_HOLD_MIN;
 var TASKS = DEFAULT_TASKS.slice();
 var POST_CAPCODES = [];
+
+var SOORTEN = [
+  // brand - uitgebreid
+  'brand - riet','brand riet','brand - bos','brand bos','brand natuur','brand struiken','brand graslanden',
+  'brand berm/bosschage','brand bijgebouw','brand container','brand afval',
+  'brand woning','brand gebouw','brand voertuig','brand schoorsteen',
+  'brand buiten','brand industrie','brand schuur','brand vaartuig','brand',
+  'brand flatwoning','brand appartement','brand kantoor','brand winkel','brand berging',
+  'brand hooizolder','brand hooi','brand materiaal','brand elektra','brand oven',
+  
+  // water / dier
+  'dier te water','voertuig te water','persoon te water','persoon onder water',
+  'dier op hoogte','dier in problemen','dier in nood','wateroverlast','stormschade',
+  'dier bekneld','dier gewond','vogel in nood','insect plaag','dier slachthuis',
+  
+  // medisch / assistentie
+  'assistentie ambulance','assistentie politie','reanimatie','beknelling',
+  'verkeersongeval','ongeval','valletje','scheur','snijwond','verbranding',
+  'elektrocutie','gaslekkage gaslucht','allergische reactie','bewusteloos',
+  
+  // ongevallen
+  'ongeval wegvervoer','ongeval railvervoer','ongeval watervervoer',
+  'ongeval gevaarlijke stof','ongeval letsel','verkeersongeval',
+  'aanrijding','botsing','spoorwegongeval','scheepsongeval',
+  
+  // overig
+  'openbaar meldsysteem','automatisch alarm','brandmelding','liftopsluiting',
+  'gaslekkage','gaslucht','stankoverlast','nacontrole','hulpverlening',
+  'brandgerucht','luchtafvoer','rook overlast','zwelbranden','koolmonoxide',
+  'CO melder','gasmelder','melding onderzoeken','foutmeldingen','verkeerscontrole'
+];
 
 function refreshPostCapcodes(){
   POST_CAPCODES = [];
@@ -1351,17 +1382,7 @@ function renderTellingen(tellingen){
   }
   renderMeldingenLijst(tellingen.dienst);
 }
-var testTellingen = {
-  dienst: { aantal: 0, ploeg: 'A' },
-  jaar: { jaar: 2026, totaal: 60 }
-};
-// Voeg meldingstellingen toe PER PLOEG in PLOEGEN_CONFIG
-var meldingStats = { A: 24, B: 8, C: 10, D: 18, E: 5, F: 3 };  // defaults
-for(var i=0; i<PLOEGEN_CONFIG.length; i++){
-  var letter = PLOEGEN_CONFIG[i].naam.charAt(PLOEGEN_CONFIG[i].naam.length-1);
-  testTellingen.jaar[letter] = meldingStats[letter] || 0;
-}
-renderTellingen(testTellingen);
+// testTellingen verplaatst naar NA loadFromLocalStorage()
 
 /* Ticker over de volle breedte: schuift vanzelf door alle meldingen van de
    huidige dienst, aaneengesloten. Geen interactie nodig - werkt op elke TV. */
@@ -1775,6 +1796,7 @@ function clearAlarm(){
 }
 
 /* ================= Testpaneel ================= */
+
 function saveCfgNow(){
   console.log('🔵 saveCfgNow() START!');
   
@@ -1823,6 +1845,29 @@ function saveCfgNow(){
   if(cp) cp.classList.remove('open');
   
   console.log('✓ saveCfgNow() DONE');
+}
+
+function fireTestMelding(){
+  console.log('🔵 fireTestMelding() START');
+  try {
+    var raw = document.getElementById('fRaw').value.trim();
+    console.log('Raw:', raw);
+    if(!raw) {
+      document.getElementById('fRaw').focus();
+      return false;
+    }
+    
+    var p = parseP2000(raw);
+    console.log('Parsed:', p);
+    
+    document.getElementById('testPanel').classList.remove('open');
+    showAlarm(p.type, p.addr, p.prio, p.units, undefined, p.mid, p.kanaal);
+    console.log('✓ showAlarm klaar');
+  } catch(e) {
+    console.error('ERROR:', e);
+    alert('Fout: ' + e.message);
+  }
+  return false;
 }
 
 var panel=document.getElementById('testPanel');
@@ -2168,36 +2213,7 @@ document.getElementById('cfgReset').onclick=function(){
 
 /* P2000-regel ontleden, bijv: "P 2 BMD-01 DIER TE WATER WINKELWEG ZEEWOLDE 254133 254152" */
 /* Meldingssoorten zoals de meldkamer ze schrijft (langste eerst herkennen) */
-var SOORTEN = [
-  // brand - uitgebreid
-  'brand - riet','brand riet','brand - bos','brand bos','brand natuur','brand struiken','brand graslanden',
-  'brand berm/bosschage','brand bijgebouw','brand container','brand afval',
-  'brand woning','brand gebouw','brand voertuig','brand schoorsteen',
-  'brand buiten','brand industrie','brand schuur','brand vaartuig','brand',
-  'brand flatwoning','brand appartement','brand kantoor','brand winkel','brand berging',
-  'brand hooizolder','brand hooi','brand materiaal','brand elektra','brand oven',
-  
-  // water / dier
-  'dier te water','voertuig te water','persoon te water','persoon onder water',
-  'dier op hoogte','dier in problemen','dier in nood','wateroverlast','stormschade',
-  'dier bekneld','dier gewond','vogel in nood','insect plaag','dier slachthuis',
-  
-  // medisch / assistentie
-  'assistentie ambulance','assistentie politie','reanimatie','beknelling',
-  'verkeersongeval','ongeval','valletje','scheur','snijwond','verbranding',
-  'elektrocutie','gaslekkage gaslucht','allergische reactie','bewusteloos',
-  
-  // ongevallen
-  'ongeval wegvervoer','ongeval railvervoer','ongeval watervervoer',
-  'ongeval gevaarlijke stof','ongeval letsel','verkeersongeval',
-  'aanrijding','botsing','spoorwegongeval','scheepsongeval',
-  
-  // overig
-  'openbaar meldsysteem','automatisch alarm','brandmelding','liftopsluiting',
-  'gaslekkage','gaslucht','stankoverlast','nacontrole','hulpverlening',
-  'brandgerucht','luchtafvoer','rook overlast','zwelbranden','koolmonoxide',
-  'CO melder','gasmelder','melding onderzoeken','foutmeldingen','verkeerscontrole'
-];
+
 
 
 /* Afkortingen van de meldkamer uitschrijven */
@@ -2216,6 +2232,7 @@ function schrijfUit(t){
     .replace(/\s+/g,' ').trim();
 }
 function parseP2000(raw){
+
   var s=(raw||'').replace(/\s+/g,' ').trim();
   var pm=s.match(/\bP\s*([12])\b/i) || s.match(/\bPRIO\s*([12])\b/i);
   var prio=pm?parseInt(pm[1],10):selectedPrio;
@@ -2241,6 +2258,10 @@ function parseP2000(raw){
 
   // 1) bekende soort vooraan herkennen -> rest is adres
   var laag = mid.toLowerCase(), i, gevonden = '';
+  if(!SOORTEN || SOORTEN.length === 0){
+    console.log('⚠ SOORTEN niet beschikbaar, fallback');
+    SOORTEN = ['brand','dier te water','verkeersongeval'];
+  }
   for(i=0;i<SOORTEN.length;i++){
     if(laag.indexOf(SOORTEN[i]) === 0 && SOORTEN[i].length > gevonden.length) gevonden = SOORTEN[i];
   }
@@ -2259,11 +2280,24 @@ function parseP2000(raw){
   return { prio:prio, type:type, addr:addr, units:caps.join(' '), mid:mid, kanaal:kanaal };
 }
 document.getElementById('fireBtn').onclick=function(){
-  var raw=document.getElementById('fRaw').value.trim();
-  if(!raw){document.getElementById('fRaw').focus();return;}
-  var p=parseP2000(raw);
-  panel.classList.remove('open');
-  showAlarm(p.type,p.addr,p.prio,p.units,undefined,p.mid,p.kanaal);
+  console.log('🔵 fireBtn klikt!');
+  try {
+    var raw=document.getElementById('fRaw').value.trim();
+    console.log('Raw input:', raw);
+    if(!raw){document.getElementById('fRaw').focus();return;}
+    
+    var p=parseP2000(raw);
+    console.log('✓ Parsed:', p);
+    
+    panel.classList.remove('open');
+    console.log('✓ Panel gesloten');
+    
+    showAlarm(p.type,p.addr,p.prio,p.units,undefined,p.mid,p.kanaal);
+    console.log('✓ showAlarm aangeroepen');
+  } catch(e) {
+    console.error('❌ fireBtn error:', e.message);
+    alert('❌ FOUT bij melding: ' + e.message);
+  }
 };
 
 /* Melding naar alle schermen sturen (via de Worker, net als de eigen ontvanger) */
@@ -2637,6 +2671,20 @@ function updatePloegenDisplay(){
 }
 // Load instellingen van browser
 loadFromLocalStorage();
+
+// Nu PLOEGEN_CONFIG is geladen - bouw testTellingen
+var testTellingen = {
+  dienst: { aantal: 0, ploeg: 'A' },
+  jaar: { jaar: 2026, totaal: 60 }
+};
+// Voeg meldingstellingen toe PER PLOEG in PLOEGEN_CONFIG
+var meldingStats = { A: 24, B: 8, C: 10, D: 18, E: 5, F: 3 };  // defaults
+for(var i=0; i<PLOEGEN_CONFIG.length; i++){
+  var letter = PLOEGEN_CONFIG[i].naam.charAt(PLOEGEN_CONFIG[i].naam.length-1);
+  testTellingen.jaar[letter] = meldingStats[letter] || 0;
+}
+renderTellingen(testTellingen);  // TOON STATS METEEN
+console.log('✓ testTellingen ingesteld:', testTellingen);
 
 // Update topbar direct
 if(document.getElementById('topbarPostnaam')) document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam || 'Post Veluwsekant';
