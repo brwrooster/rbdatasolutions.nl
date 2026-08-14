@@ -988,7 +988,11 @@ function parseUnits(str){
   var codes = (str||'').match(/\d{4,7}/g) || [];
   var out = [];
   codes.forEach(function(code){
-    var u = UNITS[code] || UNITS[code.slice(-4)];
+    // Probeer: exact match → 4-digit suffix → generiek
+    var u = UNITS[code];
+    if(!u && code.length >= 5) u = UNITS[code.slice(-4)];  // Bijv. 255152 → 5152
+    if(!u && code.length >= 5) u = UNITS[code.slice(-5)];  // Probeer 5-digit fallback
+    console.log('parseUnits', code, '→', u ? u.naam : 'NOT FOUND');
     if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
     var unit = {
       code: code,
@@ -1809,6 +1813,11 @@ function saveCfgNow(){
   // Lees ploegen tabel EERST
   try { if(typeof leesPloegenTabel === "function") leesPloegenTabel(); } catch(e) { console.log("leesPloegenTabel error:", e.message); }
   console.log('✓ Ploegen gelezen:', PLOEGEN_CONFIG);
+  
+  // Update voertuigen TABEL → TEXTAREA → UNITS!
+  try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
+  UNITS = tekstNaarUnits(document.getElementById('cfgUnits').value) || {};
+  console.log('✓ UNITS bijgewerkt:', Object.keys(UNITS).length, 'voertuigen');
   
   // SAVE localStorage
   saveToLocalStorage();
@@ -3295,6 +3304,10 @@ function updateCfgUnitsFromTable(){
   }
   
   document.getElementById('cfgUnits').value = rows.join('\n');
+  
+  // KRITIEK: Parse textarea TERUG naar UNITS object!
+  UNITS = tekstNaarUnits(document.getElementById('cfgUnits').value);
+  console.log('✓ UNITS bijgewerkt:', UNITS);
 }
 
 document.getElementById('addVoertuigConfigBtn').onclick = function(){
