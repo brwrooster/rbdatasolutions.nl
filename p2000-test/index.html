@@ -37,14 +37,12 @@
   body.dag #screen .post-id .name{color:#1a2433}
   body.dag #screen .post-id .sub{color:#5a6b80}
   body.dag #screen .topbar .status{color:#5a6b80}
-  body.dag #screen 
   body.dag #screen .clock{color:#1a2433}
   body.dag #screen .clock .sec{color:#0b63b8}
   body.dag #screen .date{color:#5a6b80}
   body.dag #screen .weather .temp{color:#1a2433}
   body.dag #screen .weather .cond{color:#1a2433}
   body.dag #screen .weather .wind{color:#5a6b80}
-  body.dag #screen 
   body.dag .task-bar .task{color:#3c4c60}
   body.dag .task-bar .task::before{background:#0b63b8}
   body.dag .brand-credit{color:#5a6b80}
@@ -134,8 +132,6 @@
   }
   .weather .sep{display:none}
   
-  .last-run:empty{display:none}
-
   /* ---------- Statistiekenrij: laatste melding + dienst + jaar ---------- */
   .stats-row{
     display:flex;justify-content:center;align-items:flex-start;
@@ -446,30 +442,21 @@
 
 
 
-.last-run > *{
-  margin:0.05rem 0;
-  padding:0.05rem;
-}
-
-
-
-.last-run{
-  max-height:40vh;
-  overflow:hidden;
-  font-size:0.65rem;
-  line-height:1;
-  padding:0.05rem;
-}
-
   /* Logs Modal */
   #logsModal {
     display: none;
+    position: fixed; inset: 0; z-index: 1200;
+    background: rgba(4,8,16,.72);
+    align-items: center; justify-content: center;
+    padding: 4vh 4vw;
   }
   #logsModal.open {
     display: flex !important;
   }
-  #logsModal {
-    animation: fadeIn 0.2s;
+  #logsModalInner {
+    background: #111a2b; border: 1px solid #20304a; border-radius: 12px;
+    padding: 1.2rem 1.4rem; width: min(720px, 100%); max-height: 86vh;
+    overflow-y: auto; box-shadow: 0 18px 60px rgba(0,0,0,.55);
   }
   #logsModalContent {
     line-height: 1.6;
@@ -486,23 +473,6 @@
     padding: 2px 6px;
     border-radius: 3px;
     margin-right: 8px;
-  }
-
-  /* Test + Menu hidden standaard */
-  #menuBtn {
-    display: none !important;
-  }
-  #menuBtn.show {
-    display: block !important;
-  }
-  /* Test + Menu knoppen ALTIJD ZICHTBAAR */
-  #testBtn, #cfgBtn {
-    display: block !important;
-  }
-  
-  /* Menu knop (rechtsboven) ook verbergen */
-  button[aria-label="Menu"], .menu-btn, [id*="menu"]:not(#menuBtn) {
-    display: none !important;
   }
 
 </style>
@@ -526,8 +496,7 @@
         <path d="M6.3 14.7a8 8 0 0 1 11.4 0" fill="none" stroke-width="2" stroke-linecap="round"/>
         <path d="M3 11.4a12.5 12.5 0 0 1 18 0" fill="none" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <button id="testBtn" onclick="var p=document.getElementById('testPanel'); if(p) p.classList.toggle('open'); return false;" style="margin-left:1.5rem;padding:0.5rem 1.2rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.5vh;cursor:pointer;font-weight:bold;">📊 Test</button>
-      <button id="cfgBtn" onclick="openCfg(); return false;" style="margin-left:0.5rem;padding:0.5rem 1.2rem;background:none;border:1px solid #20304a;color:#8395ad;border-radius:.3rem;font-family:'Roboto Mono',monospace;font-size:1.5vh;cursor:pointer;font-weight:bold;">⚙ Menu</button>
+
     </div>
   </header>
 
@@ -627,7 +596,7 @@
   <div class="tp-head">
     <span class="tag">Test</span>
     <h2>Melding simuleren</h2>
-    <button class="close" id="tpClose" aria-label="Sluiten" onclick="document.getElementById('testPanel').classList.remove('open'); return false;">×</button>
+    <button class="close" id="tpClose" aria-label="Sluiten">×</button>
   </div>
   <div class="tp-grid">
     <div class="field wide">
@@ -635,9 +604,9 @@
       <input id="fRaw" type="text" placeholder="P 1 BMD-01 WONINGBRAND KERKSTRAAT ALMERE 254133 254152" value="P 2 BMD-01 DIER TE WATER WINKELWEG ZEEWOLDE 254133 254152" autocomplete="off">
     </div>
     <div class="tp-actions">
-      <button class="btn primary" id="fireBtn" onclick="fireTestMelding(); return false;">Maak melding</button>
+      <button class="btn primary" id="fireBtn">Maak melding</button>
       <button class="btn primary" id="allesBtn">Naar alle schermen</button>
-      <button class="btn ghost" id="clearBtn" onclick="document.getElementById('testPanel').classList.remove('open'); clearAlarm(); return false;">Terug naar rust</button>
+      <button class="btn ghost" id="clearBtn">Terug naar rust</button>
     </div>
   </div>
   <p class="tp-hint">Plak de P2000-regel en tik <b>Maak melding</b>. Prio (P 1 → prio 1, P 2 → prio 2), soort melding, adres en eenheden worden er automatisch uit gehaald. Adres wordt live opgezocht (PDOK); rijtijd vanaf de eigen post (OSRM).</p>
@@ -647,7 +616,7 @@
   <div class="tp-head">
     <span class="tag">Instellingen</span>
     <h2>Configuratie</h2>
-    <button class="close" id="cfgClose" aria-label="Opslaan" onclick="document.getElementById('cfgSave').click();return false;">✓</button>
+    <button class="close" id="cfgClose" aria-label="Opslaan">✓</button>
   </div>
   <div class="cfg-grid">
     <div class="field">
@@ -727,13 +696,20 @@
       <button class="btn ghost" id="cfgTaskAdd" type="button">+ Taak toevoegen</button>
     </div>
     <div class="tp-actions">
-      <button class="btn primary" id="cfgSave" onclick="saveCfgNow(); return false;">Opslaan</button>
+      <button class="btn primary" id="cfgSave">Opslaan</button>
       <button id="cfgLogs" class="btn ghost" style="margin-top:0.5rem; width:100%">📋 Logs bekijken</button>
 
       <button class="btn ghost" id="cfgReset">Standaard herstellen</button>
     </div>
   </div>
   <p class="tp-hint" id="cfgMsg">Instellingen gelden voor alle schermen.</p>
+</div>
+
+<!-- Logs-venster (geopend via "Logs bekijken" in het instellingenmenu) -->
+<div id="logsModal">
+  <div id="logsModalInner">
+    <div id="logsModalContent"></div>
+  </div>
 </div>
 
 <script>
@@ -778,6 +754,24 @@ var DEFAULT_UNITS = {
   "8131": { naam:"Reserve Tankautospuit",          post:null }
 };
 var DEFAULT_HOLD_MIN = 5;
+
+/* Universele post-identiteit (overschrijfbaar via het menu, bewaard in localStorage) */
+var POST_CONFIG = {
+  postnaam: 'Post Veluwsekant',
+  brandweer: 'Brandweer Flevoland'
+};
+var PLOEGEN_CONFIG = [
+  {naam:'Ploeg A', start:'07:00', vandaag:true},
+  {naam:'Ploeg B', start:'19:00', vandaag:false}
+];
+
+/* Kazerne-specifieke locatienamen (water, wijken, terreinen).
+   Deze worden op HEEL woord gematcht vóór de geocoding, zodat je aliassen
+   kunt definiëren die de meldkamer soms anders schrijft. [lat, lon] */
+var LOCATIES_CONFIG = [
+  { naam: 'weerwater', coord: [52.363, 5.225], type: 'water' }
+];
+
 var DEFAULT_TASKS = [
   { tekst:"Materiaalcontrole", dagen:["ma"] },
   { tekst:"Oefenavond",        dagen:["di"] },
@@ -992,7 +986,6 @@ function parseUnits(str){
     var u = UNITS[code];
     if(!u && code.length >= 5) u = UNITS[code.slice(-4)];  // Bijv. 255152 → 5152
     if(!u && code.length >= 5) u = UNITS[code.slice(-5)];  // Probeer 5-digit fallback
-    console.log('parseUnits', code, '→', u ? u.naam : 'NOT FOUND');
     if(!u && POST_CAPCODES.indexOf(code) !== -1) return;
     var unit = {
       code: code,
@@ -1004,7 +997,6 @@ function parseUnits(str){
       coords: u ? u.coords : null,
       known: !!u
     };
-    console.log('✓ ParseUnits', code, unit);
     out.push(unit);
   });
   return out;
@@ -1035,18 +1027,12 @@ function renderUnits(units){
 
 /* Rijtijd per eenheid vanaf de eigen kazerne */
 function loadUnitETAs(units, dest){
-  console.log('╔════════ loadUnitETAs START ════════');
-  console.log('Units input:', units);
-  console.log('UNITS config:', UNITS);
-  console.log('POST_LOCATION:', POST_LOCATION);
-  
   var keys = [], i;
   var unitsByKey = {};  // Map key -> unit
   var unitsByCode = {};  // Map capcode -> unit
   
   // Verzamel alle voertuigen met .post OF met lat/lon
   for(i=0;i<units.length;i++){
-    console.log('Unit', i, ':', units[i]);
     unitsByCode[units[i].code] = units[i];
     
     // Als voertuig lat/lon heeft: use capcode as key
@@ -1087,8 +1073,6 @@ function loadUnitETAs(units, dest){
 
   /* Terugval: OSRM (gewone auto) */
   function viaOSRM(){
-    console.log('🔄 OSRM start - keys:', keys);
-    console.log('🔄 unitsByKey:', unitsByKey);
     var coords = [];
     var validKeys = [];  // Track alleen voertuigen MET locatie
     
@@ -1099,7 +1083,6 @@ function loadUnitETAs(units, dest){
       // Voertuig met eigen lat/lon?
       if(u && u.lat && u.lon) {
         loc = {lat:u.lat, lon:u.lon};
-        console.log('✓ Voertuig', keys[j], 'lat/lon:', loc);
       }
       // Anders: post lookup
       else if(keys[j].indexOf('unit_') === 0) {
@@ -1137,7 +1120,6 @@ function loadUnitETAs(units, dest){
         }
       }
       
-      console.log('✓ OSRM result perPost:', perPost);
       toonTijden(perPost);
     }).catch(function(){
       var leeg = {};
@@ -1314,13 +1296,25 @@ function isDag(){
   var nu = new Date();
   var minutenNu = nu.getHours()*60 + nu.getMinutes();
 
-  // zonder zontijden: terugval op vaste tijden (07:00 - 21:00)
-  if(!zonOp || !zonOnder){
-    return minutenNu >= 7*60 && minutenNu < 21*60;
+  // 1) Ingestelde nachttijden uit het menu zijn leidend (universeel per kazerne)
+  if(POST_LOCATION && POST_LOCATION.nachtVan && POST_LOCATION.nachtTot){
+    var nv = POST_LOCATION.nachtVan.split(':'), nt = POST_LOCATION.nachtTot.split(':');
+    var van = parseInt(nv[0],10)*60 + parseInt(nv[1]||'0',10);
+    var tot = parseInt(nt[0],10)*60 + parseInt(nt[1]||'0',10);
+    if(!isNaN(van) && !isNaN(tot)){
+      var isNacht = (van < tot) ? (minutenNu >= van && minutenNu < tot)
+                                : (minutenNu >= van || minutenNu < tot);
+      return !isNacht;
+    }
   }
-  var minOp = zonOp.getHours()*60 + zonOp.getMinutes();
-  var minOnder = zonOnder.getHours()*60 + zonOnder.getMinutes();
-  return minutenNu >= minOp && minutenNu < minOnder;
+  // 2) Zontijden (Open-Meteo) als terugval
+  if(zonOp && zonOnder){
+    var minOp = zonOp.getHours()*60 + zonOp.getMinutes();
+    var minOnder = zonOnder.getHours()*60 + zonOnder.getMinutes();
+    return minutenNu >= minOp && minutenNu < minOnder;
+  }
+  // 3) Vaste tijden als laatste terugval (07:00 - 21:00)
+  return minutenNu >= 7*60 && minutenNu < 21*60;
 }
 function pasThemaToe(){
   var klassen = document.body.className.replace(/\s*dag/g, '');
@@ -1483,71 +1477,107 @@ function pollEigenOntvanger(){
 setInterval(pollEigenOntvanger, 2000);
 pollEigenOntvanger();
 
-/* ================= Geocoding (PDOK Locatieserver) ================= */
+/* ================= Geocoding (PDOK Locatieserver + Nominatim) ================= */
 function geocode(q, type, verwacht){
-  // Voor hectometerpaal: EERST hmpaal.nl proberen (beter voor NL highways!)
-  if(type === 'hectometerpaal' && verwacht && verwacht.weg && verwacht.hm){
-    var weg = verwacht.weg.replace(/\s+/g, '').toUpperCase();  // "A1" niet "A 1"
-    var hm = verwacht.hm.replace(',', '.');  // hmpaal.nl wil "65.4" niet "65,4"
-    var hmpaaljson = 'https://data.amsterdam.nl/api/Wegen_files/Hectometerpalen.json?q=' +
-      encodeURIComponent(weg + ' ' + hm);
-    
-    // FALLBACK: hmpaal.nl service (als bovenstaande niet werkt)
-    // Voor nu: direct geocoden via Nominatim
-    var nominatimUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + 
-      encodeURIComponent(weg + ' hectometer ' + hm + ' Nederland') + '&countrycodes=nl&limit=1';
-    
-    return fetch(nominatimUrl)
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if(data && data.length > 0) {
-          return { 
-            lon:parseFloat(data[0].lon), 
-            lat:parseFloat(data[0].lat), 
-            label: weg + ' hm ' + hm + ' (Nominatim)'
-          };
-        }
-        return null;
-      })
-      .catch(function(){ return null; });
+  // Voor hectometerpalen: eerst PDOK proberen (kent km-aanduidingen op A/N-wegen)
+  if(type === 'hectometerpaal'){
+    return geocodePDOK(q).then(function(result){
+      if(result) return result;
+      return geocodeNominatim(q);        // PDOK niets -> Nominatim
+    }).catch(function(){
+      return geocodeNominatim(q);        // PDOK fout -> Nominatim
+    });
   }
-  
-  // VOOR NORMALE ADRESSEN: Nominatim (betrouwbaarder voor straatnamen!)
-  return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + 
-    encodeURIComponent(q) + '&countrycodes=nl&limit=1')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if(data && data.length > 0) {
-        return { 
-          lon:parseFloat(data[0].lon), 
-          lat:parseFloat(data[0].lat), 
-          label:data[0].display_name 
-        };
-      }
-      return null;
+  // Voor gewone adressen: Nominatim (met strikte zoekbox rond de eigen post)
+  return geocodeNominatim(q);
+}
+
+/* PDOK Locatieserver - veel beter voor hectometerpalen */
+function geocodePDOK(q){
+  var url = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=' + encodeURIComponent(q) + '&fq=*:*&rows=5';
+
+  return fetch(url).then(function(r){ return r.json(); }).then(function(d){
+    if(!d || !d.response || !d.response.docs || !d.response.docs.length) return null;
+
+    var doc = d.response.docs[0];
+    if(!doc) return null;
+
+    // PDOK geeft centroide_ll als WKT-tekst terug: "POINT(lon lat)"
+    // Die moet dus geparsed worden - het is GEEN array!
+    var lat = null, lon = null;
+    if(doc.centroide_ll && typeof doc.centroide_ll === 'string'){
+      var wkt = doc.centroide_ll.match(/POINT\s*\(\s*([\d.-]+)\s+([\d.-]+)\s*\)/i);
+      if(wkt){ lon = parseFloat(wkt[1]); lat = parseFloat(wkt[2]); }
+    }
+
+    if(lat == null || lon == null || isNaN(lat) || isNaN(lon)) return null;
+
+    var label = doc.weergavenaam || doc.id || '';
+    return { lon: lon, lat: lat, label: label || q };
+  }).catch(function(err){
+    console.error('PDOK geocode error:', err);
+    return null;
+  });
+}
+
+/* Nominatim met een strikte zoekbox rond de eigen post (universeel: volgt
+   POST_LOCATION uit de instellingen). Levert de box niets op, dan nog één
+   poging zonder box (heel Nederland) voor buurgemeenten. */
+function geocodeNominatim(q){
+  var dLon = 0.18, dLat = 0.13;   // ~25 x 28 km rond de post
+  var viewbox = (POST_LOCATION.lon - dLon).toFixed(3) + ',' + (POST_LOCATION.lat - dLat).toFixed(3) + ',' +
+                (POST_LOCATION.lon + dLon).toFixed(3) + ',' + (POST_LOCATION.lat + dLat).toFixed(3);
+
+  var basis = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+              '&format=json&limit=10&countrycodes=nl';
+
+  function verwerk(d){
+    if(!d || !d.length) return null;
+    var doc = d[0];
+    if(!doc) return null;
+    var lat = parseFloat(doc.lat);
+    var lon = parseFloat(doc.lon);
+    if(isNaN(lat) || isNaN(lon)) return null;
+
+    // Label opbouwen: naam, straat, plaats
+    var label = doc.name || '';
+    if(doc.address){
+      var a = doc.address;
+      if(a.road) label = (label ? label + ', ' : '') + a.road;
+      if(a.city) label = (label ? label + ', ' : '') + a.city;
+      else if(a.town) label = (label ? label + ', ' : '') + a.town;
+    }
+    if(!label && doc.display_name) label = doc.display_name;
+    return { lon: lon, lat: lat, label: label || q };
+  }
+
+  // 1) strikt binnen de box rond de post
+  return fetch(basis + '&viewbox=' + viewbox + '&bounded=1')
+    .then(function(r){ return r.json(); }).then(function(d){
+      var g = verwerk(d);
+      if(g) return g;
+      // 2) terugval: zelfde zoekopdracht, heel Nederland
+      return fetch(basis).then(function(r2){ return r2.json(); }).then(verwerk);
     })
-    .catch(function(){ return null; });
+    .catch(function(err){
+      console.error('Nominatim geocode error:', err);
+      return null;
+    });
 }
 
 /* Hectometeraanduiding herkennen, bv. "A6 102,7" of "N307 - HANZEWEG 102,7 DRONTEN" */
 function vindHectometer(tekst){
   var t = (tekst||'').toUpperCase();
-  
-  // Match: "A1 re 65.4" of "A1 li 65.4" of "A1 65.4"
+  // "A6 RECHTS -" / "LINKS -" opruimen, richting is voor het zoeken niet nodig
+  t = t.replace(/\b[AN]\s?\d{1,3}\s+(RECHTS|LINKS|RECHTSBAAN|LINKSBAAN)\s*-\s*/g, '$1 ');
+  t = t.replace(/\b(RECHTS|LINKS|RECHTSBAAN|LINKSBAAN)\b/g, '');
   var weg = t.match(/\b([AN]\s?\d{1,3})\b/);
   if(!weg) return null;
-  
-  // Match hectometer: "65.4" of "65,4"
   var hm = t.match(/\b(\d{1,3}[,.]\d)\b/);
   if(!hm) return null;
-  
-  // Match richting: "re" (rechts) of "li" (links)
-  var richting = t.match(/\b(re|rechts|li|links)\b/i);
-  
   return {
     weg: weg[1].replace(/\s+/g,''),
-    hm: hm[1].replace('.', ','),
-    richting: richting ? (richting[1].charAt(0).toUpperCase() + richting[1].slice(1)) : null
+    hm: hm[1].replace('.', ',')
   };
 }
 // startpunt vast opzoeken
@@ -1570,7 +1600,7 @@ function decodeerVorm(str, precisie){
 }
 
 function toonRoute(minuten, kilometers, latlngs){
-  logEvent('route', { minuten: minuten, kilometers: kilometers });
+  if(typeof logEvent === 'function') logEvent('route', { minuten: minuten, kilometers: kilometers });
   var badge=document.getElementById('routeBadge');
   document.getElementById('routeTime').textContent=minuten+' min';
   document.getElementById('routeDist').textContent=kilometers+' km';
@@ -1708,7 +1738,8 @@ window.addEventListener('resize',function(){
   }
 });
 function showAlarm(type,addr,prio,unitsStr,timeoutMs,geoHint,kanaal){
-  // Zorg dat route van huidigelokatie start
+  if(typeof logEvent === 'function') logEvent('melding', { type: type, addr: addr, prio: prio });
+  // Zorg dat de route vanaf de huidige postlocatie start
   startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
   var screen=document.getElementById('screen');
   selectedPrio=prio;
@@ -1737,59 +1768,107 @@ function showAlarm(type,addr,prio,unitsStr,timeoutMs,geoHint,kanaal){
   // adres tonen (voorlopig ruwe invoer, daarna verrijkt)
   var lastAddr=addr;
   document.getElementById('incidentStreet').textContent=addr;
-  document.getElementById('incidentPlace').textContent='Locatie opzoeken…';
+  document.getElementById('incidentPlace').textContent='Locatie opzoeken\u2026';
 
-  // kandidaten opbouwen: meer context = betere straat-treffer
-  var cand=[];
-  // hectometerpaal heeft voorrang (bv. "A6 102,7")
-  var hmInfo = vindHectometer((geoHint||'') + ' ' + (addr||''));
-  if(hmInfo){
-    cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm, type: 'hectometerpaal' });
-    cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm });
-  }
-  var hw=(geoHint||'').split(' ').filter(Boolean);
-  if(hw.length>=3) cand.push({ q: hw.slice(-3).join(' ') });
-  if(hw.length>=2) cand.push({ q: hw.slice(-2).join(' ') });
-  if(addr) cand.push({ q: addr });
-  if(hmInfo) cand.push({ q: hmInfo.weg });
-  var plaats=(geoHint||addr||'').split(/[,\s]+/).filter(Boolean).pop();
-  if(plaats) cand.push({ q: plaats });
-
-  function tryGeocode(i){
-    if(i>=cand.length) return Promise.resolve(null);
-    var c = cand[i];
-    var uniq = c && c.q && c.q.trim();
-    if(!uniq) return tryGeocode(i+1);
-    return geocode(uniq, c.type, hmInfo).then(function(g){ return g || tryGeocode(i+1); }, function(){ return tryGeocode(i+1); });
-  }
-  tryGeocode(0).then(function(geo){
-    if(geo){
-      // label opsplitsen in straat / plaats waar mogelijk
-      var street=geo.label.split(',')[0];
-      var place=geo.label.split(',').slice(1).join(',').trim()||'Almere';
-      
-      // SPECIALE WEERGAVE VOOR HECTOMETERPALEN
-      if(street && street.match(/hm\s+\d/i)) {
-        // Hectometerpaal: "A1 hm 65.4 Re" → mooier: "A1 Re (hm 65,4)"
-        street = street.replace(/(\w+)\s+(re|li)?\s+hm\s+([\d.]+)/i, function(m, weg, richting, hm) {
-          var richtingStr = richting ? ' ' + richting.charAt(0).toUpperCase() + richting.slice(1).toLowerCase() : '';
-          return weg.toUpperCase() + richtingStr + ' (hm ' + hm.replace('.', ',') + ')';
-        });
+  // Eerst: is het adres een bekende locatie uit LOCATIES_CONFIG?
+  // Let op: match op HEEL woord, niet op substring. Anders matcht
+  // 'oost' in OOSTVAARDERSDIJK of 'poort' in SLUISPOORT en komt
+  // de ster op de verkeerde plek te staan.
+  var knownGeo = null;
+  if(addr && typeof LOCATIES_CONFIG !== 'undefined' && LOCATIES_CONFIG && LOCATIES_CONFIG.length > 0){
+    var addrLower = addr.toLowerCase();
+    for(var ki=0; ki<LOCATIES_CONFIG.length; ki++){
+      var lc = LOCATIES_CONFIG[ki];
+      var wb = new RegExp('\\b' + lc.naam + '\\b');
+      if(wb.test(addrLower)){
+        knownGeo = { lat: lc.coord[0], lon: lc.coord[1], label: lc.naam.toUpperCase() };
+        break;
       }
-      
-      document.getElementById('incidentStreet').textContent=street;
-      document.getElementById('incidentPlace').textContent=place;
-      lastAddr=street+', '+place;
-      initMap({lat:geo.lat,lon:geo.lon});
-      loadRoute({lat:geo.lat,lon:geo.lon});
-      loadUnitETAs(unitList,{lat:geo.lat,lon:geo.lon});
-    }else{
-      document.getElementById('incidentPlace').textContent='Locatie niet gevonden';
-      document.getElementById('routeTime').textContent='n.b.';
-      document.getElementById('routeDist').textContent='n.b.';
-      document.getElementById('routeBadge').classList.remove('loading');
     }
-  });
+  }
+
+  // Snelweg-check: OVERAL in het adres, niet alleen aan het begin
+  var isHighway = addr && addr.match(/[AN]\d/);
+
+  if(knownGeo && !isHighway){
+    // Bekende locatie: meteen tonen, geen geocoding nodig
+    document.getElementById('incidentStreet').textContent=knownGeo.label;
+    document.getElementById('incidentPlace').textContent=POST_CONFIG.postnaam.replace(/^Post\s+/i,'');
+    lastAddr=addr;
+    initMap({lat:knownGeo.lat,lon:knownGeo.lon});
+    loadRoute({lat:knownGeo.lat,lon:knownGeo.lon});
+    loadUnitETAs(unitList,{lat:knownGeo.lat,lon:knownGeo.lon});
+  }else{
+    // Anders: geocoden via PDOK/Nominatim
+    // kandidaten opbouwen: meer context = betere straat-treffer
+    var cand=[];
+
+    // EERST: het originele adres proberen (dus "A6 53,6 Rechts Almere" blijft intact!)
+    cand.push({ q: (addr||''), type: 'address' });
+
+    // hectometerpaal heeft voorrang (bv. "A6 102,7")
+    var hmInfo = vindHectometer((geoHint||'') + ' ' + (addr||''));
+    var plaats=(geoHint||addr||'').split(/[,\s]+/).filter(Boolean).pop();
+    if(hmInfo){
+      // Bij hectometer: ook als "km" formatteren, dat zoekt beter
+      var kmStr = hmInfo.hm.replace(',', '');
+      var plaatsSuffix = plaats ? (' ' + plaats) : '';
+      cand.push({ q: hmInfo.weg + ' km ' + kmStr + plaatsSuffix, type: 'hectometerpaal' });
+      cand.push({ q: hmInfo.weg + ' kilometer ' + kmStr + plaatsSuffix, type: 'hectometerpaal' });
+      cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm + plaatsSuffix, type: 'hectometerpaal' });
+      cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm, type: 'hectometerpaal' });
+      cand.push({ q: hmInfo.weg + ' ' + hmInfo.hm });
+    }
+    var hw=(geoHint||'').split(' ').filter(Boolean);
+    if(hw.length>=3) cand.push({ q: hw.slice(-3).join(' ') });
+    if(hw.length>=2) cand.push({ q: hw.slice(-2).join(' ') });
+
+    // Verbeterd adres-format: laatste woord is vaak de plaats; met komma
+    // afscheiden geeft betere treffers
+    if(addr){
+      var addrTokens = addr.split(/\s+/);
+      if(addrTokens.length >= 2){
+        var lastWord = addrTokens[addrTokens.length - 1];
+        if(/^[A-Za-z\u00c0-\u024f-]{3,}$/.test(lastWord)){
+          cand.push({ q: addrTokens.slice(0, -1).join(' ') + ', ' + lastWord });
+        }
+      }
+      cand.push({ q: addr });  // terugval: origineel adres
+    }
+
+    if(hmInfo) cand.push({ q: hmInfo.weg });
+    if(plaats) cand.push({ q: plaats });
+
+    function tryGeocode(i){
+      if(i>=cand.length) return Promise.resolve(null);
+      var c = cand[i];
+      var uniq = c && c.q && c.q.trim();
+      if(!uniq) return tryGeocode(i+1);
+      return geocode(uniq, c.type, hmInfo).then(function(g){ return g || tryGeocode(i+1); }, function(){ return tryGeocode(i+1); });
+    }
+    tryGeocode(0).then(function(geo){
+      if(geo){
+        // label opsplitsen in straat / plaats waar mogelijk
+        var street=geo.label.split(',')[0];
+        var place=geo.label.split(',').slice(1).join(',').trim()||'';
+
+        // Voor snelwegen: het adres NIET vervangen (blijft "A6 53,6 Almere")
+        if(!isHighway){
+          document.getElementById('incidentStreet').textContent=street;
+        }
+        document.getElementById('incidentPlace').textContent=place;
+        lastAddr=isHighway ? lastAddr : (street+', '+place);
+        initMap({lat:geo.lat,lon:geo.lon});
+        loadRoute({lat:geo.lat,lon:geo.lon});
+        loadUnitETAs(unitList,{lat:geo.lat,lon:geo.lon});
+      }else{
+        document.getElementById('incidentPlace').textContent='Locatie niet gevonden';
+        document.getElementById('routeTime').textContent='n.b.';
+        document.getElementById('routeDist').textContent='n.b.';
+        document.getElementById('routeBadge').classList.remove('loading');
+      }
+    });
+  }
 }
 function clearAlarm(){
   clearTimeout(alarmTimer);
@@ -1800,84 +1879,6 @@ function clearAlarm(){
 }
 
 /* ================= Testpaneel ================= */
-
-function saveCfgNow(){
-  console.log('🔵 saveCfgNow() START!');
-  
-  // Save post info
-  POST_CONFIG.postnaam = document.getElementById('cfgPostnaam').value.trim() || 'Post';
-  POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
-  POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
-  POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
-  
-  // Lees ploegen tabel EERST
-  try { if(typeof leesPloegenTabel === "function") leesPloegenTabel(); } catch(e) { console.log("leesPloegenTabel error:", e.message); }
-  console.log('✓ Ploegen gelezen:', PLOEGEN_CONFIG);
-  
-  // Update voertuigen TABEL → TEXTAREA → UNITS!
-  try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
-  UNITS = tekstNaarUnits(document.getElementById('cfgUnits').value) || {};
-  console.log('✓ UNITS bijgewerkt:', Object.keys(UNITS).length, 'voertuigen');
-  
-  // SAVE localStorage
-  saveToLocalStorage();
-  console.log('✓ Saved to localStorage');
-  
-  // Update topbar
-  if(document.getElementById('topbarPostnaam')) document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam;
-  if(document.getElementById('topbarBrandweer')) document.getElementById('topbarBrandweer').textContent = POST_CONFIG.brandweer;
-  
-  // UPDATE TOPBAR PLOEG DIRECT
-  if(typeof tick === "function") {
-    tick();  // Force update dutyPloeg met nieuwe PLOEGEN_CONFIG
-    console.log('✓ tick() aangeroepen - ploeg update');
-  }
-  
-  // Show COMPLETE feedback
-  var feedback = '✅ OPGESLAGEN!\n\n';
-  feedback += '📍 Post: ' + (POST_CONFIG.postnaam || 'Post') + '\n';
-  feedback += '🚒 Brandweer: ' + (POST_CONFIG.brandweer || 'Brandweer') + '\n';
-  feedback += '🕐 Nacht: ' + (POST_LOCATION.nachtVan || '22:00') + ' - ' + (POST_LOCATION.nachtTot || '07:00') + '\n';
-  feedback += '\n👥 Ploegen:\n';
-  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
-    var p = PLOEGEN_CONFIG[i];
-    feedback += '  ' + p.naam + ' (' + p.start + ')' + (p.vandaag ? ' ✓ VANDAAG' : '') + '\n';
-  }
-  feedback += '\n📋 Voertuigen: ' + Object.keys(UNITS).length + '\n';
-  feedback += '🎯 Capcodes: ' + FILTER_CAPCODES.length + '\n';
-  feedback += '\n💾 Opgeslagen in browser localStorage';
-  
-  alert(feedback);
-  
-  // Close menu
-  var cp = document.getElementById('cfgPanel');
-  if(cp) cp.classList.remove('open');
-  
-  console.log('✓ saveCfgNow() DONE');
-}
-
-function fireTestMelding(){
-  console.log('🔵 fireTestMelding() START');
-  try {
-    var raw = document.getElementById('fRaw').value.trim();
-    console.log('Raw:', raw);
-    if(!raw) {
-      document.getElementById('fRaw').focus();
-      return false;
-    }
-    
-    var p = parseP2000(raw);
-    console.log('Parsed:', p);
-    
-    document.getElementById('testPanel').classList.remove('open');
-    showAlarm(p.type, p.addr, p.prio, p.units, undefined, p.mid, p.kanaal);
-    console.log('✓ showAlarm klaar');
-  } catch(e) {
-    console.error('ERROR:', e);
-    alert('Fout: ' + e.message);
-  }
-  return false;
-}
 
 var panel=document.getElementById('testPanel');
 document.getElementById('tpClose').onclick=function(){ panel.classList.remove('open'); };
@@ -2100,15 +2101,11 @@ if(cfgCloseBtn){
   console.log('❌ cfgClose knop NIET GEVONDEN');
 }
 document.getElementById('cfgSave').onclick=function(){
-  console.log('🔵 cfgSave KLIKT!');
-  alert('TEST: cfgSave werkt!');  // REMOVE ALS WERKEND
   var msg=document.getElementById('cfgMsg');
   msg.textContent='⏳ Opslaan...';
-  
-  // Load logs from storage (voor als dit eerste keer is)
-  try { if(typeof loadLogsFromLocalStorage === "function") loadLogsFromLocalStorage(); } catch(e) { console.log("loadLogs error:", e.message); }
-  
-  // 1. Update voertuigen tabel → textarea
+
+  // 1. Ploegentabel en voertuigentabel uitlezen
+  try { if(typeof leesPloegenTabel === "function") leesPloegenTabel(); } catch(e) { console.log("leesPloegenTabel error:", e.message); }
   try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
   
   // 2. Save post info
@@ -2133,7 +2130,7 @@ document.getElementById('cfgSave').onclick=function(){
   updatePloegenDisplay();  // Update ploegen display na load
   startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
   loadWeather();
-  applyNachtmodus();
+  pasThemaToe();
   renderTasks();
   
   // 6. SAVE TO LOCALSTORAGE EERST
@@ -2166,32 +2163,12 @@ document.getElementById('cfgSave').onclick=function(){
   if(telP) POSTS = p;
   
   refreshPostCapcodes();
-  // saveCfg();  // LOKAAL TEST: geen worker
+  saveCfg();
   renderTasks();
   lastFeedId = null;
   firstPoll = true;
   msg.textContent = '✓ Opgeslagen!';
-  // bewaarTakenCentraal() // LOKAAL TEST: geen worker
-  
-  // ✓ FEEDBACK POP-UP
-  var feedback = '✅ OPGESLAGEN!\n\n';
-  feedback += '📍 Post: ' + (POST_CONFIG.postnaam || 'Post') + '\n';
-  feedback += '🚒 Brandweer: ' + (POST_CONFIG.brandweer || 'Brandweer') + '\n';
-  feedback += '🕐 Nacht: ' + (POST_LOCATION.nachtVan || '22:00') + ' - ' + (POST_LOCATION.nachtTot || '07:00') + '\n';
-  feedback += '\n👥 Ploegen vandaag:\n';
-  var hasVandaag = false;
-  for(var i=0; i<PLOEGEN_CONFIG.length; i++){
-    if(PLOEGEN_CONFIG[i].vandaag){
-      feedback += '  ✓ ' + PLOEGEN_CONFIG[i].naam + ' (' + PLOEGEN_CONFIG[i].start + ')\n';
-      hasVandaag = true;
-    }
-  }
-  if(!hasVandaag) feedback += '  (geen ploeg geselecteerd)\n';
-  feedback += '\n📋 Voertuigen: ' + Object.keys(UNITS).length + '\n';
-  feedback += '🎯 Capcodes: ' + FILTER_CAPCODES.length + '\n';
-  feedback += '\n💾 Opgeslagen in browser localStorage';
-  
-  alert(feedback);
+  bewaarTakenCentraal();
   
   // UPDATE TOPBAR PLOEG DIRECT
   if(typeof tick === "function") {
@@ -2210,14 +2187,12 @@ document.getElementById('cfgSave').onclick=function(){
   }
 };
 document.getElementById('cfgReset').onclick=function(){
-  FILTER_CAPCODES=DEFAULT_CAPCODES.slice();
-  POSTS=DEFAULT_POSTS; UNITS=DEFAULT_UNITS; HOLD_MIN=DEFAULT_HOLD_MIN;
-  TASKS=DEFAULT_TASKS.slice();
-  refreshPostCapcodes();
-  try{ localStorage.removeItem('p2000_cfg'); }catch(e){}
-  renderTasks();
-  openCfg();
-  document.getElementById('cfgMsg').textContent='Standaardinstellingen hersteld.';
+  if(!confirm('Alle instellingen van dit scherm terugzetten naar standaard?')) return;
+  try{
+    ['p2000_cfg','POST_CONFIG','POST_LOCATION','PLOEGEN_CONFIG','cfgUnits',
+     'TASKS','FILTER_CAPCODES','EVENTS_LOG'].forEach(function(k){ localStorage.removeItem(k); });
+  }catch(e){}
+  location.reload();   // defaults laden alles opnieuw in
 };
 
 /* P2000-regel ontleden, bijv: "P 2 BMD-01 DIER TE WATER WINKELWEG ZEEWOLDE 254133 254152" */
@@ -2336,125 +2311,7 @@ document.getElementById('allesBtn').onclick=function(){
 document.getElementById('clearBtn').onclick=function(){ panel.classList.remove('open'); clearAlarm(); };
 </script>
 <script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun) return;
-  
-  var maxHeight = 0.25 * window.innerHeight; // 25vh
-  lastRun.style.fontSize = '0.7rem';
-  
-  // Check if text overflows
-  if(lastRun.scrollHeight > maxHeight) {
-    var fontSize = 0.7;
-    while(lastRun.scrollHeight > maxHeight && fontSize > 0.4) {
-      fontSize -= 0.05;
-      lastRun.style.fontSize = fontSize + 'rem';
-    }
-  }
-}
-
-// Run on load and when content changes
-fitMeldingText();
-setInterval(fitMeldingText, 2000);
-</script><script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun || !lastRun.innerHTML.trim()) return;
-  
-  var maxHeight = 0.35 * window.innerHeight; // 35vh
-  var fontSize = 0.7;
-  
-  lastRun.style.fontSize = fontSize + 'rem';
-  
-  // Shrink if needed
-  var attempts = 0;
-  while(lastRun.scrollHeight > maxHeight && fontSize > 0.35 && attempts < 10) {
-    fontSize -= 0.05;
-    lastRun.style.fontSize = fontSize + 'rem';
-    attempts++;
-  }
-}
-
-// Run immediately and on interval
-fitMeldingText();
-setInterval(fitMeldingText, 1000);
-
-// Also run when page loads
-window.addEventListener('load', fitMeldingText);
-</script><script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun || !lastRun.innerHTML.trim()) return;
-  
-  // Kleinere max-height op tablet (> 800px)
-  var screenWidth = window.innerWidth;
-  var maxHeight;
-  if(screenWidth > 800) {
-    maxHeight = 0.25 * window.innerHeight; // Tablet: 25vh
-  } else {
-    maxHeight = 0.35 * window.innerHeight; // iPhone: 35vh
-  }
-  
-  var fontSize = 0.7;
-  lastRun.style.fontSize = fontSize + 'rem';
-  
-  // Agressief krimpen als nodig
-  var attempts = 0;
-  while(lastRun.scrollHeight > maxHeight && fontSize > 0.3 && attempts < 15) {
-    fontSize -= 0.05;
-    lastRun.style.fontSize = fontSize + 'rem';
-    attempts++;
-  }
-}
-
-fitMeldingText();
-setInterval(fitMeldingText, 500); // Sneller checken
-window.addEventListener('load', fitMeldingText);
-window.addEventListener('resize', fitMeldingText);
-</script><script>
-function fitMeldingText() {
-  var lastRun = document.querySelector('.last-run');
-  if(!lastRun || !lastRun.innerHTML.trim()) return;
-  
-  var screenWidth = window.innerWidth;
-  var maxHeight;
-  if(screenWidth > 800) {
-    maxHeight = 0.4 * window.innerHeight; // Tablet: 40vh
-  } else {
-    maxHeight = 0.45 * window.innerHeight; // iPhone: 45vh
-  }
-  
-  var fontSize = 0.65;
-  lastRun.style.fontSize = fontSize + 'rem';
-  lastRun.style.lineHeight = '1';
-  
-  // Veel agressiever krimpen
-  var attempts = 0;
-  while(lastRun.scrollHeight > maxHeight && fontSize > 0.25 && attempts < 20) {
-    fontSize -= 0.03;
-    lastRun.style.fontSize = fontSize + 'rem';
-    attempts++;
-  }
-}
-
-fitMeldingText();
-setInterval(fitMeldingText, 500);
-window.addEventListener('load', fitMeldingText);
-window.addEventListener('resize', fitMeldingText);
-
 /* ===== UNIVERSELE KAZERNE CONFIG ===== */
-document.getElementById('testBtn').onclick = function(){ 
-  var panel = document.getElementById('testPanel');
-  if(panel) panel.classList.toggle('open');
-};
-
-document.getElementById('cfgBtn').onclick = function(){ 
-  var cfgPanel = document.getElementById('cfgPanel');
-  if(cfgPanel) cfgPanel.classList.add('open');
-};
-
-
-
 
 /* ===== LOKALE OPSLAG (localStorage) ===== */
 function saveToLocalStorage(){
@@ -2513,7 +2370,9 @@ function loadFromLocalStorage(){
   }
   
   var tasks = localStorage.getItem('TASKS');
-  if(tasks) TASKS = JSON.parse(tasks);
+  if(tasks){
+    try { TASKS = normaliseerTaken(JSON.parse(tasks)); renderTasks(); } catch(e) {}
+  }
 }
 
 // ===== DEFAULTS DEFINIEREN =====
@@ -2521,22 +2380,22 @@ function loadFromLocalStorage(){
 /* ===== LOGGING SYSTEM (Alle events tracken) ===== */
 var EVENTS_LOG = [];
 var MAX_LOG_DAYS = 30;
-var MAX_LOG_ENTRIES = 5000;
+var MAX_LOG_ENTRIES = 500;
+var logSaveTimer = null;
 
 function logEvent(type, data) {
-  var entry = {
+  EVENTS_LOG.push({
     timestamp: new Date().toISOString(),
     type: type,  // "melding", "geocode", "route", "voertuig", "error"
     data: data
-  };
-  
-  EVENTS_LOG.push(entry);
-  
-  // Bewaar in localStorage
-  saveLogsToLocalStorage();
-  
-  // Bereid ook console voor debugging
-  console.log('[LOG ' + type.toUpperCase() + ']', data);
+  });
+  // Gebufferd wegschrijven (max 1x per 5 s) - scheelt werk op een TV-stick
+  if(!logSaveTimer){
+    logSaveTimer = setTimeout(function(){
+      logSaveTimer = null;
+      saveLogsToLocalStorage();
+    }, 5000);
+  }
 }
 
 function saveLogsToLocalStorage() {
@@ -2554,8 +2413,8 @@ function saveLogsToLocalStorage() {
     EVENTS_LOG = EVENTS_LOG.slice(-MAX_LOG_ENTRIES);
   }
   
-  // Slaag op
-  localStorage.setItem('EVENTS_LOG', JSON.stringify(EVENTS_LOG));
+  // Sla op (try/catch: localStorage kan vol zitten)
+  try { localStorage.setItem('EVENTS_LOG', JSON.stringify(EVENTS_LOG)); } catch(e) {}
 }
 
 function loadLogsFromLocalStorage() {
@@ -2643,25 +2502,28 @@ function showLogs() {
   modal.classList.add('open');
 }
 
-// Modal sluiten
+// Logs-knop in het instellingenmenu
+var cfgLogsBtn = document.getElementById('cfgLogs');
+if(cfgLogsBtn){
+  cfgLogsBtn.onclick = function(){
+    loadLogsFromLocalStorage();
+    showLogs();
+  };
+}
+// Modal sluiten: Escape of klik naast het venster
 document.addEventListener('keydown', function(e) {
   if(e.key === 'Escape') {
-    document.getElementById('logsModal').classList.remove('open');
+    var lm = document.getElementById('logsModal');
+    if(lm) lm.classList.remove('open');
   }
 });
+var logsModalEl = document.getElementById('logsModal');
+if(logsModalEl){
+  logsModalEl.addEventListener('click', function(e){
+    if(e.target === logsModalEl) logsModalEl.classList.remove('open');
+  });
+}
 
-
-var POST_CONFIG = {
-  postnaam: 'Post Veluwsekant',
-  brandweer: 'Brandweer Flevoland'
-};
-
-var PLOEGEN_CONFIG = [
-  {naam:'Ploeg A', start:'07:00', vandaag:true},
-  {naam:'Ploeg B', start:'19:00', vandaag:false}
-];
-
-var TASKS = [];
 
 // ===== FUNCTIES =====
 function updateTopbar(){
@@ -2680,6 +2542,8 @@ function updatePloegenDisplay(){
 }
 // Load instellingen van browser
 loadFromLocalStorage();
+loadLogsFromLocalStorage();
+
 
 // Nu PLOEGEN_CONFIG is geladen - bouw testTellingen
 var testTellingen = {
@@ -2695,26 +2559,13 @@ for(var i=0; i<PLOEGEN_CONFIG.length; i++){
 renderTellingen(testTellingen);  // TOON STATS METEEN
 console.log('✓ testTellingen ingesteld:', testTellingen);
 
-// Update topbar direct
-if(document.getElementById('topbarPostnaam')) document.getElementById('topbarPostnaam').textContent = POST_CONFIG.postnaam || 'Post Veluwsekant';
-if(document.getElementById('topbarBrandweer')) document.getElementById('topbarBrandweer').textContent = POST_CONFIG.brandweer || 'Brandweer Flevoland';
-
 // TOON de instellingen op het scherm
 updateTopbar();
-updatePloegenDisplay();
 startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };
+pasThemaToe();
 
 /* ===== POST CONFIG ===== */
-
-
-// Hook in openCfg - vul config fields
-var originalOpenCfg = window.openCfg || function(){};
-window.openCfg = function(){
-  originalOpenCfg();
-  document.getElementById('cfgPostnaam').value = POST_CONFIG.postnaam;
-  document.getElementById('cfgBrandweer').value = POST_CONFIG.brandweer;
-};
-
+/* openCfg() vult de velden zelf; aparte hooks zijn niet meer nodig. */
 
 /* Geocode voertuigen-adressen via Nominatim */
 
@@ -3005,64 +2856,20 @@ document.getElementById('addPloegBtn').onclick = function(){
   vulPloegenTabel();  // config
 };
 
-// Hook in openCfg - vul ploegen tabel
-var origOpenCfg = window.openCfgOrig || function(){};
-if(typeof openCfg === 'function'){
-  window.openCfgOrig = openCfg;
-} else {
-  window.openCfgOrig = function(){};
-}
-
-// Duplicate hook removed - leesPloegenTabel() wordt al aangeroepen in hoofdhandler!
-
 // Init
 vulPloegenTabel();  // config
 
 
 
-/* ===== UPDATE PLOEGEN DISPLAY OP SCHERM ===== */
-
-// Roep aan als ploegen opgeslagen worden
-var cfgSaveBtn2 = document.getElementById('cfgSave');
-if(cfgSaveBtn2){
-  var origSave2 = cfgSaveBtn2.onclick || function(){};
-  cfgSaveBtn2.onclick = function(){
-    origSave2.call(this);
-    updatePloegenDisplay();  // display
-  };
-}
-
-updatePloegenDisplay();  // display
+/* ===== PLOEGEN DISPLAY =====
+   renderTellingen() verzorgt de ploegenweergave; geen extra hooks nodig. */
 
 
 
 /* ===== POST LOCATIE & NACHTMODUS ===== */
-
-function applyNachtmodus(){
-  var now = new Date();
-  var hhMm = ('0' + now.getHours()).slice(-2) + ('0' + now.getMinutes()).slice(-2);
-  var van = POST_LOCATION.nachtVan.replace(':','');
-  var tot = POST_LOCATION.nachtTot.replace(':','');
-  
-  // Check of we in nachtmodus zitten
-  var isNacht = false;
-  if(van < tot){
-    isNacht = (hhMm >= van && hhMm < tot);
-  } else {
-    isNacht = (hhMm >= van || hhMm < tot);
-  }
-  
-  var body = document.body;
-  if(isNacht){
-    body.classList.add('dag');
-  } else {
-    body.classList.remove('dag');
-  }
-}
-
-// Check nachtmodus elke minuut
-setInterval(applyNachtmodus, 60000);
-applyNachtmodus();
+/* Het thema wordt centraal geregeld door pasThemaToe() (elke minuut, blok 1).
+   isDag() gebruikt de ingestelde nachttijden; zontijden zijn de terugval. */
+function applyNachtmodus(){ pasThemaToe(); }
 
 // Geocoden via Nominatim (OpenStreetMap)
 document.getElementById('cfgGeocode').onclick = function(){
@@ -3100,23 +2907,7 @@ document.getElementById('cfgGeocode').onclick = function(){
     });
 };
 
-// Hook in openCfg - vul nachtmodus velden
-var origOpenCfg3 = window.openCfgOrig3 || function(){};
-var oldOpenCfg = window.openCfg || function(){};
-window.openCfgOrig3 = oldOpenCfg;
-
-// Hook in cfgSave - sla nachtmodus op
-var cfgSaveBtn3 = document.getElementById('cfgSave');
-if(cfgSaveBtn3){
-  var origSave3 = cfgSaveBtn3.onclick || function(){};
-  cfgSaveBtn3.onclick = function(){
-    POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
-    POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
-    applyNachtmodus();
-    if(origSave3.call) origSave3.call(this);
-  };
-}
-
+/* Nachtmodus-tijden worden al in de hoofd-opslaanhandler gelezen. */
 
 
 /* ===== VOERTUIGEN CONFIG TABEL ===== */
@@ -3267,10 +3058,12 @@ function vulVoertuigenConfigTable(){
     btn.style.cursor = 'pointer';
     btn.style.borderRadius = '.2rem';
     btn.style.fontWeight = '600';
-    btn.onclick = function(){ 
-      rows.splice(parseInt(this.dataset.idx, 10), 1);
+    btn.onclick = function(){
+      var rij = this.closest('tr');
+      if(rij && rij.parentNode) rij.parentNode.removeChild(rij);   // eerst uit de DOM
       try { if(typeof updateCfgUnitsFromTable === "function") updateCfgUnitsFromTable(); } catch(e) { console.log("updateCfgUnits error:", e.message); }
       vulVoertuigenConfigTable();
+      saveToLocalStorage();
     };
     td5.appendChild(btn);
     tr.appendChild(td5);
@@ -3323,40 +3116,10 @@ document.getElementById('addVoertuigConfigBtn').onclick = function(){
   vulVoertuigenConfigTable();
 };
 
-// Vul tabel bij openCfg
-var origOpenCfg2 = window.openCfgOrig2 || function(){};
-window.openCfgOrig2 = window.openCfg || function(){};
-if(typeof openCfg === 'function'){
-  var oldOpenCfg = window.openCfg;
-}
-
 vulVoertuigenConfigTable();
 
 
 
-// 5x klik om Test + Menu te tonen
-var clickCount = 0;
-var clickTimeout;
-document.addEventListener('click', function(e) {
-  if(e.target.id === 'menuBtn' || e.target.id === 'testBtn' || e.target.closest('#menuBtn') || e.target.closest('#testBtn')) {
-    return;  // Ignore klikken op die knoppen zelf
-  }
-  
-  clickCount++;
-  clearTimeout(clickTimeout);
-  
-  if(clickCount === 5) {
-    console.log('✓ 5x geklikt - Test + Menu + Config tonen');
-    document.getElementById('testBtn').classList.add('show');
-    document.getElementById('menuBtn').classList.add('show');
-    document.getElementById('cfgBtn').classList.add('show');
-    clickCount = 0;
-  }
-  
-  clickTimeout = setTimeout(function() {
-    clickCount = 0;
-  }, 1000);  // Reset na 1 seconde
-});
 
 </script></body>
 </html>
