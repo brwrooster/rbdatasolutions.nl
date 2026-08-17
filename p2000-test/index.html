@@ -670,10 +670,6 @@
       <input id="cfgHold" type="number" min="1" max="120" autocomplete="off">
     </div>
     <div class="field">
-      <label for="cfgPosts">Posten — één per regel: <code>sleutel = naam, lat, lon</code></label>
-      <textarea id="cfgPosts" rows="4" spellcheck="false"></textarea>
-    </div>
-    <div class="field">
       <label>Voertuigen & Capcodes</label>
       <table id="voertuigenConfigTable" style="width:100%;border-collapse:collapse;margin:1rem 0">
         <thead>
@@ -733,26 +729,12 @@ var TEST_URL = "";  // URL van de TESTversie (waar de logo-klik op de live-pagin
 var IS_LIVE = false;
 
 /* ===== Standaardinstellingen (te overschrijven via het verborgen menu) ===== */
-var DEFAULT_CAPCODES = ["0700140", "0700143"]; // postcapcodes waarop gefilterd wordt
-var DEFAULT_POSTS = {
-  veluwsekant: { naam:'Veluwsekant', lat:52.356938, lon:5.247188 },
-  poort:       { naam:'Poort',       lat:52.353063, lon:5.171188 },
-  buiten:      { naam:'Buiten',      lat:52.399938, lon:5.293188 },
-  lelystad:    { naam:'Lelystad',    lat:52.501812, lon:5.478438 }
-};
-var DEFAULT_UNITS = {
-  "4111": { naam:"Waterongevallenvoertuig Almere", post:"poort" },
-  "4112": { naam:"Brandweerboot",                  post:"veluwsekant" },
-  "4131": { naam:"Tankautospuit Poort",            post:"poort" },
-  "4132": { naam:"Tankautospuit Buiten",           post:"buiten" },
-  "4133": { naam:"Tankautospuit Veluwsekant",      post:"veluwsekant" },
-  "4134": { naam:"Tankautospuit",                  post:"poort" },
-  "4152": { naam:"Autoladder Veluwsekant",         post:"veluwsekant" },
-  "4171": { naam:"Hulpverleningsvoertuig",         post:"buiten" },
-  "5111": { naam:"Waterongevallenvoertuig Lelystad", post:"lelystad" },
-  "5152": { naam:"Autoladder Lelystad",            post:"lelystad" },
-  "8131": { naam:"Reserve Tankautospuit",          post:null }
-};
+var DEFAULT_CAPCODES = []; // universeel leeg - vul de capcodes van de post in via het menu
+/* Posten en voertuigen worden per kazerne via het menu ingevuld;
+   universeel opgeleverd dus leeg. Elk voertuig krijgt zijn locatie via de
+   adres-kolom in de voertuigentabel (of valt terug op de eigen post). */
+var DEFAULT_POSTS = {};
+var DEFAULT_UNITS = {};
 var DEFAULT_HOLD_MIN = 5;
 
 /* Universele post-identiteit (overschrijfbaar via het menu, bewaard in localStorage) */
@@ -767,10 +749,10 @@ var PLOEGEN_CONFIG = [
 
 /* Kazerne-specifieke locatienamen (water, wijken, terreinen).
    Deze worden op HEEL woord gematcht vóór de geocoding, zodat je aliassen
-   kunt definiëren die de meldkamer soms anders schrijft. [lat, lon] */
-var LOCATIES_CONFIG = [
-  { naam: 'weerwater', coord: [52.363, 5.225], type: 'water' }
-];
+   kunt definiëren die de meldkamer soms anders schrijft. [lat, lon]
+   Universeel leeg opgeleverd; voorbeeld:
+   { naam: 'weerwater', coord: [52.363, 5.225], type: 'water' } */
+var LOCATIES_CONFIG = [];
 
 var DEFAULT_TASKS = [
   { tekst:"Materiaalcontrole", dagen:["ma"] },
@@ -2070,11 +2052,19 @@ function openCfg(){
     var nt = document.getElementById('cfgNachtTot');
     if(nv) nv.value = POST_LOCATION.nachtVan || '22:00';
     if(nt) nt.value = POST_LOCATION.nachtTot || '07:00';
+
+    // Postadres terugzetten in het veld, met de vastgelegde coördinaten als hint
+    var adr = document.getElementById('cfgAdres');
+    if(adr) adr.value = POST_LOCATION.adres || '';
+    var gh = document.getElementById('geocodeHint');
+    if(gh && POST_LOCATION.adres){
+      gh.textContent = '✓ Vastgelegd: ' + POST_LOCATION.lat.toFixed(4) + ', ' + POST_LOCATION.lon.toFixed(4);
+      gh.style.color = '#37d67a';
+    }
     
     // Originele config (safe)
     if(document.getElementById('cfgCaps')) document.getElementById('cfgCaps').value = FILTER_CAPCODES.join(' ');
     if(document.getElementById('cfgHold')) document.getElementById('cfgHold').value = HOLD_MIN;
-    if(document.getElementById('cfgPosts') && typeof postsNaarTekst === 'function') document.getElementById('cfgPosts').value = postsNaarTekst();
     if(document.getElementById('cfgUnits') && typeof unitsNaarTekst === 'function') document.getElementById('cfgUnits').value = unitsNaarTekst();
     
     // Voertuigen & taken tabel (safe)
@@ -2146,22 +2136,15 @@ document.getElementById('cfgSave').onclick=function(){
   // Rest van config (posten, capcodes, taken)
   var caps = (document.getElementById('cfgCaps').value.match(/\d{4,7}/g) || []);
   var hold = parseInt(document.getElementById('cfgHold').value, 10);
-  var p = tekstNaarPosts(document.getElementById('cfgPosts').value) || {};
-  
-  console.log('🟡 Capcodes check:', caps.length);
-  if(!caps.length){ 
-    msg.textContent='Let op: vul minstens één capcode in voor de rest.'; 
-    console.log('❌ Geen capcodes!');
-    return; 
+
+  if(!caps.length){
+    msg.textContent='Let op: vul minstens één capcode in voor de rest.';
+    return;
   }
-  
+
   FILTER_CAPCODES = caps;
   HOLD_MIN = (!isNaN(hold) && hold > 0) ? hold : DEFAULT_HOLD_MIN;
-  
-  var telP = 0, k;
-  for(k in p){ if(p.hasOwnProperty(k)) telP++; }
-  if(telP) POSTS = p;
-  
+
   refreshPostCapcodes();
   saveCfg();
   renderTasks();
@@ -2360,7 +2343,7 @@ function loadFromLocalStorage(){
           if(POSTS[postKey]) {
             u.lat = POSTS[postKey].lat;
             u.lon = POSTS[postKey].lon;
-          } else if(postKey.indexOf('dirk') >= 0 || postKey === 'current') {
+          } else if(postKey === 'current') {
             u.lat = POST_LOCATION.lat;
             u.lon = POST_LOCATION.lon;
           }
@@ -2892,8 +2875,10 @@ document.getElementById('cfgGeocode').onclick = function(){
       if(d && d.length > 0){
         POST_LOCATION.lat = parseFloat(d[0].lat);
         POST_LOCATION.lon = parseFloat(d[0].lon);
+        POST_LOCATION.adres = adres;                                       // adres onthouden
         startCoords = { lat: POST_LOCATION.lat, lon: POST_LOCATION.lon };  // route update
-        hint.textContent = '✓ Locatie ingesteld: ' + POST_LOCATION.lat.toFixed(4) + ', ' + POST_LOCATION.lon.toFixed(4);
+        saveToLocalStorage();                                              // METEEN vastzetten
+        hint.textContent = '✓ Locatie vastgelegd: ' + POST_LOCATION.lat.toFixed(4) + ', ' + POST_LOCATION.lon.toFixed(4);
         hint.style.color = '#37d67a';
         setTimeout(loadWeather, 500);  // Weer ophalen voor nieuwe locatie
       } else {
