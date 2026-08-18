@@ -1,0 +1,10 @@
+name = "p2000-test"
+main = "worker.js"
+compatibility_date = "2024-09-03"
+
+kv_namespaces = [
+  { binding = "CONFIG", id = "", preview_id = "" }
+]
+
+[env.test]
+vars = { POST_NAAM = "test", POST_SLEUTEL = "test", FEED_URL = "https://112-nu.nl/brandweer/rss" }
