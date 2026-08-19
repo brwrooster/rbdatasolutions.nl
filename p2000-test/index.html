@@ -733,6 +733,13 @@
 var START_COORDS = { lat: 52.356938, lon: 5.247188 }; // Post Veluwsekant, Plus Code 964W+QV
 var ALMERE = { lat: 52.3746, lon: 5.2653 };           // weer
 
+/* ===== WORKER-KOPPELING =====
+   Alle /api/-aanroepen gaan naar je Worker.
+*/
+var API_BASIS = 'https://rbdatasolutions.nl';
+var POST_SLEUTEL = 'test';
+function api(pad){ return API_BASIS + pad; }
+
 /* ===== POST + PLOEGEN (staat bewust bovenaan: de klok, het weer en de kaart
    hebben dit meteen bij het laden nodig) ===== */
 var POST_CONFIG = {
@@ -929,7 +936,7 @@ renderTasks();
 
 /* Alle instellingen centraal ophalen (zodat elk scherm hetzelfde toont) */
 function haalTakenCentraal(){
-  return fetch('/api/taken',{cache:'no-store'}).then(function(r){ return r.json(); })
+  return fetch(api('/api/taken'),{cache:'no-store'}).then(function(r){ return r.json(); })
     .then(function(d){
       if(!d) return false;
       var gewijzigd = false;
@@ -959,7 +966,7 @@ function haalTakenCentraal(){
     }).catch(function(){ return false; });
 }
 function bewaarTakenCentraal(){
-  return fetch('/api/taken',{
+  return fetch(api('/api/taken'),{
     method:'PUT',
     headers:{'content-type':'application/json'},
     body: JSON.stringify({
@@ -1459,7 +1466,7 @@ function matchtCapcode(item){
 }
 var firstPoll = true;
 function pollFeed(){
-  fetch('/api/melding',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+  fetch(api('/api/melding'),{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
     setConn(!d.error);
     var lijst = d.meldingen || [];
     var m = null;
@@ -1488,7 +1495,7 @@ pollFeed();
    dezelfde melding elk apart laten meetellen - de Worker telt 'm maar één keer. */
 function meldFeedVoorTelling(ruweTekst, bronId){
   if(!ruweTekst || !bronId) return;
-  fetch('/api/pi',{
+  fetch(api('/api/pi'),{
     method:'POST',
     headers:{'content-type':'application/json'},
     body: JSON.stringify({ text: ruweTekst, sleutel: 'veluwsekant2026', bronId: 'feed-'+bronId })
@@ -1499,7 +1506,7 @@ function meldFeedVoorTelling(ruweTekst, bronId){
 var lastPiId = null;
 var eersteP2000Poll = true;
 function pollEigenOntvanger(){
-  fetch('/api/pi',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+  fetch(api('/api/pi'),{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
     if(!d || !d.text || !d.id) return;
     if(d.id === lastPiId) return;
     var leeftijd = d.ts ? (Date.now() - d.ts) : 0;
@@ -2672,7 +2679,7 @@ document.getElementById('allesBtn').onclick=function(){
   var hint=document.querySelector('#testPanel .tp-hint');
   if(!raw){document.getElementById('fRaw').focus();return;}
   knop.textContent='Versturen…';
-  fetch('/api/pi',{
+  fetch(api('/api/pi'),{
     method:'POST',
     headers:{'content-type':'application/json'},
     body: JSON.stringify({ text: raw, sleutel: 'veluwsekant2026', test: true })
