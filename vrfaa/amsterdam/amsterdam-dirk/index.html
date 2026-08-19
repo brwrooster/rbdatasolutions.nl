@@ -764,7 +764,11 @@
    ================================================================ */
 var API_BASIS      = 'https://rbdatasolutions.nl';
 var STANDAARD_POST = 'veluwsekant';   // als de URL niets prijsgeeft
-var POST_SLEUTEL   = 'veluwsekant2026';  // gedeeld met de Raspberry Pi
+
+/* In dit bestand staat bewust GEEN wachtwoord of sleutel meer. Deze pagina
+   is publiek leesbaar — alles wat hier staat, kan iedereen zien. Opslaan en
+   testmeldingen gaan met het menuwachtwoord dat je zelf intypt en dat alleen
+   in het geheugen van dit tabblad blijft. */
 
 /* Sleutel uit de URL halen. ?post= wint, anders de laatste map in het pad.
    Bestandsnamen (alles met een punt erin) worden overgeslagen, zodat
@@ -1498,10 +1502,13 @@ pollFeed();
    dezelfde melding elk apart laten meetellen - de Worker telt 'm maar één keer. */
 function meldFeedVoorTelling(ruweTekst, bronId){
   if(!ruweTekst || !bronId) return;
-  fetch(api('/api/pi'),{
+  /* Gaat naar /api/tel: die telt alleen als de tekst een capcode van deze
+     post bevat, en heeft daarom geen sleutel nodig. Deze route kan niets op
+     het scherm zetten — alleen de teller ophogen. */
+  fetch(api('/api/tel'),{
     method:'POST',
     headers:{'content-type':'application/json'},
-    body: JSON.stringify({ text: ruweTekst, sleutel: POST_SLEUTEL, bronId: 'feed-'+bronId })
+    body: JSON.stringify({ text: ruweTekst, bronId: 'feed-'+bronId })
   }).catch(function(){ /* telling niet gelukt: geen probleem, scherm blijft werken */ });
 }
 
@@ -2620,7 +2627,7 @@ document.getElementById('allesBtn').onclick=function(){
   fetch(api('/api/pi'),{
     method:'POST',
     headers:{'content-type':'application/json'},
-    body: JSON.stringify({ text: raw, sleutel: POST_SLEUTEL, test: true })
+    body: JSON.stringify({ text: raw, wachtwoord: cfgWachtwoord, test: true })
   }).then(function(r){ return r.json(); }).then(function(d){
     knop.textContent='Naar alle schermen';
     if(d && d.ok){
@@ -2839,6 +2846,9 @@ function haalConfigUitCache(){
 /* Geeft een Promise terug die true is als het écht bij de Worker staat. */
 function bewaarConfig(){
   var payload = bouwConfigObject();
+  /* Het wachtwoord dat je hebt ingetypt om het menu te openen gaat mee, zodat
+     de Worker weet dat deze wijziging van een bevoegde komt. */
+  payload.wachtwoord = cfgWachtwoord;
   return fetch(api('/api/config'), {
       method: 'PUT',
       cache: 'no-store',
