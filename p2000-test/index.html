@@ -1371,8 +1371,18 @@ function renderTellingen(tellingen){
   }
   if(tellingen.dienst){
     var aantal = tellingen.dienst.aantal || 0;
-    dienstEl.textContent = aantal + (aantal===1?' melding':' meldingen') + ' (' + tellingen.dienst.ploeg + '-ploeg)';
 
+    /* De ploegnaam hier ZELF berekenen, net als in de topbar. Voorheen kwam
+       hij uit het label dat de Worker bij de dienst had opgeslagen; dat werd
+       aan het begin van de dienst vastgelegd en veranderde niet meer mee als
+       je de rotatie bijstelde. Zo kon de topbar B tonen en dit blok C. */
+    var label = currentPloeg(new Date());
+    if(label === '—' && tellingen.dienst.ploeg) label = tellingen.dienst.ploeg;
+    var naamDeel = (label && label !== '—')
+      ? (' (' + (label.length === 1 ? label + '-ploeg' : label) + ')')
+      : '';
+
+    dienstEl.textContent = aantal + (aantal === 1 ? ' melding' : ' meldingen') + naamDeel;
   }
   if(tellingen.jaar){
     var j = tellingen.jaar;
