@@ -2868,15 +2868,66 @@ window.addEventListener('resize', fitMeldingText);
 
 /* ===== LOKALE OPSLAG (localStorage) ===== */
 function saveToLocalStorage(){
-  localStorage.setItem('POST_CONFIG', JSON.stringify(POST_CONFIG));
-  localStorage.setItem('POST_LOCATION', JSON.stringify(POST_LOCATION));
-  localStorage.setItem('PLOEGEN_CONFIG', JSON.stringify(PLOEGEN_CONFIG));
-  localStorage.setItem('cfgUnits', document.getElementById('cfgUnits').value);
-  localStorage.setItem('TASKS', JSON.stringify(TASKS));
-  localStorage.setItem('FILTER_CAPCODES', JSON.stringify(FILTER_CAPCODES));  // Capcodes per kazerne
+  // WRITE TO WORKER (sync across all screens)
+  var payload = {
+    capcodes: FILTER_CAPCODES,
+    posts: POSTS,
+    units: UNITS,
+    holdMin: HOLD_MIN,
+    tasks: TASKS,
+    postnaam: POST_CONFIG.postnaam,
+    brandweer: POST_CONFIG.brandweer
+  };
+  
+  fetch(api('/api/taken'), {
+    method:'PUT',
+    cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    console.log('✓ Config opgeslagen bij Worker');
+  })
+  .catch(function(e){
+    // Fallback naar localStorage
+    console.warn('⚠️ Worker schrijven mislukt, fallback naar localStorage', e);
+    try{
+      localStorage.setItem('POST_CONFIG', JSON.stringify(POST_CONFIG));
+      localStorage.setItem('POST_LOCATION', JSON.stringify(POST_LOCATION));
+      localStorage.setItem('PLOEGEN_CONFIG', JSON.stringify(PLOEGEN_CONFIG));
+      localStorage.setItem('cfgUnits', document.getElementById('cfgUnits').value);
+      localStorage.setItem('TASKS', JSON.stringify(TASKS));
+      localStorage.setItem('FILTER_CAPCODES', JSON.stringify(FILTER_CAPCODES));
+    }catch(err){}
+  });
 }
 
 function loadFromLocalStorage(){
+  // LOAD FROM WORKER FIRST (sync across all screens)
+  fetch(api('/api/taken'), {cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d){
+        if(d.capcodes) FILTER_CAPCODES = d.capcodes;
+        if(d.posts) POSTS = d.posts;
+        if(d.units) UNITS = d.units;
+        if(d.tasks) TASKS = normaliseerTaken(d.tasks);
+        if(d.postnaam) POST_CONFIG.postnaam = d.postnaam;
+        if(d.brandweer) POST_CONFIG.brandweer = d.brandweer;
+      }
+      refreshPostCapcodes();
+      renderTasks();
+      console.log('✓ Instellingen geladen van Worker');
+    })
+    .catch(function(e){
+      // Fallback naar localStorage
+      console.warn('⚠️ Worker laden mislukt, fallback naar localStorage', e);
+      loadFromLocalStorageFallback();
+    });
+}
+
+function loadFromLocalStorageFallback(){
   var pc = localStorage.getItem('POST_CONFIG');
   if(pc) POST_CONFIG = JSON.parse(pc);
   
@@ -3079,6 +3130,8 @@ function updatePloegenDisplay(){
 }
 // Load instellingen van browser
 loadFromLocalStorage();
+// Sync every 10 seconds
+setInterval(loadFromLocalStorage, 10000);
 
 // Logo-klik systeem: 3x = Test, 5x = Menu
 var logoClickCount = 0;
