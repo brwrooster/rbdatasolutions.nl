@@ -31,6 +31,14 @@
   body.geen-muis, body.geen-muis *{cursor:none !important}
 
   /* ===== Dagthema: licht rustscherm. Vervalt zodra er een melding is ===== */
+  .themaknop{
+    background:#0e1524; border:1px solid #20304a; color:#eaf1fa;
+    padding:.6rem 1.1rem; border-radius:.4rem; cursor:pointer;
+    font-family:inherit; font-size:1rem;
+  }
+  .themaknop.aan{ background:#3ec1ff; border-color:#3ec1ff; color:#00121f; font-weight:600 }
+  body.dag .themaknop{ background:#fff; border-color:#c9d4e0; color:#1a2433 }
+  body.dag .themaknop.aan{ background:#0b63b8; border-color:#0b63b8; color:#fff }
   body.dag{background:#f2f5f8}
   body.dag #screen{background:#f2f5f8;color:#1a2433}
   body.dag #screen .topbar{background:#e8edf3;border-bottom-color:#c9d4e0}
@@ -657,13 +665,17 @@
           <tr style="background:#111a2b;border-bottom:1px solid #20304a">
             <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Ploegnaam</th>
             <th style="padding:0.8rem;text-align:left;color:#3ec1ff">Starttijd</th>
-            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">Vandaag</th>
+            <th style="padding:0.8rem;text-align:center;color:#3ec1ff">Vandaag dienst</th>
             <th style="padding:0.8rem;text-align:center;color:#3ec1ff">—</th>
           </tr>
         </thead>
         <tbody id="ploegenTableBody"></tbody>
       </table>
       <button type="button" id="addPloegBtn" class="btn ghost" style="margin-top:0.5rem">+ Ploeg toevoegen</button>
+      <p class="tp-hint" style="margin-top:0.5rem">De lijst is de volgorde van de rotatie; je mag er zoveel toevoegen als je post heeft.
+      Geef je alle ploegen <b>dezelfde starttijd</b>, dan zijn het 24-uursdiensten en schuift de rotatie elke dag één plek op —
+      vink dan aan welke ploeg <b>vandaag</b> draait om te ijken. Geef je <b>verschillende starttijden</b> (bv. 07:00 en 19:00),
+      dan bepaalt de klok welke ploeg draait en hoef je niets te ijken.</p>
     </div>
     <div class="field">
       <label for="cfgAdres">Adres post (voor locatie routering)</label>
@@ -672,17 +684,14 @@
       <div id="geocodeHint" style="margin-top:0.5rem;font-size:0.9rem;color:#8395ad"></div>
     </div>
     <div class="field">
-      <label>Nachtmodus (donker scherm)</label>
-      <div style="display:flex;gap:1rem;align-items:center">
-        <div>
-          <label for="cfgNachtVan" style="display:block;font-size:0.9rem;color:#8395ad">Van:</label>
-          <input id="cfgNachtVan" type="time" style="width:120px">
-        </div>
-        <div>
-          <label for="cfgNachtTot" style="display:block;font-size:0.9rem;color:#8395ad">Tot:</label>
-          <input id="cfgNachtTot" type="time" style="width:120px">
-        </div>
+      <label>Weergave</label>
+      <div id="cfgThema" style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button type="button" class="themaknop" data-thema="auto">Automatisch</button>
+        <button type="button" class="themaknop" data-thema="dag">Dag</button>
+        <button type="button" class="themaknop" data-thema="nacht">Nacht</button>
       </div>
+      <p class="tp-hint" style="margin-top:0.5rem">Automatisch volgt zonsopgang en zonsondergang op de locatie van de post.
+      Tijdens een melding is het scherm altijd donker, ongeacht deze keuze.</p>
     </div>
     <div class="field">
       <label for="cfgCaps">Capcodes van de post (spatie of komma gescheiden)</label>
@@ -723,6 +732,16 @@
     <div class="tp-actions">
       <button class="btn primary" id="cfgSave" type="button">Opslaan</button>
       <button id="cfgLogs" class="btn ghost" style="margin-top:0.5rem; width:100%">📋 Logs bekijken</button>
+
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #20304a">
+        <label style="display:block;margin-bottom:0.5rem">Meldingstellers op nul</label>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button type="button" id="cfgResetDienst" class="btn ghost">Deze dienst</button>
+          <button type="button" id="cfgResetJaar" class="btn ghost">Jaartotaal</button>
+          <button type="button" id="cfgResetAlles" class="btn ghost">Allebei</button>
+        </div>
+        <p class="tp-hint" style="margin-top:0.5rem">Geldt voor alle schermen van deze post en kan niet ongedaan gemaakt worden.</p>
+      </div>
 
       <button class="btn ghost" id="cfgReset">Standaard herstellen</button>
     </div>
@@ -771,8 +790,7 @@ var POST_LOCATION = {
   lon: 5.2913,
   adres: '',
   ingesteld: false,
-  nachtVan: '22:00',
-  nachtTot: '07:00'
+  thema: 'auto'        // 'auto' | 'dag' | 'nacht'
 };
 var ALARM_TIMEOUT_MS = 5 * 60 * 1000;                 // 5 min
 
@@ -939,25 +957,113 @@ setInterval(function(){
 }, 20000);
 
 // Ploeg-rotatie: 24-uursdienst, wisselt om 07:00. 17 juni 2026 = D-ploeg.
-var PLOEG_ANKER = new Date(2026, 5, 17);   // maand 5 = juni
-var PLOEGEN = ['D', 'A', 'B', 'C'];
-function currentPloeg(now){
-  // EERST: Check PLOEGEN_CONFIG.vandaag
-  var ploegen = (typeof PLOEGEN_CONFIG !== 'undefined' && PLOEGEN_CONFIG) ? PLOEGEN_CONFIG : [];
-  for(var i=0; i<ploegen.length; i++){
-    if(ploegen[i].vandaag === true) {
-      // Return eerste letter (bijv "Ploeg A" → "A")
-      var naam = ploegen[i].naam;
-      var letter = naam.charAt(naam.length - 1);  // Laatste char
-      if(letter.match(/[A-Z]/)) return letter;
-    }
+/* ================= Ploegrotatie =================
+   Het aantal ploegen is vrij: de lijst in het instellingenmenu is de cyclus.
+
+   Er zijn twee soorten roosters, en welke het is volgt uit de starttijden:
+
+   1) Alle ploegen dezelfde starttijd (bv. vier ploegen die allemaal om 07:00
+      beginnen) -> 24-uursdiensten. Elke dag schuift de cyclus één plek op.
+      Daarvoor is een ijkpunt nodig: welke ploeg had op welke dag dienst.
+      Dat ijkpunt zet je door in het menu het vinkje 'vandaag' aan te zetten
+      bij de ploeg die vandaag draait.
+
+   2) Verschillende starttijden (bv. dag 07:00 en nacht 19:00) -> meerdere
+      diensten per dag. Dan bepaalt de klok welke ploeg draait en is er
+      helemaal geen ijkpunt nodig.
+
+   Voorheen was het vinkje 'vandaag' een vast label: hij gaf altijd diezelfde
+   ploeg terug, ook morgen en overmorgen. De rotatie werd nooit gebruikt. */
+
+var PLOEG_ANKER_DATUM = '';   // 'JJJJ-MM-DD' — dienstdag waarop geijkt is
+var PLOEG_ANKER_INDEX = 0;    // plek in de ploegenlijst die toen dienst had
+
+/* Korte aanduiding: 'Ploeg A' -> 'A'. Staat er geen letter achteraan,
+   dan de naam zelf (bv. 'Dag' of 'Nacht'). */
+function ploegLabel(naam){
+  var n = String(naam || '').trim();
+  if(!n) return '?';
+  var laatste = n.charAt(n.length - 1).toUpperCase();
+  if(laatste >= 'A' && laatste <= 'Z' && n.length > 1 &&
+     n.charAt(n.length - 2) === ' ') return laatste;
+  return n;
+}
+
+function tijdInMinuten(tekst){
+  var d = String(tekst || '07:00').split(':');
+  var u = parseInt(d[0], 10), m = parseInt(d[1], 10);
+  if(isNaN(u)) u = 7;
+  if(isNaN(m)) m = 0;
+  return u * 60 + m;
+}
+
+/* Unieke starttijden, oplopend. Eén tijd = dagrotatie, meerdere = per dag. */
+function wisselTijden(){
+  var uit = [], i, t;
+  for(i = 0; i < PLOEGEN_CONFIG.length; i++){
+    t = tijdInMinuten(PLOEGEN_CONFIG[i].start);
+    if(uit.indexOf(t) === -1) uit.push(t);
   }
-  
-  // FALLBACK: oude rotatie-logica (als geen vandaag geselecteerd)
+  if(!uit.length) uit.push(7 * 60);
+  uit.sort(function(a, b){ return a - b; });
+  return uit;
+}
+
+/* De dienstdag: vóór de eerste wisseltijd hoort 'nu' nog bij gisteren. */
+function dienstDatum(now){
+  var eerste = wisselTijden()[0];
   var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if(now.getHours() < 7) d.setDate(d.getDate() - 1);
-  var days = Math.round((d - PLOEG_ANKER) / 86400000);
-  return PLOEGEN[((days % 4) + 4) % 4];
+  if(now.getHours() * 60 + now.getMinutes() < eerste) d.setDate(d.getDate() - 1);
+  return d;
+}
+
+function datumTekst(d){
+  return d.getFullYear() + '-' +
+         ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+         ('0' + d.getDate()).slice(-2);
+}
+
+function dagenTussen(datumTekstA, datumB){
+  var d = String(datumTekstA || '').split('-');
+  if(d.length !== 3) return null;
+  var a = Date.UTC(+d[0], +d[1] - 1, +d[2]);
+  var b = Date.UTC(datumB.getFullYear(), datumB.getMonth(), datumB.getDate());
+  return Math.round((b - a) / 86400000);
+}
+
+/* Welke plek in de ploegenlijst draait er nu? -1 als het niet te bepalen is. */
+function huidigePloegIndex(now){
+  var aantal = PLOEGEN_CONFIG.length;
+  if(!aantal) return -1;
+  now = now || new Date();
+
+  var tijden = wisselTijden();
+
+  /* Meerdere diensten per dag: de klok bepaalt het, geen ijkpunt nodig. */
+  if(tijden.length > 1){
+    var nu = now.getHours() * 60 + now.getMinutes();
+    var gekozen = tijden[tijden.length - 1];      // vóór de eerste wissel: de laatste van gisteren
+    for(var t = 0; t < tijden.length; t++){
+      if(nu >= tijden[t]) gekozen = tijden[t];
+    }
+    for(var i = 0; i < aantal; i++){
+      if(tijdInMinuten(PLOEGEN_CONFIG[i].start) === gekozen) return i;
+    }
+    return 0;
+  }
+
+  /* Eén wisseltijd: dagelijkse rotatie vanaf het ijkpunt. */
+  if(!PLOEG_ANKER_DATUM) return -1;
+  var dagen = dagenTussen(PLOEG_ANKER_DATUM, dienstDatum(now));
+  if(dagen === null) return -1;
+  var idx = (PLOEG_ANKER_INDEX + dagen) % aantal;
+  return (idx + aantal) % aantal;
+}
+
+function currentPloeg(now){
+  var i = huidigePloegIndex(now);
+  if(i === -1) return '—';
+  return ploegLabel(PLOEGEN_CONFIG[i].naam);
 }
 
 function parseUnits(str){
@@ -1202,10 +1308,19 @@ function haalZontijden(){
     }
   }).catch(function(){ /* geen zontijden: blijft donker */ });
 }
+/* Drie standen:
+     auto  — volgt zonsopgang en zonsondergang op de locatie van de post
+     dag   — altijd het lichte scherm
+     nacht — altijd het donkere scherm
+   Tijdens een melding is het scherm ALTIJD donker: bij nacht lees je een
+   fel wit scherm slecht, en het moet meteen opvallen dat er iets is. */
 function isDag(){
-  // tijdens een melding altijd het donkere thema
   var scherm = document.getElementById('screen');
   if(scherm && scherm.className.indexOf('is-alarm') !== -1) return false;
+
+  var stand = POST_LOCATION.thema || 'auto';
+  if(stand === 'dag')   return true;
+  if(stand === 'nacht') return false;
 
   var nu = new Date();
   var minutenNu = nu.getHours()*60 + nu.getMinutes();
@@ -1265,18 +1380,14 @@ function renderTellingen(tellingen){
     ploegenKop.textContent = 'Totaal meldingen per ploeg ' + (j.jaar || huidigJaar);
     jaarEl.textContent = (j.totaal||0) + (j.totaal===1?' melding':' meldingen');
 
-    var lijst = ['A','B','C','D'].map(function(naam){
-      return { naam: naam, aantal: j[naam] || 0 };
-    });
-
-    // Toon ALLE ploegen uit PLOEGEN_CONFIG
+    /* Elke ploeg uit de eigen lijst, hoeveel het er ook zijn. */
     var html = '';
-    for(var x=0; x<PLOEGEN_CONFIG.length; x++) {
-      var p = PLOEGEN_CONFIG[x];
-      // Toon ploeg + stats
-      var letter = p.naam.charAt(p.naam.length-1); // "Ploeg A" → "A"
-      var stats = j[letter] || 0;  // Haal count uit tellingen.jaar
-      html += '<span class="ploeg-item"><span class="naam">'+letter+'-ploeg</span><span>'+stats+'</span></span>';
+    for(var x = 0; x < PLOEGEN_CONFIG.length; x++){
+      var label = ploegLabel(PLOEGEN_CONFIG[x].naam);
+      var aantal = j[label] || 0;
+      var toon = (label.length === 1) ? (label + '-ploeg') : label;
+      html += '<span class="ploeg-item"><span class="naam">' + toon +
+              '</span><span>' + aantal + '</span></span>';
     }
     ploegenEl.innerHTML = html;
   }
@@ -2190,6 +2301,7 @@ if(taskAddBtn){
    gepauzeerd, zodat je bewerkingen niet overschreven worden. */
 
 var cfgOntgrendeldTot = 0;   // korte geldigheid, zodat je niet blijft typen
+var cfgWachtwoord = '';      // alleen in het geheugen, om tellers te kunnen resetten
 
 function openCfg(){
   if(Date.now() < cfgOntgrendeldTot) return toonCfgPaneel();
@@ -2206,6 +2318,7 @@ function openCfg(){
   .then(function(d){
     if(d && d.ok){
       cfgOntgrendeldTot = Date.now() + 10 * 60 * 1000;   // 10 minuten
+      cfgWachtwoord = ingevoerd;
       toonCfgPaneel();
     } else {
       alert('Onjuist wachtwoord.');
@@ -2223,8 +2336,7 @@ function toonCfgPaneel(){
     document.getElementById('cfgPostnaam').value  = POST_CONFIG.postnaam || '';
     document.getElementById('cfgBrandweer').value = POST_CONFIG.brandweer || '';
     document.getElementById('cfgAdres').value     = POST_LOCATION.adres || '';
-    document.getElementById('cfgNachtVan').value  = POST_LOCATION.nachtVan || '22:00';
-    document.getElementById('cfgNachtTot').value  = POST_LOCATION.nachtTot || '07:00';
+    vulThemaKnoppen();
     document.getElementById('cfgCaps').value      = FILTER_CAPCODES.join(' ');
     document.getElementById('cfgHold').value      = HOLD_MIN;
     document.getElementById('cfgPosts').value     = postsNaarTekst();
@@ -2286,8 +2398,7 @@ function slaInstellingenOp(sluitNaAfloop){
   POST_CONFIG.postnaam  = document.getElementById('cfgPostnaam').value.trim() || 'Post';
   POST_CONFIG.brandweer = document.getElementById('cfgBrandweer').value.trim() || 'Brandweer';
   POST_LOCATION.adres    = document.getElementById('cfgAdres').value.trim();
-  POST_LOCATION.nachtVan = document.getElementById('cfgNachtVan').value || '22:00';
-  POST_LOCATION.nachtTot = document.getElementById('cfgNachtTot').value || '07:00';
+  /* het thema is al gezet bij het klikken op de knop */
 
   // 2) Ploegen  (dit ontbrak: ploegwijzigingen gingen altijd verloren)
   leesPloegenTabel();
@@ -2563,11 +2674,12 @@ function bouwConfigObject(){
     lat:       POST_LOCATION.lat,
     lon:       POST_LOCATION.lon,
     ingesteld: !!POST_LOCATION.ingesteld,
-    nachtVan:  POST_LOCATION.nachtVan,
-    nachtTot:  POST_LOCATION.nachtTot,
+    thema:     POST_LOCATION.thema || 'auto',
     capcodes:  FILTER_CAPCODES,
     holdMin:   HOLD_MIN,
     ploegen:   PLOEGEN_CONFIG,
+    ploegAnkerDatum: PLOEG_ANKER_DATUM,
+    ploegAnkerIndex: PLOEG_ANKER_INDEX,
     posten:    POSTS,
     voertuigen: UNITS,
     taken:     TASKS
@@ -2590,12 +2702,15 @@ function pasConfigToe(d){
     POST_LOCATION.lon = d.lon;
   }
   POST_LOCATION.ingesteld = !!d.ingesteld;
-  if(d.nachtVan) POST_LOCATION.nachtVan = d.nachtVan;
-  if(d.nachtTot) POST_LOCATION.nachtTot = d.nachtTot;
+  if(d.thema === 'auto' || d.thema === 'dag' || d.thema === 'nacht'){
+    POST_LOCATION.thema = d.thema;
+  }
 
   if(Array.isArray(d.capcodes)) FILTER_CAPCODES = d.capcodes;
   if(Number(d.holdMin) > 0)     HOLD_MIN = Number(d.holdMin);
   if(Array.isArray(d.ploegen) && d.ploegen.length) PLOEGEN_CONFIG = d.ploegen;
+  if(typeof d.ploegAnkerDatum === 'string') PLOEG_ANKER_DATUM = d.ploegAnkerDatum;
+  if(typeof d.ploegAnkerIndex === 'number') PLOEG_ANKER_INDEX = d.ploegAnkerIndex;
   if(d.posten     && typeof d.posten === 'object')     POSTS = d.posten;
   if(d.voertuigen && typeof d.voertuigen === 'object') UNITS = normaliseerVoertuigen(d.voertuigen);
   if(Array.isArray(d.taken)) TASKS = normaliseerTaken(d.taken);
@@ -2604,7 +2719,8 @@ function pasConfigToe(d){
   refreshPostCapcodes();
   renderTasks();
   updateTopbar();
-  applyNachtmodus();
+  pasThemaToe();
+  vulThemaKnoppen();
 
   /* Is de kazernelocatie veranderd (of net voor het eerst binnengekomen),
      dan moeten weer en zontijden mee verhuizen. Anders bleef het scherm
@@ -2828,6 +2944,48 @@ function showLogs() {
   modal.classList.add('open');
 }
 
+/* Meldingstellers op nul zetten. Gaat via de Worker, dus alle schermen
+   van deze post zien het meteen. */
+function zetTellersOpNul(wat, omschrijving){
+  if(!confirm(omschrijving + ' op nul zetten?\n' +
+              'Dit geldt voor alle schermen van ' + POST_ID + ' en kan niet terug.')) return;
+
+  toonCfgMelding('Bezig…', '#3ec1ff');
+
+  fetch(api('/api/tellingen'), {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ wachtwoord: cfgWachtwoord, wat: wat })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d && d.ok){
+      renderTellingen(d.tellingen || null);
+      logEvent('tellers', { actie: 'reset', wat: wat });
+      toonCfgMelding(omschrijving + ' staat weer op nul.', '#37d67a');
+    } else {
+      toonCfgMelding('Niet gelukt: ' + ((d && d.error) || 'onbekende fout'), '#ff3b30');
+    }
+  })
+  .catch(function(e){
+    toonCfgMelding('Niet gelukt: Worker niet bereikbaar.', '#ff3b30');
+  });
+}
+
+(function(){
+  var knoppen = [
+    ['cfgResetDienst', 'dienst', 'De teller van deze dienst'],
+    ['cfgResetJaar',   'jaar',   'Het jaartotaal'],
+    ['cfgResetAlles',  'alles',  'Beide tellers']
+  ];
+  for(var i = 0; i < knoppen.length; i++){
+    (function(rij){
+      var el = document.getElementById(rij[0]);
+      if(el) el.onclick = function(){ zetTellersOpNul(rij[1], rij[2]); return false; };
+    })(knoppen[i]);
+  }
+})();
+
 /* Logvenster openen en sluiten */
 (function(){
   var knop = document.getElementById('cfgLogs');
@@ -2984,6 +3142,8 @@ function vulPloegenTabel(){
   var tbody = document.getElementById('ploegenTableBody');
   if(!tbody) return;
   tbody.innerHTML = '';
+
+  var nuDienst = huidigePloegIndex(new Date());
   
   for(var i=0;i<PLOEGEN_CONFIG.length;i++){
     var p = PLOEGEN_CONFIG[i];
@@ -3029,12 +3189,19 @@ function vulPloegenTabel(){
     td3.style.textAlign = 'center';
     var chk = document.createElement('input');
     chk.type = 'checkbox';
-    chk.checked = p.vandaag;
+    chk.checked = (i === nuDienst);      // toont de BEREKENDE ploeg van vandaag
     chk.dataset.idx = i;
     chk.dataset.prop = 'vandaag';
     chk.style.width = '1.2rem';
     chk.style.height = '1.2rem';
     chk.style.cursor = 'pointer';
+    /* Maar één ploeg tegelijk: aanvinken zet de rest uit. */
+    chk.onclick = function(){
+      var alle = document.querySelectorAll('#ploegenTableBody input[data-prop="vandaag"]');
+      for(var j = 0; j < alle.length; j++){
+        if(alle[j] !== this) alle[j].checked = false;
+      }
+    };
     td3.appendChild(chk);
     tr.appendChild(td3);
     
@@ -3066,23 +3233,33 @@ function vulPloegenTabel(){
 }
 
 /* Per RIJ uitlezen in plaats van de inputs in groepjes van drie te tellen.
-   Zo loopt het niet mis als er ooit een veld bij of af gaat. */
+   Zo loopt het niet mis als er ooit een veld bij of af gaat.
+
+   Staat er een vinkje bij 'vandaag', dan wordt daarmee de rotatie GEIJKT:
+   vanaf vandaag rolt de lijst automatisch door. Het is dus geen vast
+   label meer dat morgen nog steeds dezelfde ploeg toont. */
 function leesPloegenTabel(){
   var rijen = document.querySelectorAll('#ploegenTableBody tr');
-  var uit = [];
+  var uit = [], gevinkt = -1;
   for(var i = 0; i < rijen.length; i++){
     var naam    = rijen[i].querySelector('input[data-prop="naam"]');
     var start   = rijen[i].querySelector('input[data-prop="start"]');
     var vandaag = rijen[i].querySelector('input[data-prop="vandaag"]');
     var n = naam ? naam.value.trim() : '';
     if(!n) continue;
+    if(vandaag && vandaag.checked) gevinkt = uit.length;
     uit.push({
-      naam:    n,
-      start:   start ? (start.value || '07:00') : '07:00',
-      vandaag: vandaag ? !!vandaag.checked : false
+      naam:  n,
+      start: start ? (start.value || '07:00') : '07:00'
     });
   }
   PLOEGEN_CONFIG = uit;
+
+  if(gevinkt !== -1){
+    PLOEG_ANKER_DATUM = datumTekst(dienstDatum(new Date()));
+    PLOEG_ANKER_INDEX = gevinkt;
+  }
+  if(PLOEG_ANKER_INDEX >= PLOEGEN_CONFIG.length) PLOEG_ANKER_INDEX = 0;
   return PLOEGEN_CONFIG;
 }
 
@@ -3100,33 +3277,44 @@ vulPloegenTabel();
 
 
 
-/* ===== POST LOCATIE & NACHTMODUS ===== */
+/* ===== WEERGAVE =====
+   Hier stond een tweede themafunctie (applyNachtmodus) die de klasse 'dag'
+   juist AANzette als het nacht was — precies omgekeerd. Bovendien vocht hij
+   elke minuut met pasThemaToe() om dezelfde klasse. Beide zijn nu vervangen
+   door de ene pasThemaToe() hierboven.
 
+   applyNachtmodus blijft als naam bestaan omdat er op een paar plekken naar
+   verwezen wordt; hij doet nu gewoon hetzelfde als pasThemaToe. */
 function applyNachtmodus(){
-  var now = new Date();
-  var hhMm = ('0' + now.getHours()).slice(-2) + ('0' + now.getMinutes()).slice(-2);
-  var van = POST_LOCATION.nachtVan.replace(':','');
-  var tot = POST_LOCATION.nachtTot.replace(':','');
-  
-  // Check of we in nachtmodus zitten
-  var isNacht = false;
-  if(van < tot){
-    isNacht = (hhMm >= van && hhMm < tot);
-  } else {
-    isNacht = (hhMm >= van || hhMm < tot);
-  }
-  
-  var body = document.body;
-  if(isNacht){
-    body.classList.add('dag');
-  } else {
-    body.classList.remove('dag');
+  pasThemaToe();
+}
+
+/* De drie keuzeknoppen in het instellingenmenu. */
+function vulThemaKnoppen(){
+  var wrap = document.getElementById('cfgThema');
+  if(!wrap) return;
+  var huidig = POST_LOCATION.thema || 'auto';
+  var knoppen = wrap.querySelectorAll('.themaknop');
+  for(var i = 0; i < knoppen.length; i++){
+    knoppen[i].className = 'themaknop' +
+      (knoppen[i].getAttribute('data-thema') === huidig ? ' aan' : '');
   }
 }
 
-// Check nachtmodus elke minuut
-setInterval(applyNachtmodus, 60000);
-applyNachtmodus();
+(function(){
+  var wrap = document.getElementById('cfgThema');
+  if(!wrap) return;
+  var knoppen = wrap.querySelectorAll('.themaknop');
+  for(var i = 0; i < knoppen.length; i++){
+    (function(knop){
+      knop.onclick = function(){
+        POST_LOCATION.thema = knop.getAttribute('data-thema');
+        vulThemaKnoppen();
+        pasThemaToe();     // meteen zichtbaar, ook voor opslaan
+      };
+    })(knoppen[i]);
+  }
+})();
 
 /* Postadres omzetten naar coördinaten — PDOK eerst, dan OSM. */
 document.getElementById('cfgGeocode').onclick = function(){
