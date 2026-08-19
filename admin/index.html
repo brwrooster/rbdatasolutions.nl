@@ -540,19 +540,35 @@ function bouwPaneel(paneel, p, staat, c, tellingen){
                  ' · versie ' + c.versie;
   paneel.appendChild(st);
 
-  if(p.schermUrl){
-    var link = maak('a','schermlink');
-    link.href = p.schermUrl;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = 'Scherm openen  ›  ' + p.schermUrl.replace(/^https?:\/\//,'');
-    paneel.appendChild(link);
-  } else {
-    var urlRegel = maak('div','url');
-    urlRegel.textContent = 'Nog geen scherm gezien. Zet index.html in een map die eindigt op /' +
-                           id + '/ en open die pagina één keer.';
-    paneel.appendChild(urlRegel);
+  /* Knop naar het scherm zoals het op de post hangt. De URL komt van het
+     scherm zelf zodra dat de nieuwe index.html draait; tot die tijd kun je
+     hem hier invullen. */
+  var link = maak('a','schermlink');
+  link.target = '_blank';
+  link.rel = 'noopener';
+  paneel.appendChild(link);
+
+  var inScherm = tekstveld(c.schermUrl || '',
+    'https://rbdatasolutions.nl/vrfgv/almere/' + id + '/');
+
+  function werkLinkBij(){
+    var adres = (inScherm.value.trim() || p.schermUrl || '');
+    if(adres){
+      link.href = adres;
+      link.textContent = 'Scherm openen  ›  ' + adres.replace(/^https?:\/\//,'');
+      link.style.display = '';
+    } else {
+      link.style.display = 'none';
+    }
   }
+  inScherm.oninput = werkLinkBij;
+  werkLinkBij();
+
+  paneel.appendChild(veldMet('Scherm-URL', inScherm,
+    p.schermUrl ? ('Automatisch gemeld door het scherm: ' + p.schermUrl +
+                   '. Laat leeg om die te blijven volgen.')
+                : ('Nog niet automatisch gemeld. Vul hem hier in, of open de ' +
+                   'pagina van dit scherm één keer met de nieuwste index.html.')));
 
   /* ---- post ---- */
   paneel.appendChild(kop3('Post'));
@@ -909,6 +925,7 @@ function bouwPaneel(paneel, p, staat, c, tellingen){
       postnaam: inPostnaam.value.trim(),
       brandweer: inBrandweer.value.trim(),
       adres: inAdres.value.trim(),
+      schermUrl: inScherm.value.trim(),
       lat: isNaN(la2) ? null : la2,
       lon: isNaN(lo2) ? null : lo2,
       ingesteld: !isNaN(la2) && !isNaN(lo2),
