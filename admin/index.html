@@ -99,6 +99,11 @@
     display:block; font-family:var(--mono); font-size:.6rem; letter-spacing:.14em;
     text-transform:uppercase; color:var(--gedempt);
   }
+  .naarScherm{
+    flex:none; color:var(--signaal); text-decoration:none; font-size:1.1rem;
+    padding:.45rem .5rem; border:1px solid var(--lijn); border-radius:.3rem; line-height:1;
+  }
+  .naarScherm:hover{ border-color:var(--signaal) }
   .pijl{ flex:none; color:var(--gedempt); transition:transform .15s ease }
   .post.open .pijl{ transform:rotate(90deg) }
   .paneel{ display:none; padding:0 1rem 1.25rem; border-top:1px solid var(--lijn) }
@@ -479,6 +484,20 @@ function tekenLijst(){
     kop.appendChild(pijl);
 
     balk.appendChild(kleur); balk.appendChild(kop);
+
+    /* Rechtstreeks naar het scherm, zonder de post open te klappen. */
+    if(p.schermUrl){
+      var snel = maak('a','naarScherm');
+      snel.href = p.schermUrl;
+      snel.target = '_blank';
+      snel.rel = 'noopener';
+      snel.title = 'Scherm openen';
+      snel.textContent = '↗';
+      snel.style.alignSelf = 'center';
+      snel.style.marginRight = '.9rem';
+      snel.onclick = function(e){ e.stopPropagation(); };
+      balk.appendChild(snel);
+    }
     var paneel = maak('div','paneel');
     kaart.appendChild(balk); kaart.appendChild(paneel);
     lijst.appendChild(kaart);
@@ -551,16 +570,50 @@ function bouwPaneel(paneel, p, staat, c, tellingen){
   var inScherm = tekstveld(c.schermUrl || '',
     'https://rbdatasolutions.nl/vrfgv/almere/' + id + '/');
 
+  /* Kort tonen: domein + laatste map. De hele URL staat in het veld eronder. */
+  function kortAdres(adres){
+    try{
+      var u = new URL(adres);
+      var delen = u.pathname.split('/').filter(function(d){ return d && d.indexOf('.') === -1; });
+      var laatste = delen.length ? delen[delen.length-1] : '';
+      return u.hostname + (delen.length > 1 ? '/…/' : '/') + laatste + (laatste ? '/' : '');
+    }catch(e){ return adres.replace(/^https?:\/\//,''); }
+  }
+
+  var kopieer = maak('button','mini');
+  kopieer.type = 'button';
+  kopieer.textContent = 'Kopieer';
+  kopieer.style.marginLeft = '.5rem';
+
+  var linkRij = maak('div','trij');
+  linkRij.style.marginBottom = '1rem';
+  linkRij.appendChild(link);
+  linkRij.appendChild(kopieer);
+  paneel.insertBefore(linkRij, link);
+  linkRij.appendChild(link);
+  link.style.marginBottom = '0';
+
   function werkLinkBij(){
     var adres = (inScherm.value.trim() || p.schermUrl || '');
     if(adres){
       link.href = adres;
-      link.textContent = 'Scherm openen  ›  ' + adres.replace(/^https?:\/\//,'');
-      link.style.display = '';
+      link.textContent = '↗  ' + kortAdres(adres);
+      linkRij.style.display = '';
     } else {
-      link.style.display = 'none';
+      linkRij.style.display = 'none';
     }
   }
+  kopieer.onclick = function(){
+    var adres = (inScherm.value.trim() || p.schermUrl || '');
+    if(!adres) return;
+    navigator.clipboard.writeText(adres).then(function(){
+      kopieer.textContent = 'Gekopieerd';
+      setTimeout(function(){ kopieer.textContent = 'Kopieer'; }, 1500);
+    }).catch(function(){
+      kopieer.textContent = 'Lukt niet';
+      setTimeout(function(){ kopieer.textContent = 'Kopieer'; }, 1500);
+    });
+  };
   inScherm.oninput = werkLinkBij;
   werkLinkBij();
 
