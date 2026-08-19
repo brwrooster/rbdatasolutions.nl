@@ -1015,10 +1015,28 @@ function bouwPaneel(paneel, p, staat, c, tellingen){
   });
 
   knop('Testmelding sturen', 'stil', function(){
-    var voorbeeld = 'P 1 BMD-01 Testmelding ' + (c.adres || 'kazerne') + ' ' +
-                    Object.keys(c.voertuigen || {}).slice(0,2).join(' ');
-    var tekstIn = prompt('Meldingstekst:', voorbeeld);
+    /* Het scherm filtert op capcode, ook bij testmeldingen. Staat er geen
+       capcode van deze post in de tekst, dan komt hij niet in beeld. Daarom
+       zetten we er automatisch de eerste van deze post in. */
+    var caps = (inCaps.value.match(/\d{4,7}/g) || []);
+    var voorbeeld = 'P 1 BMD-01 Testmelding ' + (inAdres.value.trim() || 'kazerne') +
+                    (caps.length ? ' ' + caps[0] : '') + ' ' +
+                    vtLijst.slice(0,2).map(function(v){ return v.nummer; }).join(' ');
+
+    if(!caps.length){
+      if(!confirm('Deze post heeft nog geen capcodes. Zonder capcodes toont het scherm ' +
+                  'alles wat binnenkomt, dus de test verschijnt wel — maar zodra je ' +
+                  'capcodes invult moet er ook één in de meldingstekst staan.\n\nToch versturen?')) return;
+    }
+
+    var tekstIn = prompt('Meldingstekst — laat de capcode erin staan, anders filtert ' +
+                         'het scherm de melding weg:', voorbeeld.trim());
     if(tekstIn === null) return;
+
+    if(caps.length && !caps.some(function(cc){ return tekstIn.indexOf(cc) !== -1; })){
+      if(!confirm('Er staat geen capcode van deze post in de tekst. Het scherm zal de ' +
+                  'melding dan niet tonen.\n\nToch versturen?')) return;
+    }
     melding.textContent = 'Versturen…'; melding.className = 'melding';
     api('testmelding', { post:id, text: tekstIn }).then(function(d){
       if(d && d.ok){
