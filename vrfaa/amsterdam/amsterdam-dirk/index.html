@@ -752,17 +752,42 @@
 <script>
 /* ================= Config ================= */
 /* ===== WORKER-KOPPELING =========================================
-   DIT ZIJN DE ENIGE DRIE REGELS DIE JE PER POST AANPAST.
+   Dit bestand is voor ELKE post identiek. Je hoeft er niets in te
+   wijzigen: de post volgt uit de URL waarmee het scherm wordt geopend.
 
-   API_BASIS    = de Worker van deze post
-   POST_ID      = korte sleutel van de post; bepaalt WELKE instellingen
-                  uit de KV worden gelezen. Elke post een eigen ID.
-   POST_SLEUTEL = gedeeld wachtwoord voor de Raspberry Pi (POST /api/pi).
-                  Moet gelijk zijn aan POST_SLEUTEL in wrangler.toml.
+     rbdatasolutions.nl/rotterdam/       -> post 'rotterdam'
+     rbdatasolutions.nl/veluwsekant/     -> post 'veluwsekant'
+     rbdatasolutions.nl/scherm.html?post=amsterdam  -> post 'amsterdam'
+
+   Zet dus gewoon een kopie van dit bestand in een map met de naam van
+   de post. Staat de pagina in de hoofdmap, dan geldt STANDAARD_POST.
    ================================================================ */
-var API_BASIS    = 'https://rbdatasolutions.nl';
-var POST_ID      = 'veluwsekant';
-var POST_SLEUTEL = 'veluwsekant2026';
+var API_BASIS      = 'https://rbdatasolutions.nl';
+var STANDAARD_POST = 'veluwsekant';   // als de URL niets prijsgeeft
+var POST_SLEUTEL   = 'veluwsekant2026';  // gedeeld met de Raspberry Pi
+
+/* Sleutel uit de URL halen. ?post= wint, anders de laatste map in het pad.
+   Bestandsnamen (alles met een punt erin) worden overgeslagen, zodat
+   /rotterdam/index.html net zo goed werkt als /rotterdam/. */
+var POST_ID = (function(){
+  try{
+    var uitQuery = new URLSearchParams(location.search).get('post');
+    if(uitQuery) return schoonPostId(uitQuery);
+
+    var delen = location.pathname.split('/');
+    for(var i = delen.length - 1; i >= 0; i--){
+      var d = delen[i].trim();
+      if(!d || d.indexOf('.') !== -1) continue;   // leeg of een bestandsnaam
+      var schoon = schoonPostId(d);
+      if(schoon) return schoon;
+    }
+  }catch(e){}
+  return STANDAARD_POST;
+
+  function schoonPostId(ruw){
+    return String(ruw).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+  }
+})();
 
 /* Elke API-aanroep krijgt automatisch ?post=<POST_ID> mee. */
 function api(pad){
@@ -2776,7 +2801,15 @@ function normaliseerVoertuigen(bron){
 /* ---------- LEZEN ---------- */
 function haalConfig(){
   if(bewerkModus) return Promise.resolve(false);   // niet overschrijven tijdens bewerken
-  return fetch(api('/api/config'), {cache:'no-store'})
+
+  /* Het scherm geeft zijn eigen adres door, zodat er in het beheer een
+     werkende knop 'Scherm openen' staat en je meteen ziet of een post
+     op de juiste plek is neergezet. */
+  var eigenUrl = '';
+  try{ eigenUrl = location.origin + location.pathname; }catch(e){}
+
+  return fetch(api('/api/config') + (eigenUrl ? '&url=' + encodeURIComponent(eigenUrl) : ''),
+               {cache:'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(d && d.error) throw new Error(d.error);
