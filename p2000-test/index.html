@@ -736,7 +736,7 @@ var ALMERE = { lat: 52.3746, lon: 5.2653 };           // weer
 /* ===== WORKER-KOPPELING =====
    Alle /api/-aanroepen gaan naar je Worker.
 */
-var API_BASIS = 'https://lingering-sun-645b.richard-bos.workers.dev';
+var API_BASIS = 'https://rbdatasolutions.nl';
 var POST_SLEUTEL = 'test';
 function api(pad){ return API_BASIS + pad; }
 
@@ -871,18 +871,6 @@ function refreshPostCapcodes(){
     else POST_CAPCODES.push('0'+c);
   }
 }
-function loadCfg(){
-  var cfg = null;
-  try{ cfg = JSON.parse(localStorage.getItem('p2000_cfg')); }catch(e){}
-  if(cfg){
-    if(cfg.capcodes && cfg.capcodes.length) FILTER_CAPCODES = cfg.capcodes;
-    if(cfg.posts) POSTS = cfg.posts;
-    if(cfg.units) UNITS = cfg.units;
-    if(cfg.holdMin) HOLD_MIN = cfg.holdMin;
-    if(cfg.tasks) TASKS = normaliseerTaken(cfg.tasks);
-  }
-  refreshPostCapcodes();
-}
 var DAGCODES = ['zo','ma','di','wo','do','vr','za'];
 function normaliseerTaken(lijst){
   var out=[], i;
@@ -903,15 +891,69 @@ function normaliseerTaken(lijst){
   }
   return out;
 }
-function saveCfg(){
-  try{
-    localStorage.setItem('p2000_cfg', JSON.stringify({
-      capcodes: FILTER_CAPCODES, posts: POSTS, units: UNITS,
-      holdMin: HOLD_MIN, tasks: TASKS
-    }));
-  }catch(e){}
+
+function loadCfg(){
+  // EERST van Worker halen (sync met alle schermen)
+  fetch(api('/api/taken'), {cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.capcodes && d.capcodes.length) FILTER_CAPCODES = d.capcodes;
+      if(d && d.posts) POSTS = d.posts;
+      if(d && d.units) UNITS = d.units;
+      if(d && d.holdMin) HOLD_MIN = d.holdMin;
+      if(d && d.tasks) TASKS = normaliseerTaken(d.tasks);
+      refreshPostCapcodes();
+      renderTasks();
+    })
+    .catch(function(e){
+      // Fallback naar localStorage als Worker niet bereikbaar
+      console.warn('⚠️ Worker niet bereikbaar, fallback naar localStorage', e);
+      var cfg = null;
+      try{ cfg = JSON.parse(localStorage.getItem('p2000_cfg')); }catch(err){}
+      if(cfg){
+        if(cfg.capcodes && cfg.capcodes.length) FILTER_CAPCODES = cfg.capcodes;
+        if(cfg.posts) POSTS = cfg.posts;
+        if(cfg.units) UNITS = cfg.units;
+        if(cfg.holdMin) HOLD_MIN = cfg.holdMin;
+        if(cfg.tasks) TASKS = normaliseerTaken(cfg.tasks);
+      }
+      refreshPostCapcodes();
+      renderTasks();
+    });
 }
+
+function saveCfg(){
+  // Schrijf NAAR Worker (sync met alle schermen)
+  var payload = {
+    capcodes: FILTER_CAPCODES,
+    posts: POSTS,
+    units: UNITS,
+    holdMin: HOLD_MIN,
+    tasks: TASKS
+  };
+  
+  fetch(api('/api/taken'), {
+    method:'PUT',
+    cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    console.log('✓ Config opgeslagen bij Worker');
+  })
+  .catch(function(e){
+    // Fallback naar localStorage
+    console.warn('⚠️ Worker schrijven mislukt, fallback naar localStorage', e);
+    try{
+      localStorage.setItem('p2000_cfg', JSON.stringify(payload));
+    }catch(err){}
+  });
+}
+
 loadCfg();
+// Elke 10 seconden sync-checken
+setInterval(loadCfg, 10000);
 
 /* Werkzaamheden van vandaag tonen */
 function renderTasks(){
