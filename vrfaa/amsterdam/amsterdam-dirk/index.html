@@ -793,6 +793,23 @@ var POST_ID = (function(){
   }
 })();
 
+/* Kenmerk van dít scherm. Wordt eenmalig verzonnen en bewaard in de browser,
+   zodat je in het beheer kunt zien hoeveel schermen een post heeft draaien.
+   Het zegt niets over wie of waar — alleen dat dit dezelfde browser is als
+   de vorige keer. Wist iemand de browsergegevens, dan komt er een nieuw
+   kenmerk en telt dat scherm tijdelijk dubbel. */
+var SCHERM_ID = (function(){
+  try{
+    var k = 'p2000_scherm_id';
+    var id = localStorage.getItem(k);
+    if(!id){
+      id = 's-' + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem(k, id);
+    }
+    return id;
+  }catch(e){ return ''; }
+})();
+
 /* Elke API-aanroep krijgt automatisch ?post=<POST_ID> mee. */
 function api(pad){
   return API_BASIS + pad + (pad.indexOf('?') === -1 ? '?' : '&') +
@@ -2815,7 +2832,9 @@ function haalConfig(){
   var eigenUrl = '';
   try{ eigenUrl = location.origin + location.pathname; }catch(e){}
 
-  return fetch(api('/api/config') + (eigenUrl ? '&url=' + encodeURIComponent(eigenUrl) : ''),
+  return fetch(api('/api/config') +
+               (eigenUrl ? '&url=' + encodeURIComponent(eigenUrl) : '') +
+               (SCHERM_ID ? '&scherm=' + encodeURIComponent(SCHERM_ID) : ''),
                {cache:'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(d){
