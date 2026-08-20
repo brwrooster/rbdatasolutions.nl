@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Postenbeheer · P2000</title>
+<style>
+  :root{
+    --inkt:#070c15; --paneel:#0e1727; --paneel-op:#142034; --lijn:#1e2d45;
+    --tekst:#e7eefc; --gedempt:#7f92ad; --signaal:#3ec1ff;
+    --goed:#37d67a; --let-op:#ffb020; --alarm:#ff3b30;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  *{ box-sizing:border-box }
+  html,body{ margin:0; padding:0 }
+  body{
+    background:var(--inkt); color:var(--tekst); font-family:var(--sans);
+    font-size:16px; line-height:1.5; padding-bottom:4rem; -webkit-text-size-adjust:100%;
+  }
+  .wrap{ max-width:60rem; margin:0 auto; padding:1.25rem }
+
+  header{
+    display:flex; align-items:baseline; gap:.75rem; flex-wrap:wrap;
+    padding:1.5rem 0 1rem; border-bottom:1px solid var(--lijn); margin-bottom:1.5rem;
+  }
+  header h1{ margin:0; font-size:1.5rem; font-weight:650; letter-spacing:-.01em }
+  .telling{
+    font-family:var(--mono); font-size:.75rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gedempt);
+  }
+  .ververs{
+    margin-left:auto; background:none; border:1px solid var(--lijn); color:var(--gedempt);
+    font-family:var(--mono); font-size:.75rem; letter-spacing:.1em; text-transform:uppercase;
+    padding:.45rem .8rem; border-radius:.3rem; cursor:pointer;
+  }
+  .ververs:hover{ color:var(--tekst); border-color:var(--signaal) }
+
+  #poort, #wijzig{ max-width:22rem; margin:12vh auto 0; padding:0 1.25rem }
+  #poort{ text-align:center }
+  .logo{
+    display:block; margin:0 auto 1.5rem; max-width:11rem; height:auto;
+    border-radius:.5rem;
+  }
+
+  /* Logo als vervaagde achtergrond over het hele scherm. Blijft staan bij
+     scrollen en vangt geen aanrakingen op. Bewust heel licht gehouden —
+     de tekst moet leesbaar blijven op een telefoon in het zonlicht. */
+  .achtergrond{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:url('/images/logo.jpg') center/min(70vw, 34rem) no-repeat;
+    opacity:.05;
+    filter:blur(2px);
+  }
+  /* Donkere waas eroverheen, zodat het logo niet met de tekst vecht. */
+  .achtergrond::after{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at center,
+      rgba(7,12,21,.25) 0%, rgba(7,12,21,.85) 75%);
+  }
+
+  #poort h1, #wijzig h1{ font-size:1.35rem; margin:0 0 .35rem }
+  #poort p, #wijzig p.intro{ color:var(--gedempt); font-size:.9rem; margin:0 0 1.5rem }
+
+  input, textarea, select{
+    width:100%; background:var(--inkt); color:var(--tekst);
+    border:1px solid var(--lijn); border-radius:.35rem;
+    padding:.6rem .7rem; font-family:var(--sans); font-size:1rem;
+  }
+  input:focus, textarea:focus, select:focus{
+    outline:2px solid var(--signaal); outline-offset:1px; border-color:var(--signaal);
+  }
+  textarea{ font-family:var(--mono); font-size:.82rem; line-height:1.6; resize:vertical }
+  label{
+    display:block; font-family:var(--mono); font-size:.68rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gedempt); margin:0 0 .35rem;
+  }
+  .veld{ margin-bottom:1rem }
+  .rij{ display:flex; gap:.75rem; flex-wrap:wrap }
+  .rij > .veld{ flex:1; min-width:9rem }
+
+  button{ font-family:var(--sans); font-size:.95rem; cursor:pointer }
+  .knop{
+    background:var(--signaal); color:#00121f; border:none; font-weight:600;
+    padding:.6rem 1.05rem; border-radius:.35rem;
+  }
+  .knop.stil{ background:none; border:1px solid var(--lijn); color:var(--tekst); font-weight:500 }
+  .knop.stil:hover{ border-color:var(--signaal) }
+  .knop.gevaar{ background:none; border:1px solid #52202a; color:var(--alarm); font-weight:500 }
+  .knop.gevaar:hover{ border-color:var(--alarm) }
+  .mini{
+    background:none; border:1px solid var(--lijn); color:var(--gedempt);
+    padding:.45rem .6rem; border-radius:.3rem; font-size:.85rem; flex:none;
+  }
+  .mini:hover{ color:var(--tekst); border-color:var(--signaal) }
+  .mini.weg{ border-color:#3a1a20; color:var(--alarm) }
+
+  .post{ background:var(--paneel); border:1px solid var(--lijn); border-radius:.5rem; margin-bottom:.75rem; overflow:hidden }
+  .balk{ display:flex; align-items:stretch }
+  .staat{ width:.35rem; flex:none; background:var(--gedempt) }
+  .staat.leeft{ background:var(--goed) }
+  .staat.stil{ background:var(--let-op) }
+  .staat.weg{ background:var(--alarm) }
+  .kop{
+    flex:1; display:flex; align-items:center; gap:.9rem; padding:.9rem 1rem;
+    background:none; border:none; color:inherit; text-align:left; width:100%;
+  }
+  .kop:hover{ background:var(--paneel-op) }
+  .kop:focus-visible{ outline:2px solid var(--signaal); outline-offset:-2px }
+  .naam{ flex:1; min-width:0 }
+  .naam b{ display:block; font-size:1.05rem; font-weight:600 }
+  .naam span{
+    display:block; font-family:var(--mono); font-size:.72rem; color:var(--gedempt);
+    letter-spacing:.06em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .cijfer{ text-align:right; flex:none }
+  .cijfer b{ display:block; font-family:var(--mono); font-size:1.15rem; font-weight:600 }
+  .cijfer span{
+    display:block; font-family:var(--mono); font-size:.6rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gedempt);
+  }
+  .naarScherm{
+    flex:none; color:var(--signaal); text-decoration:none; font-size:1.1rem;
+    padding:.45rem .5rem; border:1px solid var(--lijn); border-radius:.3rem; line-height:1;
+  }
+  .naarScherm:hover{ border-color:var(--signaal) }
+  .pijl{ flex:none; color:var(--gedempt); transition:transform .15s ease }
+  .post.open .pijl{ transform:rotate(90deg) }
+  .paneel{ display:none; padding:0 1rem 1.25rem; border-top:1px solid var(--lijn) }
+  .post.open .paneel{ display:block }
+
+  .staat-tekst{
+    font-family:var(--mono); font-size:.72rem; color:var(--gedempt);
+    padding:.75rem 0 .25rem; letter-spacing:.04em;
+  }
+  .staat-tekst em{ font-style:normal; color:var(--let-op) }
+  .url{
+    font-family:var(--mono); font-size:.72rem; color:var(--gedempt);
+    word-break:break-all; padding:.5rem 0 1rem;
+  }
+
+  h3{
+    font-family:var(--mono); font-size:.68rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--signaal); margin:1.6rem 0 .75rem; padding-bottom:.4rem;
+    border-bottom:1px solid var(--lijn);
+  }
+  .hint{ font-size:.8rem; color:var(--gedempt); margin:.4rem 0 0 }
+  .hint.waarschuwing{ color:var(--let-op) }
+
+  /* tabellen */
+  .tabel{ display:flex; flex-direction:column; gap:.5rem }
+  .trij{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap }
+  .trij > input{ flex:1; min-width:5.5rem; font-size:.9rem; padding:.5rem .55rem }
+  .tkop{
+    display:flex; gap:.5rem; font-family:var(--mono); font-size:.62rem;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--gedempt); padding:0 .1rem;
+  }
+  .tkop span{ flex:1; min-width:5.5rem }
+  .tkop span.smal{ flex:none; width:2.6rem; text-align:center }
+  .vandaag{ flex:none; width:2.6rem; display:flex; justify-content:center }
+  .vandaag input{ width:1.15rem; height:1.15rem; accent-color:var(--signaal) }
+  @media (max-width:34rem){ .tkop{ display:none } }
+
+  .dagen{ display:flex; gap:.25rem; flex-wrap:wrap; flex:none }
+  .dag{
+    background:none; border:1px solid var(--lijn); color:var(--gedempt);
+    width:2.1rem; padding:.35rem 0; border-radius:.3rem;
+    font-family:var(--mono); font-size:.7rem; text-transform:uppercase;
+  }
+  .dag.aan{ background:var(--signaal); border-color:var(--signaal); color:#00121f; font-weight:600 }
+  .schermknop{
+    display:inline-block; background:var(--signaal); color:#00121f;
+    text-decoration:none; font-weight:600; font-size:.95rem;
+    padding:.6rem 1.05rem; border-radius:.35rem;
+  }
+  .schermknop:hover{ filter:brightness(1.1) }
+  .schermen{ display:flex; flex-direction:column; gap:.4rem; padding:.25rem 0 1rem }
+  .schermrij{
+    display:flex; align-items:center; gap:.6rem;
+    font-family:var(--mono); font-size:.75rem; color:var(--gedempt);
+  }
+  .bol{ width:.6rem; height:.6rem; border-radius:50%; flex:none; background:var(--gedempt) }
+  .bol.leeft{ background:var(--goed) }
+  .bol.stil { background:var(--let-op) }
+  .bol.weg  { background:var(--alarm) }
+  .schermrij b{ color:var(--tekst); font-weight:500; letter-spacing:.04em }
+  .meldinglijst{
+    font-family:var(--mono); font-size:.75rem; color:var(--gedempt);
+    display:flex; flex-direction:column; gap:.5rem;
+  }
+  .meldinglijst div{ padding:.5rem .6rem; background:var(--inkt); border:1px solid var(--lijn); border-radius:.3rem }
+  .meldinglijst b{ color:var(--tekst); font-weight:500 }
+
+  .acties{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1.25rem }
+  .melding{
+    padding:.7rem .85rem; border-radius:.35rem; font-size:.88rem; margin-top:1rem;
+    border:1px solid var(--lijn); background:var(--inkt);
+  }
+  .melding.goed{ border-color:#1d5638; color:var(--goed) }
+  .melding.fout{ border-color:#52202a; color:var(--alarm) }
+  .melding.let-op{ border-color:#5a4318; color:var(--let-op) }
+  .melding:empty{ display:none }
+  .leeg{ text-align:center; padding:3rem 1rem; color:var(--gedempt) }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important } }
+</style>
+</head>
+<body>
+
+<div class="achtergrond" aria-hidden="true"></div>
+
+<div id="poort">
+  <img class="logo" src="/images/logo.jpg" alt="RB Data Solutions">
+  <h1>Postenbeheer</h1>
+  <p>Alle P2000-schermen op één plek.</p>
+  <div class="veld">
+    <label for="ww">Beheerderswachtwoord</label>
+    <input id="ww" type="password" autocomplete="current-password" enterkeyhint="go">
+  </div>
+  <button class="knop" id="inloggen" style="width:100%">Openen</button>
+  <div class="melding fout" id="poortMelding"></div>
+</div>
+
+<div id="wijzig" hidden>
+  <img class="logo" src="/images/logo.jpg" alt="RB Data Solutions">
+  <h1>Kies een eigen wachtwoord</h1>
+  <p class="intro">Je bent binnen met het standaardwachtwoord. Dat staat in de code, dus zolang
+  het geldt kan iedereen die dat weet bij alle posten.</p>
+  <div class="veld">
+    <label for="nieuwWw">Nieuw wachtwoord</label>
+    <input id="nieuwWw" type="password" autocomplete="new-password" enterkeyhint="next">
+    <p class="hint">Minstens 8 tekens.</p>
+  </div>
+  <div class="veld">
+    <label for="nieuwWw2">Nog een keer</label>
+    <input id="nieuwWw2" type="password" autocomplete="new-password" enterkeyhint="go">
+  </div>
+  <button class="knop" id="wijzigKnop" style="width:100%">Wachtwoord instellen</button>
+  <div class="melding" id="wijzigMelding"></div>
+</div>
+
+<div class="wrap" id="beheer" hidden>
+  <header>
+    <h1>Postenbeheer</h1>
+    <span class="telling" id="telling"></span>
+    <button class="ververs" id="verversKnop">Verversen</button>
+  </header>
+
+  <div class="melding let-op" id="conflictMelding"></div>
+  <div id="lijst"></div>
+
+  <h3>Nieuwe post</h3>
+  <div class="rij">
+    <div class="veld">
+      <label for="nieuwId">Sleutel</label>
+      <input id="nieuwId" placeholder="rotterdam-centrum" autocapitalize="none" autocorrect="off">
+      <p class="hint">Moet gelijk zijn aan de laatste map in de URL van dat scherm,
+      bijvoorbeeld <code>/vrfaa/amsterdam/amsterdam-dirk/</code>.</p>
+    </div>
+    <div class="veld">
+      <label for="nieuwNaam">Postnaam</label>
+      <input id="nieuwNaam" placeholder="Post Rotterdam Centrum">
+    </div>
+  </div>
+  <button class="knop" id="nieuwKnop">Post aanmaken</button>
+  <div class="melding" id="nieuwMelding"></div>
+
+  <h3>Beheerderswachtwoord</h3>
+  <div class="veld" style="max-width:22rem">
+    <label for="wwNieuw">Nieuw wachtwoord</label>
+    <input id="wwNieuw" type="password" autocomplete="new-password">
+    <p class="hint">Minstens 8 tekens. Geldt meteen voor iedereen die deze pagina gebruikt.
+  Wordt versleuteld opgeslagen — ook ik kan hem daarna niet meer teruglezen.</p>
+  </div>
+  <button class="knop stil" id="wwKnop">Wachtwoord wijzigen</button>
+  <div class="melding" id="wwMelding"></div>
+</div>
+
+<script>
+/* ==================================================================
+   Postenbeheer — praat met /api/beheer op de Worker.
+   Het wachtwoord blijft alleen in het geheugen van dit tabblad staan.
+   ================================================================== */
+
+var API_BASIS = 'https://rbdatasolutions.nl';
+var SITE_BASIS = 'https://rbdatasolutions.nl';
+var wachtwoord = '';
+var posten = [];
+
+function api(actie, extra){
+  return fetch(API_BASIS + '/api/beheer', {
+    method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({ wachtwoord: wachtwoord, actie: actie }, extra || {}))
+  }).then(function(r){ return r.json(); });
+}
+
+function el(id){ return document.getElementById(id); }
+function maak(tag, klasse){ var e = document.createElement(tag); if(klasse) e.className = klasse; return e; }
+
+function toon(doelId, tekst, soort){
+  var m = el(doelId);
+  if(!m) return;
+  m.textContent = tekst || '';
+  m.className = 'melding' + (soort ? ' ' + soort : '');
+}
+
+/* ================= Adres -> coördinaten =================
+   PDOK (officiële BAG) eerst, Nominatim alleen als terugval. */
+function geocodePDOK(adres){
+  var url = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=' +
+            encodeURIComponent(adres) + '&rows=1&fq=type:adres';
+  return fetch(url).then(function(r){ return r.json(); }).then(function(d){
+    var doc = d && d.response && d.response.docs && d.response.docs[0];
+    if(!doc || !doc.centroide_ll) return null;
+    var m = doc.centroide_ll.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
+    if(!m) return null;
+    return { lat: parseFloat(m[2]), lon: parseFloat(m[1]), bron: 'PDOK' };
+  }).catch(function(){ return null; });
+}
+
+function geocodeOSM(adres){
+  return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+               encodeURIComponent(adres + ', Nederland'))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d || !d.length) return null;
+      return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon), bron: 'OSM' };
+    }).catch(function(){ return null; });
+}
+
+function zoekCoordinaten(adres){
+  if(!adres) return Promise.resolve(null);
+  return geocodePDOK(adres).then(function(g){ return g || geocodeOSM(adres); });
+}
+
+/* ================= Ploegrotatie =================
+   Zelfde berekening als op het scherm zelf, zodat beide altijd hetzelfde
+   uitkomen. Alle ploegen dezelfde starttijd -> dagrotatie met ijkpunt.
+   Verschillende starttijden -> de klok bepaalt, geen ijkpunt nodig. */
+function tijdInMinuten(t){
+  var d = String(t || '07:00').split(':');
+  var u = parseInt(d[0],10), m = parseInt(d[1],10);
+  if(isNaN(u)) u = 7;
+  if(isNaN(m)) m = 0;
+  return u*60 + m;
+}
+function wisselTijden(ploegen){
+  var uit = [];
+  ploegen.forEach(function(p){
+    var t = tijdInMinuten(p.start);
+    if(uit.indexOf(t) === -1) uit.push(t);
+  });
+  if(!uit.length) uit.push(420);
+  uit.sort(function(a,b){ return a-b; });
+  return uit;
+}
+function dienstDatum(ploegen, now){
+  var eerste = wisselTijden(ploegen)[0];
+  var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if(now.getHours()*60 + now.getMinutes() < eerste) d.setDate(d.getDate()-1);
+  return d;
+}
+function datumTekst(d){
+  return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+}
+function huidigePloegIndex(ploegen, ankerDatum, ankerIndex, now){
+  if(!ploegen.length) return -1;
+  now = now || new Date();
+  var tijden = wisselTijden(ploegen);
+
+  if(tijden.length > 1){
+    var nu = now.getHours()*60 + now.getMinutes();
+    var gekozen = tijden[tijden.length-1];
+    tijden.forEach(function(t){ if(nu >= t) gekozen = t; });
+    for(var i=0;i<ploegen.length;i++){
+      if(tijdInMinuten(ploegen[i].start) === gekozen) return i;
+    }
+    return 0;
+  }
+
+  if(!ankerDatum) return -1;
+  var d = String(ankerDatum).split('-');
+  if(d.length !== 3) return -1;
+  var a = Date.UTC(+d[0], +d[1]-1, +d[2]);
+  var nd = dienstDatum(ploegen, now);
+  var b = Date.UTC(nd.getFullYear(), nd.getMonth(), nd.getDate());
+  var dagen = Math.round((b-a)/86400000);
+  var idx = (Number(ankerIndex||0) + dagen) % ploegen.length;
+  return (idx + ploegen.length) % ploegen.length;
+}
+
+/* ================= Inloggen ================= */
+function inloggen(){
+  wachtwoord = el('ww').value;
+  if(!wachtwoord){ toon('poortMelding', 'Vul het wachtwoord in.', 'fout'); return; }
+  toon('poortMelding', 'Bezig…');
+
+  api('lijst').then(function(d){
+    if(d && d.moetWijzigen){
+      el('poort').hidden = true; el('wijzig').hidden = false; el('nieuwWw').focus(); return;
+    }
+    if(d && d.ok){
+      el('poort').hidden = true; el('beheer').hidden = false;
+      posten = d.posten; tekenLijst();
+    } else {
+      wachtwoord = '';
+      toon('poortMelding', (d && d.error) || 'Onjuist wachtwoord.', 'fout');
+    }
+  }).catch(function(){
+    wachtwoord = '';
+    toon('poortMelding', 'De Worker is niet bereikbaar.', 'fout');
+  });
+}
+el('inloggen').onclick = inloggen;
+el('ww').onkeydown = function(e){ if(e.key === 'Enter') inloggen(); };
+
+function stelWachtwoordIn(){
+  var a = el('nieuwWw').value, b = el('nieuwWw2').value;
+  if(a.length < 8){ toon('wijzigMelding', 'Minstens 8 tekens.', 'fout'); return; }
+  if(a !== b){ toon('wijzigMelding', 'De twee velden zijn niet gelijk.', 'fout'); return; }
+  toon('wijzigMelding', 'Instellen…');
+  api('wachtwoord', { nieuw: a }).then(function(d){
+    if(d && d.ok){
+      wachtwoord = a;
+      el('nieuwWw').value = ''; el('nieuwWw2').value = '';
+      el('wijzig').hidden = true; el('beheer').hidden = false;
+      verversLijst();
+    } else { toon('wijzigMelding', (d && d.error) || 'Niet gelukt.', 'fout'); }
+  }).catch(function(){ toon('wijzigMelding', 'De Worker is niet bereikbaar.', 'fout'); });
+}
+el('wijzigKnop').onclick = stelWachtwoordIn;
+el('nieuwWw').onkeydown  = function(e){ if(e.key === 'Enter') el('nieuwWw2').focus(); };
+el('nieuwWw2').onkeydown = function(e){ if(e.key === 'Enter') stelWachtwoordIn(); };
+
+/* ================= Lijst ================= */
+function verversLijst(){
+  return api('lijst').then(function(d){
+    if(d && d.ok){ posten = d.posten; tekenLijst(); }
+  });
+}
+el('verversKnop').onclick = function(){ verversLijst(); };
+
+function geledenTekst(ts){
+  if(!ts) return 'nooit';
+  var m = Math.floor((Date.now()-ts)/60000);
+  if(m < 2)  return 'zojuist';
+  if(m < 60) return m + ' min geleden';
+  var u = Math.floor(m/60);
+  if(u < 24) return u + ' uur geleden';
+  return Math.floor(u/24) + ' dagen geleden';
+}
+
+function staatVan(p){
+  if(!p.gezien) return { klasse:'weg', woord:'nog nooit online geweest' };
+  var min = (Date.now()-p.gezien)/60000;
+  if(min < 60)      return { klasse:'leeft', woord:'scherm online' };
+  if(min < 60*24)   return { klasse:'stil',  woord:'ruim een uur niets gehoord' };
+  return { klasse:'weg', woord:'meer dan een dag offline' };
+}
+
+/* Dezelfde capcode bij twee posten betekent dat beide schermen dezelfde
+   meldingen tonen. Meestal ongewenst, dus melden we het bovenaan. */
+function toonCapcodeConflicten(){
+  var waar = {};
+  posten.forEach(function(p){
+    (p.capcodes || []).forEach(function(c){
+      (waar[c] = waar[c] || []).push(p.post);
+    });
+  });
+  var regels = [];
+  Object.keys(waar).forEach(function(c){
+    if(waar[c].length > 1) regels.push(c + ' bij ' + waar[c].join(' en '));
+  });
+  toon('conflictMelding',
+    regels.length ? ('Dezelfde capcode staat bij meerdere posten: ' + regels.join('; ') +
+                     '. Die schermen tonen dus dezelfde meldingen.') : '',
+    'let-op');
+}
+
+function tekenLijst(){
+  var lijst = el('lijst');
+  lijst.innerHTML = '';
+  el('telling').textContent = posten.length + (posten.length === 1 ? ' post' : ' posten');
+  toonCapcodeConflicten();
+
+  if(!posten.length){
+    lijst.innerHTML = '<div class="leeg">Nog geen posten. Maak er hieronder een aan.</div>';
+    return;
+  }
+
+  posten.forEach(function(p){
+    var staat = staatVan(p);
+    var kaart = maak('div', 'post');
+    var balk = maak('div', 'balk');
+
+    var kleur = maak('div', 'staat ' + staat.klasse);
+    var kop = maak('button', 'kop');
+    kop.type = 'button';
+
+    var naam = maak('span', 'naam');
+    var b = maak('b'); b.textContent = p.postnaam || p.post;
+    var sub = maak('span');
+    var aantalSchermen = (p.schermen || []).length;
+    sub.textContent = p.post + ' · ' + (p.capcodes || []).length + ' capcodes · ' +
+                      p.voertuigen + ' voertuigen' +
+                      (aantalSchermen ? ' · ' + aantalSchermen +
+                        (aantalSchermen === 1 ? ' scherm' : ' schermen') : '');
+    naam.appendChild(b); naam.appendChild(sub);
+
+    function cijfer(waarde, label){
+      var c = maak('span','cijfer');
+      var cb = maak('b'); cb.textContent = waarde;
+      var cs = maak('span'); cs.textContent = label;
+      c.appendChild(cb); c.appendChild(cs);
+      return c;
+    }
+    var pijl = maak('span','pijl'); pijl.textContent = '›';
+
+    kop.appendChild(naam);
+    kop.appendChild(cijfer(p.dienst, p.ploeg || '—'));
+    kop.appendChild(cijfer(p.jaar, 'jaar'));
+    kop.appendChild(pijl);
+
+    balk.appendChild(kleur); balk.appendChild(kop);
+
+    /* Rechtstreeks naar het scherm, zonder de post open te klappen. */
+    if(p.schermUrl){
+      var snel = maak('a','naarScherm');
+      snel.href = p.schermUrl;
+      snel.target = '_blank';
+      snel.rel = 'noopener';
+      snel.title = 'Scherm openen';
+      snel.textContent = '↗';
+      snel.style.alignSelf = 'center';
+      snel.style.marginRight = '.9rem';
+      snel.onclick = function(e){ e.stopPropagation(); };
+      balk.appendChild(snel);
+    }
+    var paneel = maak('div','paneel');
+    kaart.appendChild(balk); kaart.appendChild(paneel);
+    lijst.appendChild(kaart);
+
+    kop.onclick = function(){
+      if(kaart.classList.contains('open')){ kaart.classList.remove('open'); return; }
+      kaart.classList.add('open');
+      vulPaneel(paneel, p, staat);
+    };
+  });
+}
+
+/* ================= Paneel van één post ================= */
+function vulPaneel(paneel, p, staat){
+  paneel.innerHTML = '<div class="staat-tekst">Laden…</div>';
+
+  api('lees', { post: p.post }).then(function(d){
+    if(!d || !d.ok){
+      paneel.innerHTML = '';
+      var f = maak('div','melding fout');
+      f.textContent = (d && d.error) || 'Kon de instellingen niet ophalen.';
+      paneel.appendChild(f);
+      return;
+    }
+    bouwPaneel(paneel, p, staat, d.config, d.tellingen);
+  });
+}
+
+function kop3(tekst){ var h = maak('h3'); h.textContent = tekst; return h; }
+
+function veldMet(label, input, hint){
+  var v = maak('div','veld');
+  var l = maak('label'); l.textContent = label;
+  var id = 'v' + Math.random().toString(36).slice(2,8);
+  l.setAttribute('for', id); input.id = id;
+  v.appendChild(l); v.appendChild(input);
+  if(hint){ var h = maak('p','hint'); h.textContent = hint; v.appendChild(h); }
+  return v;
+}
+
+function tekstveld(waarde, plaatshouder){
+  var i = maak('input');
+  i.type = 'text';
+  i.value = waarde == null ? '' : waarde;
+  if(plaatshouder) i.placeholder = plaatshouder;
+  return i;
+}
+
+function bouwPaneel(paneel, p, staat, c, tellingen){
+  paneel.innerHTML = '';
+  var id = p.post;
+
+  /* ---- status en adres van het scherm ---- */
+  var st = maak('div','staat-tekst');
+  st.innerHTML = (staat.klasse === 'leeft' ? '' : '<em>') + staat.woord +
+                 (staat.klasse === 'leeft' ? '' : '</em>') +
+                 ' · laatst gezien ' + geledenTekst(p.gezien) +
+                 ' · laatste melding ' + geledenTekst(p.laatsteMelding) +
+                 ' · versie ' + c.versie;
+  paneel.appendChild(st);
+
+  /* Welke schermen draaien er op deze post? De hartslag komt per kwartier,
+     dus groen = binnen een halfuur gezien, oranje = vandaag nog, rood = langer stil. */
+  var schermen = p.schermen || [];
+  var schermVak = maak('div','schermen');
+  var kopRegel = maak('div','schermrij');
+  kopRegel.innerHTML = '<b>' + schermen.length +
+    (schermen.length === 1 ? ' scherm' : ' schermen') + ' actief</b>';
+  schermVak.appendChild(kopRegel);
+
+  schermen.forEach(function(sc){
+    var minuten = (Date.now() - sc.gezien) / 60000;
+    var klasse = minuten < 30 ? 'leeft' : (minuten < 60 * 24 ? 'stil' : 'weg');
+    var r = maak('div','schermrij');
+    var bol = maak('span','bol ' + klasse);
+    r.appendChild(bol);
+    r.appendChild(document.createTextNode(sc.id + '  ·  ' + geledenTekst(sc.gezien)));
+    schermVak.appendChild(r);
+  });
+
+  if(!schermen.length){
+    var geenScherm = maak('div','schermrij');
+    geenScherm.textContent = 'Nog geen schermen gezien. Ze melden zich zodra ze ' +
+                             'de nieuwste index.html draaien.';
+    schermVak.appendChild(geenScherm);
+  }
+  paneel.appendChild(schermVak);
+
+  /* Knop naar het scherm zoals het op de post hangt. De URL komt van het
+     scherm zelf zodra dat de nieuwe index.html draait; tot die tijd kun je
+     hem hier invullen. */
+  var link = maak('a','schermknop');
+  link.target = '_blank';
+  link.rel = 'noopener';
+
+  var kortRegel = maak('div','url');
+
+  var kopieer = maak('button','mini');
+  kopieer.type = 'button';
+  kopieer.textContent = 'Kopieer';
+
+  var linkRij = maak('div','trij');
+  linkRij.appendChild(link);
+  linkRij.appendChild(kopieer);
+  paneel.appendChild(linkRij);
+  paneel.appendChild(kortRegel);
+
+  var inScherm = tekstveld(c.schermUrl || '',
+    'https://rbdatasolutions.nl/vrfgv/almere/' + id + '/');
+
+  /* Kort tonen: domein + laatste map. De hele URL staat in het veld eronder. */
+  function kortAdres(adres){
+    try{
+      var u = new URL(adres);
+      var delen = u.pathname.split('/').filter(function(d){ return d && d.indexOf('.') === -1; });
+      var laatste = delen.length ? delen[delen.length-1] : '';
+      return u.hostname + (delen.length > 1 ? '/…/' : '/') + laatste + (laatste ? '/' : '');
+    }catch(e){ return adres.replace(/^https?:\/\//,''); }
+  }
+
+  function werkLinkBij(){
+    var adres = (inScherm.value.trim() || p.schermUrl || '');
+    if(adres){
+      link.href = adres;
+      link.textContent = 'Ga naar scherm  ↗';
+      kortRegel.textContent = kortAdres(adres);
+      linkRij.style.display = '';
+      kortRegel.style.display = '';
+    } else {
+      linkRij.style.display = 'none';
+      kortRegel.style.display = 'none';
+    }
+  }
+  kopieer.onclick = function(){
+    var adres = (inScherm.value.trim() || p.schermUrl || '');
+    if(!adres) return;
+    navigator.clipboard.writeText(adres).then(function(){
+      kopieer.textContent = 'Gekopieerd';
+      setTimeout(function(){ kopieer.textContent = 'Kopieer'; }, 1500);
+    }).catch(function(){
+      kopieer.textContent = 'Lukt niet';
+      setTimeout(function(){ kopieer.textContent = 'Kopieer'; }, 1500);
+    });
+  };
+  inScherm.oninput = werkLinkBij;
+  werkLinkBij();
+
+  paneel.appendChild(veldMet('Scherm-URL', inScherm,
+    p.schermUrl ? ('Automatisch gemeld door het scherm: ' + p.schermUrl +
+                   '. Laat leeg om die te blijven volgen.')
+                : ('Nog niet automatisch gemeld. Vul hem hier in, of open de ' +
+                   'pagina van dit scherm één keer met de nieuwste index.html.')));
+
+  /* ---- post ---- */
+  paneel.appendChild(kop3('Post'));
+  var inPostnaam  = tekstveld(c.postnaam, 'Post Veluwsekant');
+  var inBrandweer = tekstveld(c.brandweer, 'Brandweer Flevoland');
+  var rij1 = maak('div','rij');
+  rij1.appendChild(veldMet('Postnaam', inPostnaam));
+  rij1.appendChild(veldMet('Brandweer', inBrandweer));
+  paneel.appendChild(rij1);
+
+  var inAdres = tekstveld(c.adres, 'Veluwezoom 52, Almere');
+  var adresRij = maak('div','trij');
+  adresRij.style.marginBottom = '1rem';
+  adresRij.appendChild(inAdres);
+  var zoekKnop = maak('button','mini');
+  zoekKnop.type = 'button';
+  zoekKnop.textContent = 'Zoek coördinaten';
+  adresRij.appendChild(zoekKnop);
+
+  var adresVeld = maak('div','veld');
+  var adresLabel = maak('label'); adresLabel.textContent = 'Adres kazerne';
+  adresVeld.appendChild(adresLabel); adresVeld.appendChild(adresRij);
+  paneel.appendChild(adresVeld);
+
+  var inLat = tekstveld(c.lat == null ? '' : c.lat, 'breedtegraad');
+  var inLon = tekstveld(c.lon == null ? '' : c.lon, 'lengtegraad');
+  var rij2 = maak('div','rij');
+  rij2.appendChild(veldMet('Breedtegraad', inLat));
+  rij2.appendChild(veldMet('Lengtegraad', inLon));
+  paneel.appendChild(rij2);
+
+  var locHint = maak('p','hint');
+  if(!c.ingesteld){
+    locHint.className = 'hint waarschuwing';
+    locHint.textContent = 'Locatie nog niet ingesteld — routes en rijtijden kloppen pas als hier coördinaten staan.';
+  }
+  paneel.appendChild(locHint);
+
+  zoekKnop.onclick = function(){
+    var adres = inAdres.value.trim();
+    if(!adres){
+      locHint.className = 'hint waarschuwing';
+      locHint.textContent = 'Vul eerst een adres in.';
+      return;
+    }
+    zoekKnop.disabled = true; zoekKnop.textContent = 'Zoeken…';
+    zoekCoordinaten(adres).then(function(res){
+      zoekKnop.disabled = false; zoekKnop.textContent = 'Zoek coördinaten';
+      if(!res){
+        locHint.className = 'hint waarschuwing';
+        locHint.textContent = 'Adres niet gevonden. Probeer straat + huisnummer + plaats.';
+        return;
+      }
+      inLat.value = res.lat.toFixed(6);
+      inLon.value = res.lon.toFixed(6);
+      locHint.className = 'hint';
+      locHint.textContent = 'Gevonden via ' + res.bron + '. Nog opslaan.';
+    });
+  };
+
+  /* ---- meldingen ---- */
+  paneel.appendChild(kop3('Meldingen'));
+  var inCaps = maak('textarea'); inCaps.rows = 3; inCaps.value = (c.capcodes || []).join(' ');
+  paneel.appendChild(veldMet('Capcodes', inCaps,
+    'Gescheiden door spaties. Leeg betekent: dit scherm toont niets.'));
+
+  var inHold = maak('input'); inHold.type = 'number'; inHold.min = '1'; inHold.value = c.holdMin;
+  var inThema = maak('select');
+  [['auto','Automatisch'],['dag','Dag'],['nacht','Nacht']].forEach(function(o){
+    var opt = maak('option'); opt.value = o[0]; opt.textContent = o[1];
+    if((c.thema||'auto') === o[0]) opt.selected = true;
+    inThema.appendChild(opt);
+  });
+  var rij3 = maak('div','rij');
+  rij3.appendChild(veldMet('Melding blijft staan (min)', inHold));
+  rij3.appendChild(veldMet('Weergave', inThema));
+  paneel.appendChild(rij3);
+
+  /* ---- ploegen ---- */
+  paneel.appendChild(kop3('Ploegen'));
+  var ploegTabel = maak('div','tabel');
+  var ploegKop = maak('div','tkop');
+  ploegKop.innerHTML = '<span>Naam</span><span>Start</span><span class="smal">Nu</span><span class="smal"></span>';
+  paneel.appendChild(ploegKop);
+  paneel.appendChild(ploegTabel);
+
+  var ploegen = (c.ploegen || []).map(function(x){ return { naam:x.naam, start:x.start }; });
+  var nuIndex = huidigePloegIndex(ploegen, c.ploegAnkerDatum, c.ploegAnkerIndex, new Date());
+
+  function tekenPloegen(){
+    ploegTabel.innerHTML = '';
+    ploegen.forEach(function(pl, i){
+      var r = maak('div','trij');
+      var n = tekstveld(pl.naam, 'Ploeg A');
+      var s = tekstveld(pl.start, '07:00');
+      n.oninput = function(){ pl.naam = n.value; };
+      s.oninput = function(){ pl.start = s.value; };
+      r.appendChild(n); r.appendChild(s);
+
+      var vak = maak('div','vandaag');
+      var radio = maak('input'); radio.type = 'radio'; radio.name = 'ploeg-' + id;
+      radio.checked = (i === nuIndex);
+      radio.onchange = function(){ nuIndex = i; };
+      vak.appendChild(radio); r.appendChild(vak);
+
+      var weg = maak('button','mini weg'); weg.type = 'button'; weg.textContent = '×';
+      weg.onclick = function(){
+        ploegen.splice(i,1);
+        if(nuIndex >= ploegen.length) nuIndex = 0;
+        tekenPloegen();
+      };
+      r.appendChild(weg);
+      ploegTabel.appendChild(r);
+    });
+  }
+  tekenPloegen();
+
+  var ploegToe = maak('button','knop stil');
+  ploegToe.type = 'button'; ploegToe.textContent = '+ Ploeg';
+  ploegToe.style.marginTop = '.6rem';
+  ploegToe.onclick = function(){ ploegen.push({ naam:'Nieuwe ploeg', start:'07:00' }); tekenPloegen(); };
+  paneel.appendChild(ploegToe);
+
+  var ploegHint = maak('p','hint');
+  ploegHint.textContent = 'De volgorde is de rotatie. Geef je alle ploegen dezelfde starttijd, ' +
+    'dan zijn het 24-uursdiensten en schuift hij elke dag één plek op — vink dan onder "Nu" aan ' +
+    'welke ploeg vandaag draait om te ijken. Verschillende starttijden? Dan bepaalt de klok het.';
+  paneel.appendChild(ploegHint);
+
+  /* ---- posten ---- */
+  paneel.appendChild(kop3('Posten (voor rijtijden)'));
+  var postenTabel = maak('div','tabel');
+  var postenKop = maak('div','tkop');
+  postenKop.innerHTML = '<span>Sleutel</span><span>Naam</span><span>Breedte</span><span>Lengte</span><span class="smal"></span>';
+  paneel.appendChild(postenKop);
+  paneel.appendChild(postenTabel);
+
+  var postenLijst = Object.keys(c.posten || {}).map(function(k){
+    var v = c.posten[k];
+    return { sleutel:k, naam:v.naam, lat:v.lat, lon:v.lon };
+  });
+
+  function tekenPosten(){
+    postenTabel.innerHTML = '';
+    postenLijst.forEach(function(po, i){
+      var r = maak('div','trij');
+      [['sleutel','veluwsekant'],['naam','Veluwsekant'],['lat','52.3'],['lon','5.2']].forEach(function(f){
+        var inp = tekstveld(po[f[0]], f[1]);
+        inp.oninput = function(){ po[f[0]] = inp.value; };
+        r.appendChild(inp);
+      });
+      var weg = maak('button','mini weg'); weg.type='button'; weg.textContent='×';
+      weg.onclick = function(){ postenLijst.splice(i,1); tekenPosten(); };
+      r.appendChild(weg);
+      postenTabel.appendChild(r);
+    });
+  }
+  tekenPosten();
+
+  var postToe = maak('button','knop stil');
+  postToe.type='button'; postToe.textContent='+ Post';
+  postToe.style.marginTop = '.6rem';
+  postToe.onclick = function(){ postenLijst.push({sleutel:'',naam:'',lat:'',lon:''}); tekenPosten(); };
+  paneel.appendChild(postToe);
+
+  /* ---- voertuigen ---- */
+  paneel.appendChild(kop3('Voertuigen'));
+  var vtTabel = maak('div','tabel');
+  var vtKop = maak('div','tkop');
+  vtKop.innerHTML = '<span>Nummer</span><span>Naam</span><span>Post</span><span>Adres</span><span>Coördinaten</span><span class="smal"></span>';
+  paneel.appendChild(vtKop);
+  paneel.appendChild(vtTabel);
+
+  var vtLijst = Object.keys(c.voertuigen || {}).sort().map(function(k){
+    var v = c.voertuigen[k];
+    return {
+      nummer:k, naam:v.naam, post:v.post || '', adres:v.adres || '',
+      coords: (v.lat != null && v.lon != null) ? (v.lat + ',' + v.lon) : ''
+    };
+  });
+
+  function tekenVoertuigen(){
+    vtTabel.innerHTML = '';
+    vtLijst.forEach(function(vt, i){
+      var r = maak('div','trij');
+      [['nummer','254133'],['naam','Tankautospuit'],['post','leeg = geen'],['adres','Veluwezoom 52, Almere']].forEach(function(f){
+        var inp = tekstveld(vt[f[0]], f[1]);
+        inp.oninput = function(){ vt[f[0]] = inp.value; };
+        r.appendChild(inp);
+      });
+      var coord = tekstveld(vt.coords, 'lat,lon');
+      coord.oninput = function(){ vt.coords = coord.value; };
+      r.appendChild(coord);
+
+      var zoek = maak('button','mini'); zoek.type='button'; zoek.textContent='⌖';
+      zoek.title = 'Adres omzetten naar coördinaten';
+      zoek.onclick = function(){
+        if(!vt.adres){ return; }
+        zoek.disabled = true; zoek.textContent = '…';
+        zoekCoordinaten(vt.adres).then(function(res){
+          zoek.disabled = false; zoek.textContent = '⌖';
+          if(res){
+            vt.coords = res.lat.toFixed(6) + ',' + res.lon.toFixed(6);
+            coord.value = vt.coords;
+          } else {
+            zoek.textContent = '✗';
+            setTimeout(function(){ zoek.textContent = '⌖'; }, 1500);
+          }
+        });
+      };
+      r.appendChild(zoek);
+
+      var weg = maak('button','mini weg'); weg.type='button'; weg.textContent='×';
+      weg.onclick = function(){ vtLijst.splice(i,1); tekenVoertuigen(); };
+      r.appendChild(weg);
+      vtTabel.appendChild(r);
+    });
+  }
+  tekenVoertuigen();
+
+  var vtToe = maak('button','knop stil');
+  vtToe.type='button'; vtToe.textContent='+ Voertuig';
+  vtToe.style.marginTop = '.6rem';
+  vtToe.onclick = function(){
+    vtLijst.push({nummer:'',naam:'',post:'',adres:'',coords:''});
+    tekenVoertuigen();
+  };
+  paneel.appendChild(vtToe);
+
+  var vtHint = maak('p','hint');
+  vtHint.textContent = 'Vul Post in (sleutel uit de lijst hierboven) óf een adres dat je met ⌖ opzoekt. ' +
+    'Laat je beide leeg, dan toont het scherm geen rijtijd voor dat voertuig.';
+  paneel.appendChild(vtHint);
+
+  /* ---- werkzaamheden ---- */
+  paneel.appendChild(kop3('Werkzaamheden'));
+  var taakTabel = maak('div','tabel');
+  paneel.appendChild(taakTabel);
+
+  var DAGEN = [['ma','ma'],['di','di'],['wo','wo'],['do','do'],['vr','vr'],['za','za'],['zo','zo']];
+  var taken = (c.taken || []).map(function(t){
+    return { tekst: t.tekst || '', dagen: (t.dagen || []).slice() };
+  });
+
+  function tekenTaken(){
+    taakTabel.innerHTML = '';
+    taken.forEach(function(t, i){
+      var r = maak('div','trij');
+      var inp = tekstveld(t.tekst, 'Materiaalcontrole');
+      inp.oninput = function(){ t.tekst = inp.value; };
+      r.appendChild(inp);
+
+      var dagenVak = maak('div','dagen');
+      DAGEN.forEach(function(d){
+        var k = maak('button','dag' + (t.dagen.indexOf(d[0]) !== -1 ? ' aan' : ''));
+        k.type = 'button'; k.textContent = d[1];
+        k.onclick = function(){
+          var pos = t.dagen.indexOf(d[0]);
+          if(pos === -1) t.dagen.push(d[0]); else t.dagen.splice(pos,1);
+          k.className = 'dag' + (t.dagen.indexOf(d[0]) !== -1 ? ' aan' : '');
+        };
+        dagenVak.appendChild(k);
+      });
+      r.appendChild(dagenVak);
+
+      var weg = maak('button','mini weg'); weg.type='button'; weg.textContent='×';
+      weg.onclick = function(){ taken.splice(i,1); tekenTaken(); };
+      r.appendChild(weg);
+      taakTabel.appendChild(r);
+    });
+  }
+  tekenTaken();
+
+  var taakToe = maak('button','knop stil');
+  taakToe.type='button'; taakToe.textContent='+ Werkzaamheid';
+  taakToe.style.marginTop = '.6rem';
+  taakToe.onclick = function(){ taken.push({ tekst:'', dagen:[] }); tekenTaken(); };
+  paneel.appendChild(taakToe);
+
+  var taakHint = maak('p','hint');
+  taakHint.textContent = 'Kies de dagen waarop de werkzaamheid getoond wordt. ' +
+    'Geen enkele dag aan betekent: elke dag zichtbaar.';
+  paneel.appendChild(taakHint);
+
+  /* ---- meldingen van deze dienst ---- */
+  var meldingen = (tellingen && tellingen.dienst && tellingen.dienst.meldingen) || [];
+  paneel.appendChild(kop3('Meldingen deze dienst (' + meldingen.length + ')'));
+  var ml = maak('div','meldinglijst');
+  if(!meldingen.length){
+    var geen = maak('div'); geen.textContent = 'Nog geen meldingen deze dienst.';
+    ml.appendChild(geen);
+  } else {
+    meldingen.slice().reverse().forEach(function(m){
+      var r = maak('div');
+      var t = new Date(m.ts);
+      var tijd = ('0'+t.getHours()).slice(-2) + ':' + ('0'+t.getMinutes()).slice(-2);
+      var bt = maak('b'); bt.textContent = tijd + '  ';
+      r.appendChild(bt);
+      r.appendChild(document.createTextNode(m.text));
+      ml.appendChild(r);
+    });
+  }
+  paneel.appendChild(ml);
+
+  /* ---- knoppen ---- */
+  var melding = maak('div','melding');
+
+  var acties = maak('div','acties');
+  function knop(tekst, klasse, doe){
+    var k = maak('button', 'knop' + (klasse ? ' ' + klasse : ''));
+    k.type = 'button'; k.textContent = tekst; k.onclick = doe;
+    acties.appendChild(k);
+    return k;
+  }
+
+  function verzamel(){
+    var postenObj = {};
+    postenLijst.forEach(function(po){
+      var sl = String(po.sleutel||'').trim().toLowerCase();
+      var la = parseFloat(po.lat), lo = parseFloat(po.lon);
+      if(!sl || isNaN(la) || isNaN(lo)) return;
+      postenObj[sl] = { naam: po.naam || sl, lat: la, lon: lo };
+    });
+
+    var vtObj = {};
+    vtLijst.forEach(function(vt){
+      var nr = String(vt.nummer||'').trim();
+      if(!nr) return;
+      var la = null, lo = null;
+      var d = String(vt.coords||'').split(',');
+      if(d.length === 2){
+        var a = parseFloat(d[0]), b = parseFloat(d[1]);
+        if(!isNaN(a) && !isNaN(b)){ la = a; lo = b; }
+      }
+      vtObj[nr] = {
+        naam: vt.naam || '', post: (vt.post||'').trim().toLowerCase() || null,
+        adres: vt.adres || '', lat: la, lon: lo
+      };
+    });
+
+    var schoonPloegen = ploegen
+      .map(function(x){ return { naam:String(x.naam||'').trim(), start:x.start||'07:00' }; })
+      .filter(function(x){ return x.naam; });
+
+    /* IJkpunt: welke ploeg staat er nu aangevinkt? Alleen nodig bij één
+       wisseltijd; bij meerdere diensten per dag bepaalt de klok het. */
+    var anker = { datum: c.ploegAnkerDatum, index: c.ploegAnkerIndex };
+    if(schoonPloegen.length && wisselTijden(schoonPloegen).length === 1 && nuIndex >= 0){
+      anker = { datum: datumTekst(dienstDatum(schoonPloegen, new Date())), index: nuIndex };
+    }
+
+    var la2 = parseFloat(inLat.value), lo2 = parseFloat(inLon.value);
+    return {
+      postnaam: inPostnaam.value.trim(),
+      brandweer: inBrandweer.value.trim(),
+      adres: inAdres.value.trim(),
+      schermUrl: inScherm.value.trim(),
+      lat: isNaN(la2) ? null : la2,
+      lon: isNaN(lo2) ? null : lo2,
+      ingesteld: !isNaN(la2) && !isNaN(lo2),
+      thema: inThema.value,
+      capcodes: (inCaps.value.match(/\d{4,7}/g) || []),
+      holdMin: parseInt(inHold.value,10) || 5,
+      ploegen: schoonPloegen,
+      ploegAnkerDatum: anker.datum,
+      ploegAnkerIndex: anker.index,
+      posten: postenObj,
+      voertuigen: vtObj,
+      taken: taken
+        .map(function(t){ return { tekst:String(t.tekst||'').trim(), dagen:t.dagen||[] }; })
+        .filter(function(t){ return t.tekst; })
+    };
+  }
+
+  knop('Wijzigingen opslaan', '', function(){
+    melding.textContent = 'Opslaan…'; melding.className = 'melding';
+    api('opslaan', { post:id, config: verzamel() }).then(function(d){
+      if(d && d.ok){
+        melding.textContent = 'Opgeslagen. De schermen van deze post volgen binnen 15 seconden.';
+        melding.className = 'melding goed';
+        verversLijst();
+      } else {
+        melding.textContent = (d && d.error) || 'Opslaan mislukt.';
+        melding.className = 'melding fout';
+      }
+    }).catch(function(){
+      melding.textContent = 'De Worker is niet bereikbaar.';
+      melding.className = 'melding fout';
+    });
+  });
+
+  knop('Testmelding sturen', 'stil', function(){
+    /* Het scherm filtert op capcode, ook bij testmeldingen. Staat er geen
+       capcode van deze post in de tekst, dan komt hij niet in beeld. Daarom
+       zetten we er automatisch de eerste van deze post in. */
+    var caps = (inCaps.value.match(/\d{4,7}/g) || []);
+    var voorbeeld = 'P 1 BMD-01 Testmelding ' + (inAdres.value.trim() || 'kazerne') +
+                    (caps.length ? ' ' + caps[0] : '') + ' ' +
+                    vtLijst.slice(0,2).map(function(v){ return v.nummer; }).join(' ');
+
+    if(!caps.length){
+      if(!confirm('Deze post heeft nog geen capcodes. Zonder capcodes toont het scherm ' +
+                  'alles wat binnenkomt, dus de test verschijnt wel — maar zodra je ' +
+                  'capcodes invult moet er ook één in de meldingstekst staan.\n\nToch versturen?')) return;
+    }
+
+    var tekstIn = prompt('Meldingstekst — laat de capcode erin staan, anders filtert ' +
+                         'het scherm de melding weg:', voorbeeld.trim());
+    if(tekstIn === null) return;
+
+    if(caps.length && !caps.some(function(cc){ return tekstIn.indexOf(cc) !== -1; })){
+      if(!confirm('Er staat geen capcode van deze post in de tekst. Het scherm zal de ' +
+                  'melding dan niet tonen.\n\nToch versturen?')) return;
+    }
+    melding.textContent = 'Versturen…'; melding.className = 'melding';
+    api('testmelding', { post:id, text: tekstIn }).then(function(d){
+      if(d && d.ok){
+        melding.textContent = 'Verstuurd. Het scherm pikt hem binnen vijf seconden op. ' +
+                              'Telt niet mee in de statistieken.';
+        melding.className = 'melding goed';
+      } else {
+        melding.textContent = (d && d.error) || 'Niet gelukt.';
+        melding.className = 'melding fout';
+      }
+    });
+  });
+
+  knop('Dienstteller op nul', 'stil', function(){ tellers('dienst', 'De dienstteller'); });
+  knop('Jaarteller op nul', 'stil', function(){ tellers('jaar', 'De jaarteller'); });
+
+  function tellers(wat, omschrijving){
+    if(!confirm(omschrijving + ' van ' + id + ' op nul zetten?')) return;
+    api('tellers', { post:id, wat:wat }).then(function(d){
+      if(d && d.ok){
+        melding.textContent = omschrijving.toLowerCase() + ' staat op nul.';
+        melding.className = 'melding goed';
+        verversLijst();
+      } else {
+        melding.textContent = (d && d.error) || 'Niet gelukt.';
+        melding.className = 'melding fout';
+      }
+    });
+  }
+
+  knop('Dupliceren', 'stil', function(){
+    var nieuweSleutel = prompt('Sleutel van de nieuwe post:\n' +
+      'Ploegen, posten, voertuigen en weergave worden overgenomen.\n' +
+      'Postnaam, adres, locatie en capcodes blijven leeg — die zijn plaatsgebonden.');
+    if(!nieuweSleutel) return;
+    nieuweSleutel = nieuweSleutel.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+    if(!nieuweSleutel) return;
+
+    melding.textContent = 'Dupliceren…'; melding.className = 'melding';
+    api('nieuw', { post:nieuweSleutel, postnaam:nieuweSleutel }).then(function(d){
+      if(!d || !d.ok){
+        melding.textContent = (d && d.error) || 'Aanmaken mislukt.';
+        melding.className = 'melding fout';
+        return;
+      }
+      var kopie = verzamel();
+      kopie.postnaam = nieuweSleutel;
+      kopie.brandweer = c.brandweer;
+      kopie.adres = ''; kopie.lat = null; kopie.lon = null; kopie.ingesteld = false;
+      kopie.capcodes = [];
+      return api('opslaan', { post:nieuweSleutel, config: kopie }).then(function(r){
+        if(r && r.ok){
+          melding.textContent = 'Post ' + nieuweSleutel + ' aangemaakt met dezelfde ploegen ' +
+            'en voertuigen. Vul daar nog adres en capcodes in.';
+          melding.className = 'melding goed';
+          verversLijst();
+        } else {
+          melding.textContent = (r && r.error) || 'Kopiëren mislukt.';
+          melding.className = 'melding fout';
+        }
+      });
+    });
+  });
+
+  paneel.appendChild(acties);
+
+  var weg = maak('div','acties');
+  weg.style.marginTop = '2rem';
+  var wegKnop = maak('button','knop gevaar');
+  wegKnop.type = 'button'; wegKnop.textContent = 'Post verwijderen';
+  wegKnop.onclick = function(){
+    var ingevoerd = prompt('Typ ' + id + ' om deze post definitief te verwijderen.\n' +
+                           'Alle instellingen en tellingen gaan weg.');
+    if(ingevoerd === null) return;
+    api('verwijderen', { post:id, bevestig:ingevoerd }).then(function(d){
+      if(d && d.ok){ verversLijst(); }
+      else {
+        melding.textContent = (d && d.error) || 'Niet gelukt.';
+        melding.className = 'melding fout';
+      }
+    });
+  };
+  weg.appendChild(wegKnop);
+  paneel.appendChild(weg);
+  paneel.appendChild(melding);
+}
+
+/* ================= Nieuwe post ================= */
+el('nieuwKnop').onclick = function(){
+  var id = el('nieuwId').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  var naam = el('nieuwNaam').value.trim();
+  if(!id){ toon('nieuwMelding','Vul een sleutel in, bijvoorbeeld rotterdam-centrum.','fout'); return; }
+
+  toon('nieuwMelding','Aanmaken…');
+  api('nieuw', { post:id, postnaam: naam || id }).then(function(d){
+    if(d && d.ok){
+      el('nieuwId').value = ''; el('nieuwNaam').value = '';
+      toon('nieuwMelding','Post ' + id + ' aangemaakt. Zet index.html in een map die eindigt op /' +
+        id + '/ — de laatste mapnaam bepaalt bij welke post het scherm hoort.', 'goed');
+      verversLijst();
+    } else {
+      toon('nieuwMelding',(d && d.error) || 'Aanmaken mislukt.','fout');
+    }
+  }).catch(function(){ toon('nieuwMelding','De Worker is niet bereikbaar.','fout'); });
+};
+
+el('wwKnop').onclick = function(){
+  var nieuw = el('wwNieuw').value;
+  if(nieuw.length < 8){ toon('wwMelding','Minstens 8 tekens.','fout'); return; }
+  toon('wwMelding','Wijzigen…');
+  api('wachtwoord', { nieuw:nieuw }).then(function(d){
+    if(d && d.ok){
+      wachtwoord = nieuw; el('wwNieuw').value = '';
+      toon('wwMelding','Wachtwoord gewijzigd. Bewaar het goed — er is geen herstelknop.','goed');
+    } else { toon('wwMelding',(d && d.error) || 'Niet gelukt.','fout'); }
+  }).catch(function(){ toon('wwMelding','De Worker is niet bereikbaar.','fout'); });
+};
+
+/* Elke minuut de lijst bijwerken, maar niet terwijl je een post openstaan hebt. */
+setInterval(function(){
+  if(wachtwoord && !document.querySelector('.post.open')) verversLijst();
+}, 60000);
+</script>
+</body>
+</html>
