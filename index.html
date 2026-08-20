@@ -1,507 +1,860 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="P2000 kazernescherm - Real-time emergency dispatch system voor Nederlandse brandweerkazernes. Ontvang alarmeringen direct en volg geschatte aankomsttijden op tv of monitor.">
-    <meta name="keywords" content="P2000, kazernescherm, brandweer, dispatch, alarm, Flevoland, Almere">
-    <meta name="author" content="RB Data Solutions">
-    <meta name="theme-color" content="#0f172a">
-    <title>P2000 Kazernescherm | Real-time Emergency Dispatch System | RB Data Solutions</title>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="P2000 Kazernescherm — meldingen, gealarmeerde eenheden en rijtijden op de tv in de kazerne. Voor brandweerposten in heel Nederland.">
+<meta name="keywords" content="P2000, kazernescherm, brandweer, dispatch, alarmering, uitruk, kazerne, Nederland">
+<meta name="author" content="RB Data Solutions">
+<meta name="theme-color" content="#070d18">
+<title>P2000 Kazernescherm | De melding op de tv in de kazerne | RB Data Solutions</title>
 
-        :root {
-            --navy: #0f172a;
-            --orange: #f97316;
-            --white: #ffffff;
-            --slate: #64748b;
-            --light-gray: #f8fafc;
-        }
+<meta property="og:title" content="P2000 Kazernescherm">
+<meta property="og:description" content="De melding, de eenheden en de rijtijden op de tv in de kazerne. Binnen een seconde na de alarmering.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="./images/homepage.jpg">
 
-        html {
-            scroll-behavior: smooth;
-        }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--navy);
-            background: var(--white);
-        }
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
 
-        /* Header */
-        header {
-            background: var(--navy);
-            color: var(--white);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+:root{
+  --nacht:#070d18;
+  --staal:#0e1728;
+  --paneel:#131f34;
+  --rand:#1e2d47;
+  --oranje:#f97316;
+  --sein:#3ec1ff;
+  --mist:#8fa3bf;
+  --wit:#eef4fb;
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --data:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 
-        .logo {
-            font-size: 1.3rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
+  --breed:1180px;
+}
 
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 
-        .logo-image {
-            height: 45px;
-            width: auto;
-            max-width: 150px;
-        }
+body{
+  font-family:var(--body);
+  background:var(--nacht);
+  color:var(--mist);
+  line-height:1.65;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
 
-        .logo-accent {
-            color: var(--orange);
-        }
+/* ---------- ambient raster ---------- */
+.raster{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(62,193,255,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(62,193,255,.045) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 80% 55% at 50% 0%,#000 0%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 55% at 50% 0%,#000 0%,transparent 75%);
+}
+.gloed{
+  position:fixed;top:-30vh;left:50%;transform:translateX(-50%);
+  width:120vw;height:90vh;z-index:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,rgba(249,115,22,.11),transparent 62%);
+}
 
-        nav a {
-            color: var(--white);
-            text-decoration: none;
-            margin-left: 2rem;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
+.wrap{max-width:var(--breed);margin:0 auto;padding:0 clamp(1.1rem,4vw,2rem);position:relative;z-index:1}
 
-        nav a:hover {
-            color: var(--orange);
-        }
+/* ---------- typografie ---------- */
+h1,h2,h3{font-family:var(--display);color:var(--wit);line-height:1.02;letter-spacing:-.01em;font-weight:700;text-transform:uppercase}
+h1{font-size:clamp(2.6rem,8.5vw,5.1rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(2rem,5.5vw,3.2rem);font-weight:800}
+h3{font-size:clamp(1.15rem,2.6vw,1.35rem);letter-spacing:.01em}
 
-        /* Hero Section */
-        .hero {
-            width: 100%;
-            max-height: 500px;
-            overflow: hidden;
-        }
+.kop-label{
+  font-family:var(--data);font-size:.7rem;font-weight:500;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--oranje);
+  display:flex;align-items:center;gap:.65rem;margin-bottom:1.1rem;
+}
+.kop-label::before{content:"";width:26px;height:1px;background:var(--oranje);flex:none}
 
-        .hero-image-main {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
+.lead{font-size:clamp(1rem,2.1vw,1.12rem);max-width:56ch}
+strong{color:var(--wit);font-weight:600}
 
-        /* Hero Text Section */
-        .hero-text {
-            padding: 4rem 2rem;
-            background: var(--light-gray);
-        }
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:60;
+  background:rgba(7,13,24,.82);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--rand);
+}
+.balk{max-width:var(--breed);margin:0 auto;padding:.7rem clamp(1.1rem,4vw,2rem);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.merk{display:flex;align-items:center;gap:.8rem;min-width:0}
+.merk img{height:38px;width:auto;border-radius:5px;display:block}
+.merk-naam{font-family:var(--display);font-size:1.15rem;font-weight:700;color:var(--wit);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+.merk-naam span{color:var(--oranje)}
 
-        .hero-text-content {
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
-        }
+nav{display:flex;align-items:center;gap:clamp(.9rem,2.5vw,1.8rem)}
+nav a{
+  font-family:var(--data);font-size:.76rem;font-weight:500;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--mist);text-decoration:none;
+  padding:.35rem 0;border-bottom:1px solid transparent;transition:color .2s,border-color .2s;
+}
+nav a:hover,nav a:focus-visible{color:var(--wit);border-bottom-color:var(--oranje)}
+.nav-demo{color:var(--oranje)!important}
 
-        .hero-text h1 {
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin-bottom: 1.5rem;
-            font-weight: 800;
-            line-height: 1.2;
-            letter-spacing: -1px;
-            color: var(--navy);
-        }
+/* ---------- knoppen ---------- */
+.knop{
+  display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
+  font-family:var(--data);font-size:.82rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+  padding:1rem 1.9rem;border-radius:3px;text-decoration:none;cursor:pointer;border:1px solid transparent;
+  transition:transform .2s,background .2s,color .2s,box-shadow .2s;
+}
+.knop-vol{background:var(--oranje);color:#0a0f1a;box-shadow:0 8px 30px -10px rgba(249,115,22,.75)}
+.knop-vol:hover{transform:translateY(-2px);box-shadow:0 14px 38px -10px rgba(249,115,22,.9)}
+.knop-leeg{border-color:var(--rand);color:var(--wit);background:rgba(255,255,255,.02)}
+.knop-leeg:hover{border-color:var(--sein);color:var(--sein);transform:translateY(-2px)}
 
-        .hero-description {
-            font-size: clamp(1rem, 2vw, 1.1rem);
-            color: var(--slate);
-            margin-bottom: 2rem;
-            font-weight: 400;
-            line-height: 1.8;
-        }
+:focus-visible{outline:2px solid var(--sein);outline-offset:3px}
 
-        .cta-button {
-            display: inline-block;
-            background: var(--orange);
-            color: var(--white);
-            padding: 1rem 2.5rem;
-            border-radius: 0.5rem;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s;
-            border: 2px solid var(--orange);
-            cursor: pointer;
-            border: none;
-        }
+/* ---------- hero ---------- */
+.hero{padding:clamp(3rem,7vw,5.5rem) 0 clamp(3rem,6vw,4.5rem)}
+.hero-grid{display:grid;grid-template-columns:1fr;gap:clamp(2.5rem,5vw,3.5rem);align-items:center}
+@media(min-width:940px){.hero-grid{grid-template-columns:0.92fr 1.08fr;gap:3.5rem}}
 
-        .cta-button:hover {
-            background: transparent;
-            color: var(--orange);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-        }
+.hero h1 .regel2{display:block;color:var(--oranje)}
+.hero .lead{margin:1.6rem 0 2.2rem}
+.hero-knoppen{display:flex;flex-wrap:wrap;gap:.9rem}
 
-        /* Features Section */
-        .features {
-            background: var(--light-gray);
-            padding: 5rem 2rem;
-        }
+.hero-meta{
+  display:flex;flex-wrap:wrap;gap:.5rem .9rem;margin-top:2.4rem;
+  font-family:var(--data);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#5f7391;
+}
+.hero-meta span{display:flex;align-items:center;gap:.5rem}
+.hero-meta span::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--rand)}
 
-        .features-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+/* ---------- live scherm ---------- */
+.scherm-frame{
+  position:relative;border:1px solid var(--rand);border-radius:8px;overflow:hidden;
+  background:#050a13;box-shadow:0 40px 90px -40px rgba(0,0,0,.95);
+}
+.scherm-frame::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);
+}
+.scherm-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.5rem .85rem;border-bottom:1px solid var(--rand);background:#0a1120;
+  font-family:var(--data);font-size:.63rem;letter-spacing:.16em;text-transform:uppercase;color:#5f7391;
+}
+.stip{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:puls 2.4s infinite;flex:none}
+@keyframes puls{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.scherm-bar .links{display:flex;align-items:center;gap:.55rem}
 
-        .section-title {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            text-align: center;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
+.scherm{position:relative;aspect-ratio:16/10;padding:clamp(.9rem,2.4vw,1.4rem);display:flex;flex-direction:column}
+@media(min-width:940px){.scherm{aspect-ratio:16/9}}
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-        }
+/* rusttoestand */
+.rust{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;transition:opacity .35s}
+.rust-klok{font-family:var(--data);font-size:clamp(2.6rem,8vw,4.2rem);font-weight:400;color:#c3d3e8;line-height:1;letter-spacing:.02em}
+.rust-klok em{font-style:normal;color:var(--sein)}
+.rust-datum{font-family:var(--data);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:#7288a6;margin-top:.5rem}
+.rust-regels{margin-top:1.5rem;display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1.4rem;font-family:var(--data);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#5f7391;text-align:center}
+.rust-ploeg{margin-top:1rem;font-family:var(--display);font-size:1.1rem;letter-spacing:.16em;color:var(--oranje);text-transform:uppercase}
 
-        .feature-card {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: all 0.3s;
-        }
+/* alarmtoestand */
+.alarm{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none}
+.scherm-frame.staat-alarm .alarm{opacity:1;transform:none}
+.scherm-frame.staat-alarm .rust{opacity:0}
+.scherm-frame.staat-alarm{border-color:rgba(249,115,22,.6);box-shadow:0 0 0 1px rgba(249,115,22,.25),0 40px 90px -40px rgba(249,115,22,.5)}
 
-        .feature-card:hover {
-            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
-            transform: translateY(-4px);
-        }
+.prio{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem}
+.prio-tag{
+  font-family:var(--data);font-size:.68rem;font-weight:600;letter-spacing:.16em;
+  background:var(--oranje);color:#0a0f1a;padding:.22rem .6rem;border-radius:2px;
+}
+.prio-tijd{font-family:var(--data);font-size:.68rem;letter-spacing:.14em;color:#7288a6;text-transform:uppercase}
+.alarm-type{font-family:var(--display);font-size:clamp(1.5rem,4.6vw,2.2rem);font-weight:700;color:var(--wit);text-transform:uppercase;line-height:1.05}
+.alarm-adres{font-family:var(--data);font-size:clamp(.8rem,2.1vw,.95rem);color:var(--sein);margin-top:.35rem}
+.alarm-wijk{font-family:var(--data);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#7288a6;margin-top:.2rem}
 
-        .feature-icon {
-            width: 50px;
-            height: 50px;
-            background: var(--orange);
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
+.eenheden{margin-top:auto;padding-top:1rem;display:flex;flex-direction:column;gap:.35rem}
+.eenheden-kop{font-family:var(--data);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:#5f7391;margin-bottom:.15rem}
+.eenheid{
+  display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+  background:rgba(62,193,255,.05);border-left:2px solid var(--sein);
+  padding:.4rem .7rem;border-radius:0 3px 3px 0;
+  font-family:var(--data);font-size:clamp(.72rem,1.9vw,.85rem);color:#c3d3e8;
+  opacity:0;transform:translateX(-10px);
+}
+.eenheid.aan{animation:inschuif .35s forwards}
+@keyframes inschuif{to{opacity:1;transform:none}}
+.eenheid .eta{color:var(--sein);font-weight:600;font-variant-numeric:tabular-nums}
+.eenheid.wacht{border-left-color:#3a4d6d}
+.eenheid.wacht .eta{color:#7288a6}
 
-        .feature-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            color: var(--navy);
-        }
+/* ---------- secties ---------- */
+section{position:relative;z-index:1}
+.sectie{padding:clamp(3.5rem,8vw,6.5rem) 0}
+.sectie-kop{max-width:62ch;margin-bottom:clamp(2.2rem,5vw,3.2rem)}
+.sectie-kop p{margin-top:1.1rem}
 
-        .feature-card p {
-            color: var(--slate);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
+.streep{border:0;border-top:1px solid var(--rand);margin:0}
 
-        /* Benefits Section */
-        .benefits {
-            padding: 5rem 2rem;
-            background: var(--white);
-        }
+/* ---------- 3d tv ---------- */
+.tv-sectie{background:linear-gradient(180deg,transparent,rgba(19,31,52,.55),transparent)}
+.tv-podium{perspective:1600px;padding:clamp(1rem,4vw,2.5rem) 0}
+.tv{
+  position:relative;max-width:900px;margin:0 auto;
+  transform:rotateY(-15deg) rotateX(7deg) scale(.94);
+  transform-origin:50% 60%;
+  transition:transform 1.2s cubic-bezier(.19,1,.22,1);
+  border-radius:10px;
+}
+.tv.recht{transform:rotateY(0deg) rotateX(0deg) scale(1)}
+.tv-bezel{
+  background:linear-gradient(160deg,#1a2436,#0a1120);
+  padding:clamp(.5rem,1.4vw,.9rem);border-radius:10px;
+  border:1px solid var(--rand);
+  box-shadow:0 60px 120px -50px rgba(0,0,0,1),0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.tv-bezel img{width:100%;height:auto;display:block;border-radius:4px}
+.tv-glans{
+  position:absolute;inset:0;border-radius:10px;pointer-events:none;
+  background:linear-gradient(115deg,rgba(255,255,255,.09) 0%,transparent 38%,transparent 100%);
+}
+.tv-voet{width:130px;height:9px;margin:0 auto;background:#131f34;border-radius:0 0 6px 6px;border:1px solid var(--rand);border-top:0}
+.tv-schaduw{width:60%;height:26px;margin:1.4rem auto 0;background:radial-gradient(ellipse,rgba(249,115,22,.16),transparent 70%);filter:blur(9px)}
+.tv-onder{text-align:center;margin-top:1.8rem;font-family:var(--data);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:#5f7391}
 
-        .benefits-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+/* ---------- tijdlijn ---------- */
+.tijdlijn{display:grid;gap:0;border-top:1px solid var(--rand)}
+.stap{
+  display:grid;grid-template-columns:auto 1fr;gap:1rem clamp(1rem,3vw,2.4rem);
+  padding:clamp(1.3rem,3vw,1.9rem) 0;border-bottom:1px solid var(--rand);
+  align-items:start;transition:background .3s;
+}
+@media(min-width:760px){.stap{grid-template-columns:110px 1fr}}
+.stap:hover{background:rgba(62,193,255,.03)}
+.stap-tijd{
+  font-family:var(--data);font-size:.85rem;font-weight:600;letter-spacing:.06em;
+  color:var(--oranje);padding-top:.15rem;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.stap h3{margin-bottom:.45rem}
+.stap p{font-size:.96rem;max-width:64ch}
 
-        .benefits h2 {
-            font-size: 2rem;
-            margin-bottom: 3rem;
-            text-align: center;
-        }
+/* ---------- kaarten ---------- */
+.kaarten{display:grid;grid-template-columns:1fr;gap:1px;background:var(--rand);border:1px solid var(--rand);border-radius:6px;overflow:hidden}
+@media(min-width:640px){.kaarten{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:980px){.kaarten{grid-template-columns:repeat(3,1fr)}}
+.kaart{background:var(--staal);padding:clamp(1.5rem,3.2vw,2rem);transition:background .3s}
+.kaart:hover{background:var(--paneel)}
+.kaart svg{width:26px;height:26px;stroke:var(--oranje);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;margin-bottom:1.1rem;display:block}
+.kaart h3{margin-bottom:.5rem}
+.kaart p{font-size:.93rem}
 
-        .benefits-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
+/* ---------- twee publieken ---------- */
+.publiek{display:grid;grid-template-columns:1fr;gap:1.5rem}
+@media(min-width:860px){.publiek{grid-template-columns:1fr 1fr;gap:1.5rem}}
+.blok{
+  border:1px solid var(--rand);border-radius:6px;padding:clamp(1.6rem,3.4vw,2.3rem);
+  background:linear-gradient(180deg,var(--staal),rgba(14,23,40,.4));
+}
+.blok-tag{font-family:var(--data);font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--sein);margin-bottom:.9rem}
+.blok:nth-child(2) .blok-tag{color:var(--oranje)}
+.blok h3{font-size:clamp(1.4rem,3.2vw,1.8rem);margin-bottom:1.3rem}
+.lijst{list-style:none;display:flex;flex-direction:column;gap:.85rem}
+.lijst li{display:flex;gap:.8rem;font-size:.95rem;align-items:flex-start}
+.lijst svg{width:16px;height:16px;flex:none;margin-top:.35rem;stroke:var(--sein);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.blok:nth-child(2) .lijst svg{stroke:var(--oranje)}
 
-        .benefit-item {
-            display: flex;
-            gap: 1rem;
-        }
+/* ---------- cijfers ---------- */
+.cijfers{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rand);border:1px solid var(--rand);border-radius:6px;overflow:hidden}
+@media(min-width:760px){.cijfers{grid-template-columns:repeat(4,1fr)}}
+.cijfer{background:var(--staal);padding:clamp(1.3rem,3vw,1.8rem);text-align:center}
+.cijfer b{display:block;font-family:var(--display);font-size:clamp(1.9rem,5vw,2.6rem);font-weight:800;color:var(--wit);line-height:1}
+.cijfer span{display:block;font-family:var(--data);font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:#5f7391;margin-top:.6rem}
 
-        .benefit-check {
-            flex-shrink: 0;
-            width: 24px;
-            height: 24px;
-            background: var(--orange);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-weight: bold;
-            margin-top: 0.2rem;
-        }
+/* ---------- voor wie ---------- */
+.profielen{display:grid;grid-template-columns:1fr;gap:1.5rem}
+@media(min-width:900px){.profielen{grid-template-columns:repeat(3,1fr)}}
+.profiel{
+  border:1px solid var(--rand);border-radius:6px;overflow:hidden;
+  background:var(--staal);display:flex;flex-direction:column;
+  transition:border-color .3s,transform .3s;
+}
+.profiel:hover{border-color:rgba(62,193,255,.4);transform:translateY(-3px)}
+.profiel-kop{padding:1.3rem clamp(1.4rem,3vw,1.8rem) 0}
+.profiel-tag{font-family:var(--data);font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;color:var(--sein);margin-bottom:.7rem}
+.profiel h3{font-size:clamp(1.25rem,3vw,1.5rem);margin-bottom:.7rem}
+.profiel-situatie{font-size:.92rem;padding:0 clamp(1.4rem,3vw,1.8rem) 1.3rem;border-bottom:1px solid var(--rand)}
+.profiel-punten{list-style:none;padding:1.3rem clamp(1.4rem,3vw,1.8rem);display:flex;flex-direction:column;gap:.7rem;margin-top:auto}
+.profiel-punten li{
+  font-family:var(--data);font-size:.78rem;letter-spacing:.03em;color:#a8bcd6;
+  display:flex;gap:.6rem;align-items:flex-start;line-height:1.55;
+}
+.profiel-punten li::before{content:"→";color:var(--oranje);flex:none}
 
-        .benefit-text {
-            font-size: 1rem;
-            color: var(--slate);
-        }
+/* ---------- landelijk ---------- */
+.landelijk{background:linear-gradient(180deg,transparent,rgba(19,31,52,.5),transparent)}
 
-        /* CTA Section */
-        .cta-section {
-            background: linear-gradient(135deg, var(--navy) 0%, #1e293b 100%);
-            color: var(--white);
-            padding: 4rem 2rem;
-            text-align: center;
-        }
+/* ---------- kosten ---------- */
+.kosten-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;align-items:start}
+@media(min-width:900px){.kosten-grid{grid-template-columns:1.05fr .95fr}}
+.kosten-blok{border:1px solid var(--rand);border-radius:6px;padding:clamp(1.6rem,3.4vw,2.3rem);background:var(--staal)}
+.kosten-blok.nadruk{background:linear-gradient(165deg,rgba(249,115,22,.09),var(--staal) 55%);border-color:rgba(249,115,22,.35)}
+.kosten-blok h3{margin-bottom:1.2rem}
+.kosten-prijs{font-family:var(--display);font-size:clamp(1.8rem,4.5vw,2.4rem);font-weight:800;color:var(--wit);line-height:1.05;margin-bottom:.5rem;text-transform:uppercase}
+.kosten-prijs small{display:block;font-family:var(--data);font-size:.68rem;font-weight:400;letter-spacing:.16em;color:var(--oranje);text-transform:uppercase;margin-bottom:.6rem}
+.kosten-uitleg{font-size:.94rem;margin-bottom:1.5rem}
+.kosten-stappen{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:1rem}
+.kosten-stappen li{display:flex;gap:.9rem;font-size:.94rem;align-items:flex-start}
+.kosten-stappen li::before{
+  counter-increment:s;content:counter(s);flex:none;
+  width:24px;height:24px;border-radius:50%;border:1px solid var(--rand);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--data);font-size:.7rem;color:var(--oranje);margin-top:.1rem;
+}
 
-        .cta-section h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
+/* ---------- contact ---------- */
+.contact{background:linear-gradient(180deg,rgba(19,31,52,.5),transparent);border-top:1px solid var(--rand)}
+.contact-inhoud{text-align:center;max-width:620px;margin:0 auto}
+.contact-inhoud p{margin:1.2rem auto 2.2rem}
+.contact-knoppen{display:flex;flex-wrap:wrap;gap:.9rem;justify-content:center}
+.contact-mail{margin-top:2rem;font-family:var(--data);font-size:.8rem;letter-spacing:.06em}
+.contact-mail a{color:var(--sein);text-decoration:none;border-bottom:1px solid rgba(62,193,255,.35)}
+.contact-mail a:hover{color:var(--wit);border-bottom-color:var(--wit)}
 
-        .cta-section p {
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            color: rgba(255,255,255,0.9);
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-        }
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
+.voet{display:flex;flex-direction:column;gap:1.4rem;align-items:center;text-align:center}
+@media(min-width:760px){.voet{flex-direction:row;justify-content:space-between;text-align:left}}
+.voet-links{display:flex;flex-wrap:wrap;gap:1.4rem;justify-content:center}
+.voet-links a{font-family:var(--data);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:#5f7391;text-decoration:none;transition:color .2s}
+.voet-links a:hover{color:var(--oranje)}
+.voet-tekst{font-family:var(--data);font-size:.72rem;letter-spacing:.06em;color:#455a78;line-height:1.9}
 
-        .cta-button-light {
-            display: inline-block;
-            background: var(--orange);
-            color: var(--navy);
-            padding: 1rem 2.5rem;
-            border-radius: 0.5rem;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
+/* ---------- scroll-onthulling ---------- */
+.onthul{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.19,1,.22,1),transform .8s cubic-bezier(.19,1,.22,1);transition-delay:var(--d,0s)}
+.onthul.zichtbaar{opacity:1;transform:none}
 
-        .cta-button-light:hover {
-            background: var(--white);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
-        }
-
-        /* Footer */
-        footer {
-            background: #030712;
-            color: var(--slate);
-            padding: 2rem;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-links {
-            margin-bottom: 1rem;
-        }
-
-        .footer-links a {
-            color: var(--slate);
-            text-decoration: none;
-            margin: 0 1rem;
-            transition: color 0.2s;
-        }
-
-        .footer-links a:hover {
-            color: var(--orange);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            nav {
-                display: flex;
-                gap: 1rem;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            nav a {
-                margin: 0;
-                font-size: 0.85rem;
-            }
-
-            .hero {
-                max-height: 300px;
-            }
-
-            .hero-text {
-                padding: 2rem 1rem;
-            }
-
-            .hero-text h1 {
-                font-size: 1.8rem;
-            }
-
-            .section-title {
-                font-size: 1.8rem;
-            }
-
-            .features {
-                padding: 3rem 1rem;
-            }
-
-            .benefits {
-                padding: 3rem 1rem;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-    </style>
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+  .onthul{opacity:1;transform:none}
+  .tv{transform:none}
+  .eenheid{opacity:1;transform:none}
+}
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="header-content">
-            <div class="logo-container">
-                <img src="./images/logo.jpg" alt="RB Data Solutions Logo" class="logo-image">
-                <div class="logo">RB Data <span class="logo-accent">Solutions</span></div>
+
+<div class="raster" aria-hidden="true"></div>
+<div class="gloed" aria-hidden="true"></div>
+
+<header>
+  <div class="balk">
+    <div class="merk">
+      <img src="./images/logo.jpg" alt="RB Data Solutions">
+      <div class="merk-naam">RB Data <span>Solutions</span></div>
+    </div>
+    <nav>
+      <a href="#werking">Werking</a>
+      <a href="#voor-wie">Voor wie</a>
+      <a href="#landelijk">Landelijk</a>
+      <a href="#kosten">Wat het kost</a>
+      <a href="#contact" class="nav-demo">Demo</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+
+    <div class="onthul">
+      <div class="kop-label">P2000 Kazernescherm</div>
+      <h1>De melding<span class="regel2">staat er al</span></h1>
+      <p class="lead">Zodra de pieper gaat, staat de melding op de tv in de kazerne. Type incident, volledig adres met wijk, en per voertuig de rijtijd naar de plaats incident — gesorteerd op wie er als eerste is.</p>
+      <div class="hero-knoppen">
+        <a href="#contact" class="knop knop-vol">Demo aanvragen</a>
+        <a href="#werking" class="knop knop-leeg">Bekijk de werking</a>
+      </div>
+      <div class="hero-meta">
+        <span>Eigen ontvanger in de kazerne</span>
+        <span>Draait op elke tv</span>
+        <span>Beheer uit handen</span>
+      </div>
+    </div>
+
+    <div class="onthul" style="--d:.12s">
+      <div class="scherm-frame" id="demo">
+        <div class="scherm-bar">
+          <div class="links"><span class="stip"></span> Live voorbeeld</div>
+          <div>Voorbeeldpost</div>
+        </div>
+
+        <div class="scherm">
+          <!-- rusttoestand -->
+          <div class="rust">
+            <div class="rust-klok" id="klok">19<em>:</em>42</div>
+            <div class="rust-datum" id="datum">Donderdag 20 augustus</div>
+            <div class="rust-ploeg" id="ploeg">Ploeg A — dienst</div>
+            <div class="rust-regels">
+              <span>18°C · wind ZW 4</span>
+              <span>Taak: ademlucht controleren</span>
+              <span>Meldingen deze dienst: 3</span>
             </div>
-            <nav>
-                <a href="#features">Features</a>
-                <a href="#benefits">Voordelen</a>
-                <a href="#contact">Contact</a>
-            </nav>
-        </div>
-    </header>
+          </div>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <img src="./images/homepage.jpg" alt="P2000 Dispatch Screen" class="hero-image-main">
-    </section>
-
-    <!-- Hero Text Section -->
-    <section class="hero-text">
-        <div class="hero-text-content">
-            <h1>P2000 Kazernescherm</h1>
-            <p class="hero-description">Toon P2000-meldingen overzichtelijk op een tv of monitor in de kazerne.<br><br>
-            Ontvang alarmeringen direct, zie welke eenheden zijn gealarmeerd en bekijk de incidentinformatie. Zo is de uitrukploeg altijd snel en goed geïnformeerd.</p>
-            <button class="cta-button" onclick="document.getElementById('contact').scrollIntoView();">Meer informatie</button>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="features-container">
-            <h2 class="section-title">Hoe het werkt</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📡</div>
-                    <h3>Live P2000-alarmeringen</h3>
-                    <p>Ontvang alle P2000-meldingen in real-time direct op je scherm in de kazerne.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📋</div>
-                    <h3>Duidelijke incidentinformatie</h3>
-                    <p>Zie direct welke eenheden zijn gealarmeerd en alle relevante incidentdetails.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🚒</div>
-                    <h3>Overzicht gealarmeerde eenheden</h3>
-                    <p>Zie welke voertuigen zijn gealarmeerd en wat hun geschatte ETA is.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📺</div>
-                    <h3>Flexibel display</h3>
-                    <p>Werkt op elke tv of monitor — ideaal voor kazerne, huiskamer of computerscherm.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Altijd betrouwbaar</h3>
-                    <p>Ontworpen voor kritieke emergency dispatch situaties 24/7.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Extra informatie op maat</h3>
-                    <p>Het scherm toont ook weersinformatie, kazerne taken of andere informatie die je graag wil zien.</p>
-                </div>
+          <!-- alarmtoestand -->
+          <div class="alarm">
+            <div class="prio">
+              <span class="prio-tag">PRIO 1</span>
+              <span class="prio-tijd" id="meldtijd">Gealarmeerd 19:43</span>
             </div>
-        </div>
-    </section>
+            <div class="alarm-type">Brandmelding<br>automatisch</div>
+            <div class="alarm-adres">Odinstraat, Almere</div>
+            <div class="alarm-wijk">Columbuskwartier · Almere Poort</div>
 
-    <!-- Benefits Section -->
-    <section class="benefits" id="benefits">
-        <div class="benefits-container">
-            <h2>Waarom kiezen voor P2000 Kazernescherm?</h2>
-            <div class="benefits-list">
-                <div class="benefit-item">
-                    <div class="benefit-check">✓</div>
-                    <div class="benefit-text"><strong>Realtime P2000-alarmeringen</strong> — Geen vertraging, altijd actueel</div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-check">✓</div>
-                    <div class="benefit-text"><strong>Duidelijke incidentinformatie</strong> — Alle details in één overzicht</div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-check">✓</div>
-                    <div class="benefit-text"><strong>Overzicht gealarmeerde eenheden</strong> — Weet wie er uitrikt</div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-check">✓</div>
-                    <div class="benefit-text"><strong>Geschikt voor tv's en monitoren</strong> — Eenvoudige installatie</div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-check">✓</div>
-                    <div class="benefit-text"><strong>Extra informatie op maat</strong> — Weer, taken, en meer zoals jij wilt</div>
-                </div>
+            <div class="eenheden" id="eenheden">
+              <div class="eenheden-kop">Gealarmeerde eenheden — op rijtijd</div>
+              <div class="eenheid" data-eta="164"><span>TS 99-1131</span><span class="eta">2:44</span></div>
+              <div class="eenheid" data-eta="223"><span>HW 99-1152</span><span class="eta">3:43</span></div>
+              <div class="eenheid" data-eta="352"><span>TS 99-1133</span><span class="eta">5:52</span></div>
+              <div class="eenheid wacht"><span>OVD 99-1101</span><span class="eta">—</span></div>
             </div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
 
-    <!-- CTA Section -->
-    <section class="cta-section" id="contact">
-        <h2>Klaar om je kazerne op niveau te brengen?</h2>
-        <p>Neem contact op voor een demo of meer informatie over P2000 Kazernescherm.</p>
-        <a href="mailto:info@rbdatasolutions.nl" class="cta-button-light">Stuur een e-mail</a>
-    </section>
+  </div>
+</section>
 
-    <!-- Footer -->
-    <footer>
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="#features">Features</a>
-                <a href="#benefits">Voordelen</a>
-                <a href="mailto:info@rbdatasolutions.nl">Contact</a>
-            </div>
-            <p>&copy; 2026 RB Data Solutions. Alle rechten voorbehouden.</p>
-            <p style="margin-top: 1rem; font-size: 0.85rem;">Real-time emergency dispatch system voor Nederlandse brandweerkazernes</p>
+<hr class="streep">
+
+<!-- ============ WERKING ============ -->
+<section class="sectie" id="werking">
+  <div class="wrap">
+    <div class="sectie-kop onthul">
+      <div class="kop-label">Van melding tot uitruk</div>
+      <h2>Wat er gebeurt<br>in de eerste minuut</h2>
+      <p class="lead">De pieper geeft je een regel tekst. Het scherm geeft dezelfde melding, maar dan met de locatie op de kaart, de wijk erbij, en per voertuig een rijtijd. Alles wat je normaal alsnog moet opzoeken of wil weten, staat er al voordat je daadwerkelijk uitrukt.</p>
+    </div>
+
+    <div class="tijdlijn">
+      <div class="stap onthul">
+        <div class="stap-tijd">00:00</div>
+        <div>
+          <h3>De melding komt binnen</h3>
+          <p>De post heeft een eigen P2000-ontvanger. Die vangt de alarmering rechtstreeks op, zonder tussenpartij en zonder vertraging van een website of app.</p>
         </div>
-    </footer>
+      </div>
+      <div class="stap onthul">
+        <div class="stap-tijd">00:01</div>
+        <div>
+          <h3>Het scherm springt aan</h3>
+          <p>Prioriteit, type incident en de locatie — met wijk en stadsdeel erbij, zoals het in de omgeving genoemd wordt. Ook als de melding zelf alleen een straatnaam bevat.</p>
+        </div>
+      </div>
+      <div class="stap onthul">
+        <div class="stap-tijd">00:03</div>
+        <div>
+          <h3>De kaart en de route staan er</h3>
+          <p>De route wordt berekend met een profiel voor voorrangsvoertuigen. Waar de regio busbanen vrijgeeft, worden die meegenomen. Per eenheid een rijtijd en een afstand, niet één gemiddelde voor de hele uitruk. De rijtijd is een indicatie: verkeer, weer en de route die je zelf kiest bepalen wat het werkelijk wordt.</p>
+        </div>
+      </div>
+      <div class="stap onthul">
+        <div class="stap-tijd">00:06</div>
+        <div>
+          <h3>Eenheden op volgorde</h3>
+          <p>De gealarmeerde eenheden staan gesorteerd op rijtijd: wie het eerst ter plaatse is, staat bovenaan. In één blik weet je wie je onderweg treft en wanneer.</p>
+        </div>
+      </div>
+      <div class="stap onthul">
+        <div class="stap-tijd">Daarna</div>
+        <div>
+          <h3>Terug naar rust</h3>
+          <p>Klok, weerbericht, de kazernetaken van vandaag en welke ploeg dienst heeft. Het scherm is de rest van de dag gewoon nuttig om naar te kijken.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HET SCHERM ============ -->
+<section class="sectie tv-sectie" id="scherm">
+  <div class="wrap">
+    <div class="sectie-kop onthul" style="text-align:center;margin-left:auto;margin-right:auto">
+      <div class="kop-label" style="justify-content:center">Het scherm</div>
+      <h2>Zo hangt het<br>in de kazerne</h2>
+    </div>
+
+    <div class="tv-podium">
+      <div class="tv" id="tv">
+        <div class="tv-bezel">
+          <img src="./images/homepage.jpg" alt="Het P2000 Kazernescherm met een actieve melding, kaart en gealarmeerde eenheden" loading="lazy">
+          <div class="tv-glans" aria-hidden="true"></div>
+        </div>
+        <div class="tv-voet" aria-hidden="true"></div>
+      </div>
+      <div class="tv-schaduw" aria-hidden="true"></div>
+      <p class="tv-onder">Werkt op elke tv, monitor of tablet met een browser</p>
+    </div>
+  </div>
+</section>
+
+<hr class="streep">
+
+<!-- ============ FUNCTIES ============ -->
+<section class="sectie">
+  <div class="wrap">
+    <div class="sectie-kop onthul">
+      <div class="kop-label">Wat het scherm doet</div>
+      <h2>Zes dingen,<br>goed gedaan</h2>
+    </div>
+
+    <div class="kaarten">
+      <div class="kaart onthul">
+        <svg viewBox="0 0 24 24"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M19.1 4.9a10 10 0 0 1 0 14.2"/><circle cx="12" cy="12" r="2"/></svg>
+        <h3>Eigen ontvanger</h3>
+        <p>Je krijgt een ontvanger die de alarmering rechtstreeks oppikt, kant-en-klaar ingesteld. Geen omweg via een externe dienst die er even uit kan liggen. Een werkende internetverbinding op de post is wel nodig.</p>
+      </div>
+      <div class="kaart onthul" style="--d:.06s">
+        <svg viewBox="0 0 24 24"><path d="M12 21s-7-5.6-7-11a7 7 0 1 1 14 0c0 5.4-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <h3>Locatie die klopt</h3>
+        <p>Straat, wijk en stadsdeel, voor heel Nederland.</p>
+      </div>
+      <div class="kaart onthul" style="--d:.12s">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
+        <h3>Rijtijd per eenheid</h3>
+        <p>Een rijtijd en afstand per voertuig, gesorteerd op wie er als eerste aankomt. Busbanen worden meegerekend waar de regio dat toestaat.</p>
+      </div>
+      <div class="kaart onthul">
+        <svg viewBox="0 0 24 24"><path d="M3 6h13a2 2 0 0 1 2 2v6H3z"/><path d="M18 10h2.2l1.8 2.6V14h-4z"/><circle cx="7" cy="17" r="2"/><circle cx="17.5" cy="17" r="2"/></svg>
+        <h3>Wie er uitrukt</h3>
+        <p>Alle gealarmeerde voertuigen op een rij, met hun nummer. Je ziet direct of het bij jouw post blijft of dat er meer op komt.</p>
+      </div>
+      <div class="kaart onthul" style="--d:.06s">
+        <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <h3>Draait op wat er hangt</h3>
+        <p>Een tv met een browser, of een tablet. De ontvanger regelt de rest, dus er komt geen software op een pc in de kazerne.</p>
+      </div>
+      <div class="kaart onthul" style="--d:.12s">
+        <svg viewBox="0 0 24 24"><path d="M4 19V5M4 6h9l-1.5 2.5L13 11H4"/><path d="M4 19h6"/></svg>
+        <h3>Rustscherm op maat</h3>
+        <p>Weer, kazernetaken, ploegrotatie en het aantal meldingen per dienst. Je bepaalt zelf wat er tussen de meldingen door staat.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="streep">
+
+<!-- ============ VOORDELEN ============ -->
+<section class="sectie" id="voordelen">
+  <div class="wrap">
+    <div class="sectie-kop onthul">
+      <div class="kop-label">Voordelen</div>
+      <h2>Voor de ploeg<br>én voor de regio</h2>
+    </div>
+
+    <div class="publiek">
+      <div class="blok onthul">
+        <div class="blok-tag">Op de post</div>
+        <h3>Minder zoeken,<br>eerder weg</h3>
+        <ul class="lijst">
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Geen telefoon erbij.</strong> Alles staat groot op het scherm terwijl je je aankleedt.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Je kent het adres al.</strong> Wijk en stadsdeel erbij, dus je weet meteen waar je heen gaat.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Je weet wie er komt.</strong> En wie er eerder is, zodat je daarop kunt anticiperen.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Nuttig als er niets is.</strong> Taken, weer en ploegdienst op het rustscherm.</span></li>
+        </ul>
+      </div>
+
+      <div class="blok onthul" style="--d:.1s">
+        <div class="blok-tag">Voor de regio</div>
+        <h3>Eén systeem,<br>geen beheerlast</h3>
+        <ul class="lijst">
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Elke post eigen instellingen.</strong> Voertuignummers, kazernetaken en weergave richten wij per post in.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Niemand hoeft iets te beheren.</strong> Geen accounts, geen inlog, geen instructie voor de ploeg. Je geeft een wijziging door en het staat er.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Alle posten dezelfde versie.</strong> Wat op de ene post wordt verbeterd, staat kort daarna overal.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Storingen zien wij zelf.</strong> Wij controleren of de schermen draaien, in plaats van dat de post het moet melden.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cijfers onthul" style="margin-top:1.5rem">
+      <div class="cijfer"><b>1 sec</b><span>Melding op het scherm</span></div>
+      <div class="cijfer"><b>24/7</b><span>Draait door</span></div>
+      <div class="cijfer"><b>NL</b><span>Adressen landelijk</span></div>
+      <div class="cijfer"><b>1</b><span>Ontvanger per post</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="streep">
+
+<!-- ============ VOOR WIE ============ -->
+<section class="sectie" id="voor-wie">
+  <div class="wrap">
+    <div class="sectie-kop onthul">
+      <div class="kop-label">Voor wie</div>
+      <h2>Eén post,<br>of een hele regio</h2>
+      <p class="lead">Het scherm is gebouwd voor de praktijk op de kazerne. Het schaalt mee van één post naar een hele regio, maar het blijft hetzelfde scherm.</p>
+    </div>
+
+    <div class="profielen">
+      <div class="profiel onthul">
+        <div class="profiel-kop">
+          <div class="profiel-tag">Vrijwilligerspost</div>
+          <h3>Je komt van huis</h3>
+        </div>
+        <p class="profiel-situatie">Je rijdt op de melding naar de kazerne en wilt bij binnenkomst meteen zien waar het is, wie er al gealarmeerd is en of je nog nodig bent.</p>
+        <ul class="profiel-punten">
+          <li>Melding staat er voordat je binnen bent</li>
+          <li>Adres met wijk, dus je weet direct de richting</li>
+          <li>Zie welke posten er nog meer op zitten</li>
+        </ul>
+      </div>
+
+      <div class="profiel onthul" style="--d:.08s">
+        <div class="profiel-kop">
+          <div class="profiel-tag">Beroepskazerne</div>
+          <h3>Je bent er al</h3>
+        </div>
+        <p class="profiel-situatie">Je draait een 24-uursdienst. Tussen de meldingen door moet het scherm nuttig zijn, en bij een uitruk moet het onmiddellijk het goede laten zien.</p>
+        <ul class="profiel-punten">
+          <li>Rustscherm met taken, weer en ploegdienst</li>
+          <li>Ploegrotatie loopt automatisch door</li>
+          <li>Meldingen geteld per dienst en per ploeg</li>
+        </ul>
+      </div>
+
+      <div class="profiel onthul" style="--d:.16s">
+        <div class="profiel-kop">
+          <div class="profiel-tag">Veiligheidsregio</div>
+          <h3>Je beheert er tien</h3>
+        </div>
+        <p class="profiel-situatie">Je wilt niet tien losse installaties met tien verschillende versies, en al helemaal geen extra systeem dat iemand moet gaan bijhouden.</p>
+        <ul class="profiel-punten">
+          <li>Eén systeem, dat wij per post apart inrichten</li>
+          <li>Onderhoud en updates liggen niet bij jullie</li>
+          <li>Alle posten draaien dezelfde versie</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LANDELIJK ============ -->
+<section class="sectie landelijk" id="landelijk">
+  <div class="wrap">
+    <div class="sectie-kop onthul">
+      <div class="kop-label">Landelijke uitrol</div>
+      <h2>Overal hetzelfde<br>scherm</h2>
+      <p class="lead">Er is één scherm en dat draait op elke post die meedoet. Welke kazerne je bent, zit in het adres dat je krijgt — daar haalt het scherm zijn capcodes, voertuignummers, taken en instellingen op.</p>
+    </div>
+
+    <div class="publiek">
+      <div class="blok onthul">
+        <div class="blok-tag">Wat dat oplevert</div>
+        <h3>Verbeteren op<br>alle schermen tegelijk</h3>
+        <ul class="lijst">
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Eén versie voor iedereen.</strong> Een verbetering die op de ene post wordt bedacht, staat kort daarna op alle schermen.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Per post ingericht.</strong> Voertuignummers, aantal ploegen, kazernetaken en weergave stellen wij per kazerne apart in.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Meerdere schermen per post.</strong> Remise, huiskamer en instructielokaal tonen hetzelfde en blijven vanzelf gelijk.</span></li>
+        </ul>
+      </div>
+      <div class="blok onthul" style="--d:.1s">
+        <div class="blok-tag">Beheer</div>
+        <h3>Dat doen wij,<br>niet de post</h3>
+        <ul class="lijst">
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Niks in te stellen op de post.</strong> Wij leveren het scherm kant-en-klaar op voor jouw kazerne.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Wijziging doorgeven is genoeg.</strong> Een nieuw voertuignummer of een andere kazernetaak: mailtje, en het staat erop.</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg><span><strong>Onderhoud zit erbij.</strong> Updates, storingen en verbeteringen lopen door zonder dat de post er iets voor hoeft te doen.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="streep">
+
+<!-- ============ KOSTEN ============ -->
+<section class="sectie" id="kosten">
+  <div class="wrap">
+    <div class="sectie-kop onthul">
+      <div class="kop-label">Wat het kost</div>
+      <h2>Eerst kijken,<br>dan pas praten</h2>
+      <p class="lead">Elke post is anders: aantal schermen, wel of geen eigen ontvanger, één kazerne of een hele regio. Daarom geen prijslijst, maar een offerte die bij je situatie past.</p>
+    </div>
+
+    <div class="kosten-grid">
+      <div class="kosten-blok nadruk onthul">
+        <div class="kosten-prijs">
+          <small>Proefperiode</small>
+          Kosteloos uitproberen
+        </div>
+        <p class="kosten-uitleg">Wij richten een scherm in met de capcodes en voertuignummers van jouw kazerne. Hang het een paar weken in de remise en kijk of de ploeg het gebruikt. Zo niet, dan stopt het daar.</p>
+        <a href="#contact" class="knop knop-vol">Post aanmelden</a>
+      </div>
+
+      <div class="kosten-blok onthul" style="--d:.1s">
+        <h3>Hoe het verder gaat</h3>
+        <ol class="kosten-stappen">
+          <li>Je geeft je post door: regio, aantal schermen en de voertuigen die bij jullie horen.</li>
+          <li>Je draait de proefperiode. Wil je iets anders op het rustscherm, dan geef je dat door en passen wij het aan.</li>
+          <li>Bevalt het, dan volgt een voorstel op basis van het aantal schermen en of je een eigen ontvanger wilt. De ontvanger en eventuele schermen leveren en installeren wij.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section class="sectie contact" id="contact">
+  <div class="wrap contact-inhoud">
+    <div class="onthul">
+      <div class="kop-label" style="justify-content:center">Contact</div>
+      <h2>Zien hoe het<br>bij jouw post staat?</h2>
+      <p class="lead" style="margin-left:auto;margin-right:auto">Stuur een bericht met de naam van je post en je regio. Je krijgt een werkende demo-omgeving met de voertuignummers van je eigen kazerne erin.</p>
+      <div class="contact-knoppen">
+        <a href="mailto:info@rbdatasolutions.nl?subject=Demo%20P2000%20Kazernescherm&body=Post%3A%20%0ARegio%3A%20%0AAantal%20schermen%3A%20%0A%0AVraag%3A%20" class="knop knop-vol">Demo aanvragen</a>
+        <a href="#werking" class="knop knop-leeg">Nog even lezen</a>
+      </div>
+      <p class="contact-mail">Of gewoon mailen: <a href="mailto:info@rbdatasolutions.nl">info@rbdatasolutions.nl</a></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap voet">
+    <div class="voet-tekst">
+      <strong style="font-family:var(--display);letter-spacing:.04em;text-transform:uppercase">RB Data Solutions</strong><br>
+      P2000 Kazernescherm voor Nederlandse brandweerposten<br>
+      &copy; 2026 — Alle rechten voorbehouden
+    </div>
+    <div class="voet-links">
+      <a href="#werking">Werking</a>
+      <a href="#scherm">Het scherm</a>
+      <a href="#voor-wie">Voor wie</a>
+      <a href="#landelijk">Landelijk</a>
+      <a href="#kosten">Wat het kost</a>
+      <a href="mailto:info@rbdatasolutions.nl">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var rustig = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- scroll-onthulling ---- */
+  var items = document.querySelectorAll(".onthul");
+  if (!("IntersectionObserver" in window) || rustig) {
+    items.forEach(function(el){ el.classList.add("zichtbaar"); });
+  } else {
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add("zichtbaar"); obs.unobserve(e.target); }
+      });
+    }, { threshold:.12, rootMargin:"0px 0px -8% 0px" });
+    items.forEach(function(el){ obs.observe(el); });
+  }
+
+  /* ---- tv rechtdraaien bij scrollen ---- */
+  var tv = document.getElementById("tv");
+  if (tv && "IntersectionObserver" in window && !rustig) {
+    var tvObs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) { tv.classList.add("recht"); tvObs.unobserve(e.target); } });
+    }, { threshold:.35 });
+    tvObs.observe(tv);
+  } else if (tv) {
+    tv.classList.add("recht");
+  }
+
+  /* ---- klok op het rustscherm ---- */
+  var klok = document.getElementById("klok"),
+      datum = document.getElementById("datum"),
+      dagen = ["Zondag","Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag"],
+      maanden = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+
+  function pad(n){ return n < 10 ? "0" + n : "" + n; }
+
+  function tikKlok(){
+    var d = new Date();
+    if (klok) klok.innerHTML = pad(d.getHours()) + "<em>:</em>" + pad(d.getMinutes());
+    if (datum) datum.textContent = dagen[d.getDay()] + " " + d.getDate() + " " + maanden[d.getMonth()];
+  }
+  tikKlok();
+  setInterval(tikKlok, 10000);
+
+  /* ---- demo: rust -> alarm -> rust ---- */
+  var frame = document.getElementById("demo"),
+      meldtijd = document.getElementById("meldtijd"),
+      eenheden = frame ? frame.querySelectorAll(".eenheid") : [],
+      etaTimer = null;
+
+  function toonEta(el, sec){
+    var m = Math.floor(sec / 60), s = sec % 60;
+    el.querySelector(".eta").textContent = m + ":" + pad(s);
+  }
+
+  function startAlarm(){
+    if (!frame) return;
+    var d = new Date();
+    if (meldtijd) meldtijd.textContent = "Gealarmeerd " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+
+    frame.classList.add("staat-alarm");
+
+    eenheden.forEach(function(el, i){
+      el.classList.remove("aan");
+      void el.offsetWidth;
+      el.style.animationDelay = (0.35 + i * 0.28) + "s";
+      el.classList.add("aan");
+    });
+
+    /* rijtijden lopen terug */
+    var rest = [];
+    eenheden.forEach(function(el){ rest.push(parseInt(el.dataset.eta || "0", 10)); });
+    clearInterval(etaTimer);
+    etaTimer = setInterval(function(){
+      eenheden.forEach(function(el, i){
+        if (!rest[i]) return;
+        rest[i] = Math.max(0, rest[i] - 1);
+        toonEta(el, rest[i]);
+      });
+    }, 1000);
+
+    setTimeout(stopAlarm, 13000);
+  }
+
+  function stopAlarm(){
+    if (!frame) return;
+    clearInterval(etaTimer);
+    frame.classList.remove("staat-alarm");
+    eenheden.forEach(function(el){
+      el.classList.remove("aan");
+      var basis = parseInt(el.dataset.eta || "0", 10);
+      if (basis) toonEta(el, basis);
+    });
+    setTimeout(startAlarm, 9000);
+  }
+
+  if (frame && !rustig) {
+    frame.classList.remove("staat-alarm");
+    eenheden.forEach(function(el){ el.classList.remove("aan"); });
+    setTimeout(startAlarm, 3200);
+  } else if (frame) {
+    frame.classList.add("staat-alarm");
+    eenheden.forEach(function(el){ el.style.opacity = 1; el.style.transform = "none"; });
+  }
+})();
+</script>
+
 </body>
 </html>
