@@ -154,6 +154,16 @@
     padding:.6rem 1.05rem; border-radius:.35rem;
   }
   .schermknop:hover{ filter:brightness(1.1) }
+  .schermen{ display:flex; flex-direction:column; gap:.4rem; padding:.25rem 0 1rem }
+  .schermrij{
+    display:flex; align-items:center; gap:.6rem;
+    font-family:var(--mono); font-size:.75rem; color:var(--gedempt);
+  }
+  .bol{ width:.6rem; height:.6rem; border-radius:50%; flex:none; background:var(--gedempt) }
+  .bol.leeft{ background:var(--goed) }
+  .bol.stil { background:var(--let-op) }
+  .bol.weg  { background:var(--alarm) }
+  .schermrij b{ color:var(--tekst); font-weight:500; letter-spacing:.04em }
   .meldinglijst{
     font-family:var(--mono); font-size:.75rem; color:var(--gedempt);
     display:flex; flex-direction:column; gap:.5rem;
@@ -466,8 +476,11 @@ function tekenLijst(){
     var naam = maak('span', 'naam');
     var b = maak('b'); b.textContent = p.postnaam || p.post;
     var sub = maak('span');
+    var aantalSchermen = (p.schermen || []).length;
     sub.textContent = p.post + ' · ' + (p.capcodes || []).length + ' capcodes · ' +
-                      p.voertuigen + ' voertuigen';
+                      p.voertuigen + ' voertuigen' +
+                      (aantalSchermen ? ' · ' + aantalSchermen +
+                        (aantalSchermen === 1 ? ' scherm' : ' schermen') : '');
     naam.appendChild(b); naam.appendChild(sub);
 
     function cijfer(waarde, label){
@@ -559,6 +572,33 @@ function bouwPaneel(paneel, p, staat, c, tellingen){
                  ' · laatste melding ' + geledenTekst(p.laatsteMelding) +
                  ' · versie ' + c.versie;
   paneel.appendChild(st);
+
+  /* Welke schermen draaien er op deze post? De hartslag komt per kwartier,
+     dus groen = binnen een halfuur gezien, oranje = vandaag nog, rood = langer stil. */
+  var schermen = p.schermen || [];
+  var schermVak = maak('div','schermen');
+  var kopRegel = maak('div','schermrij');
+  kopRegel.innerHTML = '<b>' + schermen.length +
+    (schermen.length === 1 ? ' scherm' : ' schermen') + ' actief</b>';
+  schermVak.appendChild(kopRegel);
+
+  schermen.forEach(function(sc){
+    var minuten = (Date.now() - sc.gezien) / 60000;
+    var klasse = minuten < 30 ? 'leeft' : (minuten < 60 * 24 ? 'stil' : 'weg');
+    var r = maak('div','schermrij');
+    var bol = maak('span','bol ' + klasse);
+    r.appendChild(bol);
+    r.appendChild(document.createTextNode(sc.id + '  ·  ' + geledenTekst(sc.gezien)));
+    schermVak.appendChild(r);
+  });
+
+  if(!schermen.length){
+    var geenScherm = maak('div','schermrij');
+    geenScherm.textContent = 'Nog geen schermen gezien. Ze melden zich zodra ze ' +
+                             'de nieuwste index.html draaien.';
+    schermVak.appendChild(geenScherm);
+  }
+  paneel.appendChild(schermVak);
 
   /* Knop naar het scherm zoals het op de post hangt. De URL komt van het
      scherm zelf zodra dat de nieuwe index.html draait; tot die tijd kun je
