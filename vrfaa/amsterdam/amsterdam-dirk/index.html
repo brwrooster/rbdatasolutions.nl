@@ -694,6 +694,14 @@
       Tijdens een melding is het scherm altijd donker, ongeacht deze keuze.</p>
     </div>
     <div class="field">
+      <label for="cfgBron">Signaalbron voor meldingen</label>
+      <select id="cfgBron">
+        <option value="beide">Eigen ontvanger + 112-nu feed (terugval)</option>
+        <option value="pi">Alleen eigen ontvanger (Raspberry Pi)</option>
+        <option value="feed">Alleen 112-nu feed</option>
+      </select>
+    </div>
+    <div class="field">
       <label for="cfgCaps">Capcodes van de post (spatie of komma gescheiden)</label>
       <input id="cfgCaps" type="text" autocomplete="off">
     </div>
@@ -895,6 +903,8 @@ var UNITS = DEFAULT_UNITS;
 var HOLD_MIN = DEFAULT_HOLD_MIN;
 var TASKS = DEFAULT_TASKS.slice();
 var POST_CAPCODES = [];
+/* Signaalbron: 'beide' (pi + feed als terugval), 'pi' of 'feed' */
+var BRON = 'beide';
 
 var SOORTEN = [
   // brand - uitgebreid
@@ -1502,7 +1512,8 @@ function pollFeed(){
       var recent = ageMs >= 0 && ageMs < 20*60*1000;
       lastFeedId = m.id;
       // bij openen alleen tonen als recent; daarna elke echt nieuwe melding
-      if(!firstPoll || recent){
+      // (bij bron 'pi' wordt de feed wel gevolgd maar nooit getoond)
+      if(BRON !== 'pi' && (!firstPoll || recent)){
         var p = parseFeed(m);
         showAlarm(p.type, p.addr, p.prio, p.units, HOLD_MIN*60*1000, p.mid, p.kanaal);
         meldFeedVoorTelling(p.raw, m.id);
@@ -1538,6 +1549,8 @@ function pollEigenOntvanger(){
     if(d.id === lastPiId) return;
     var leeftijd = d.ts ? (Date.now() - d.ts) : 0;
     lastPiId = d.id;
+    // bron 'feed': eigen ontvanger wel bijhouden maar niet tonen
+    if(BRON === 'feed'){ eersteP2000Poll = false; return; }
     // bij openen alleen tonen als recent; daarna elke nieuwe melding meteen
     if(eersteP2000Poll && leeftijd > 20*60*1000){ eersteP2000Poll = false; return; }
     eersteP2000Poll = false;
@@ -1547,7 +1560,7 @@ function pollEigenOntvanger(){
     showAlarm(p.type, p.addr, p.prio, p.units, HOLD_MIN*60*1000, p.mid, p.kanaal);
   }).catch(function(){ /* eigen ontvanger niet bereikbaar: feed blijft draaien */ });
 }
-setInterval(pollEigenOntvanger, 5000);
+setInterval(pollEigenOntvanger, 1000);
 pollEigenOntvanger();
 
 /* ================= Adres- en wijkherkenning =================
@@ -2398,6 +2411,7 @@ function toonCfgPaneel(){
     vulThemaKnoppen();
     document.getElementById('cfgCaps').value      = FILTER_CAPCODES.join(' ');
     document.getElementById('cfgHold').value      = HOLD_MIN;
+    document.getElementById('cfgBron').value      = BRON;
     document.getElementById('cfgPosts').value     = postsNaarTekst();
 
     var hint = document.getElementById('geocodeHint');
@@ -2471,6 +2485,8 @@ function slaInstellingenOp(sluitNaAfloop){
   // 5) Capcodes, hold, posten
   var caps = (document.getElementById('cfgCaps').value.match(/\d{4,7}/g) || []);
   FILTER_CAPCODES = caps;
+  var bronKeuze = document.getElementById('cfgBron').value;
+  if(bronKeuze === 'pi' || bronKeuze === 'feed' || bronKeuze === 'beide') BRON = bronKeuze;
   var hold = parseInt(document.getElementById('cfgHold').value, 10);
   HOLD_MIN = (!isNaN(hold) && hold > 0) ? hold : DEFAULT_HOLD_MIN;
   POSTS = tekstNaarPosts(document.getElementById('cfgPosts').value) || {};
@@ -2735,6 +2751,7 @@ function bouwConfigObject(){
     ingesteld: !!POST_LOCATION.ingesteld,
     thema:     POST_LOCATION.thema || 'auto',
     capcodes:  FILTER_CAPCODES,
+    bron:      BRON,
     holdMin:   HOLD_MIN,
     ploegen:   PLOEGEN_CONFIG,
     ploegAnkerDatum: PLOEG_ANKER_DATUM,
@@ -2766,6 +2783,7 @@ function pasConfigToe(d){
   }
 
   if(Array.isArray(d.capcodes)) FILTER_CAPCODES = d.capcodes;
+  if(d.bron === 'pi' || d.bron === 'feed' || d.bron === 'beide') BRON = d.bron;
   if(Number(d.holdMin) > 0)     HOLD_MIN = Number(d.holdMin);
   if(Array.isArray(d.ploegen) && d.ploegen.length) PLOEGEN_CONFIG = d.ploegen;
   if(typeof d.ploegAnkerDatum === 'string') PLOEG_ANKER_DATUM = d.ploegAnkerDatum;
