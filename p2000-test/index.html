@@ -156,11 +156,11 @@
   }
   .field{margin-bottom:1.6vh}
   .field label{display:block;font-size:1.3vh;color:var(--zwak);margin-bottom:.5vh;text-transform:uppercase;letter-spacing:.04em}
-  .field input{
+  .field input, .field select{
     width:100%;background:var(--bg);border:1px solid var(--paneel-rand);border-radius:6px;
     color:var(--tekst);padding:1vh 1.2vh;font-size:1.6vh;font-family:'Roboto',sans-serif;
   }
-  .field input:focus{outline:none;border-color:var(--accent)}
+  .field input:focus, .field select:focus{outline:none;border-color:var(--accent)}
   .btn{
     font-family:'Oswald',sans-serif;font-weight:600;font-size:1.5vh;letter-spacing:.03em;
     padding:1vh 2vh;border-radius:7px;border:1px solid var(--paneel-rand);background:var(--bg);
@@ -181,6 +181,27 @@
   .cfg-tabpaneel{display:none}
   .cfg-tabpaneel.actief{display:block}
   .cfg-leeg{font-size:1.4vh;color:var(--zwak);line-height:1.7;padding:1vh 0}
+  .themaknop.actief{background:var(--accent);color:#0a0e18;border-color:var(--accent)}
+  .cfg-tabpaneel td, .cfg-tabpaneel th{font-size:1.3vh}
+  .cfg-tabpaneel td input[type="text"]{
+    width:100%;background:var(--bg);border:1px solid var(--paneel-rand);border-radius:5px;
+    color:var(--tekst);padding:.6vh .8vh;font-size:1.3vh;font-family:'Roboto',sans-serif;
+  }
+  .cfg-tabpaneel td{padding:.5vh .7vh;border-bottom:1px solid var(--paneel-rand)}
+  .rij-verwijder{
+    background:none;border:1px solid var(--paneel-rand);color:var(--p1);border-radius:5px;
+    cursor:pointer;width:2.6vh;height:2.6vh;font-size:1.4vh;
+  }
+  .taak-regel{display:flex;align-items:center;gap:1vh;padding:.6vh 0;border-bottom:1px solid var(--paneel-rand);flex-wrap:wrap}
+  .taak-regel input[type="text"]{
+    flex:1;min-width:20vh;background:var(--bg);border:1px solid var(--paneel-rand);border-radius:5px;
+    color:var(--tekst);padding:.6vh .8vh;font-size:1.3vh;font-family:'Roboto',sans-serif;
+  }
+  .taak-dagen{display:flex;gap:.4vh}
+  .taak-dagen label{font-size:1.05vh;color:var(--zwak);display:flex;flex-direction:column;align-items:center;gap:.2vh}
+
+  /* ---------- lichte thema (Dag) ---------- */
+  body.tema-dag{--bg:#eef1f6;--paneel:#ffffff;--paneel-rand:#d3dae5;--tekst:#151b28;--zwak:#5c677a}
 
   /* ---------- alarmscherm (overgenomen opbouw uit het P2000-scherm) ---------- */
   #alarmScherm{
@@ -435,23 +456,84 @@
       </div>
 
       <div class="cfg-tabpaneel actief" data-tabpaneel="meldingen">
-        <div class="cfg-leeg">Nog geen instellingen hier &mdash; komt zodra dit scherm een echte meldingenbron krijgt (bijv. P2000, net als je andere scherm).</div>
+        <div class="field">
+          <label for="cfgBron">Signaalbron voor meldingen</label>
+          <select id="cfgBron">
+            <option value="beide">Eigen ontvanger + 112-nu feed (terugval)</option>
+            <option value="pi">Alleen eigen ontvanger (Raspberry Pi)</option>
+            <option value="feed">Alleen 112-nu feed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cfgCaps">Capcodes van de post (spatie of komma gescheiden)</label>
+          <input id="cfgCaps" type="text" autocomplete="off" placeholder="bijv. 700140 700143">
+        </div>
+        <div class="field">
+          <label for="cfgHold">Melding blijft staan (minuten)</label>
+          <input id="cfgHold" type="number" min="1" max="120" autocomplete="off">
+        </div>
+        <p class="tp-hint" style="margin-top:0">Deze instellingen worden al opgeslagen, maar hebben pas effect zodra dit scherm een echte meldingenbron krijgt (net als je andere P2000-scherm).</p>
       </div>
 
       <div class="cfg-tabpaneel" data-tabpaneel="postenvoertuigen">
-        <div class="cfg-leeg">Nog geen instellingen hier &mdash; hier komt straks de voertuigconfiguratie (zoals Tankautospuit 254131) en de postlocatie voor de kaart/routering.</div>
+        <div class="field">
+          <label for="cfgAdres">Adres post (voor locatie/routering op de kaart)</label>
+          <input id="cfgAdres" type="text" autocomplete="off" placeholder="bijv. Zuiderveldweg 12, Swifterbant">
+          <p class="tp-hint" style="margin-top:0.5vh">Geocoden (PDOK) komt zodra dit scherm een echte databron heeft; voor nu gebruikt de testmelding-kaart nog vaste demo-coördinaten.</p>
+        </div>
+        <div class="field">
+          <label>Voertuigen</label>
+          <table style="width:100%;border-collapse:collapse;margin:1vh 0">
+            <thead>
+              <tr style="background:var(--bg);border-bottom:1px solid var(--paneel-rand)">
+                <th style="padding:.7vh;text-align:left;color:var(--accent);font-size:1.2vh">Nummer</th>
+                <th style="padding:.7vh;text-align:left;color:var(--accent);font-size:1.2vh">Naam</th>
+                <th style="padding:.7vh;text-align:center;color:var(--accent);font-size:1.2vh;width:4vh">&mdash;</th>
+              </tr>
+            </thead>
+            <tbody id="voertuigenBody"></tbody>
+          </table>
+          <button type="button" class="btn ghost" onclick="voertuigToevoegen()">+ Voertuig toevoegen</button>
+        </div>
       </div>
 
       <div class="cfg-tabpaneel" data-tabpaneel="team">
-        <div class="cfg-leeg">Nog geen instellingen hier &mdash; hier komt straks het beheer van vrijwilligers, hun functies (Bevelvoerder/Chauffeur/Manschap) en verjaardagen.</div>
+        <div class="field">
+          <label>Team &mdash; alle mensen van de post, met hun functie(s)</label>
+          <table style="width:100%;border-collapse:collapse;margin:1vh 0">
+            <thead>
+              <tr style="background:var(--bg);border-bottom:1px solid var(--paneel-rand)">
+                <th style="padding:.7vh;text-align:left;color:var(--accent);font-size:1.2vh">Naam</th>
+                <th style="padding:.7vh;text-align:center;color:var(--accent);font-size:1.2vh">BV</th>
+                <th style="padding:.7vh;text-align:center;color:var(--accent);font-size:1.2vh">CH</th>
+                <th style="padding:.7vh;text-align:center;color:var(--accent);font-size:1.2vh">MC</th>
+                <th style="padding:.7vh;text-align:center;color:var(--accent);font-size:1.2vh;width:4vh">&mdash;</th>
+              </tr>
+            </thead>
+            <tbody id="teamBody"></tbody>
+          </table>
+          <button type="button" class="btn ghost" onclick="teamToevoegen()">+ Persoon toevoegen</button>
+          <p class="tp-hint" style="margin-top:1vh">BV = Bevelvoerder, CH = Chauffeur, MC = Manschap &mdash; vink aan wat van toepassing is; een combinatie mag. Deze lijst wordt al opgeslagen; het automatisch vullen van de weekbezetting hiermee komt in een volgende stap.</p>
+        </div>
       </div>
 
       <div class="cfg-tabpaneel" data-tabpaneel="weergave">
-        <div class="cfg-leeg">Nog geen instellingen hier &mdash; hier komt straks bijvoorbeeld dag/nacht-thema en welke widgets zichtbaar zijn.</div>
+        <div class="field">
+          <label>Thema</label>
+          <div style="display:flex;gap:.8vh;flex-wrap:wrap">
+            <button type="button" class="btn themaknop" data-thema="auto">Automatisch</button>
+            <button type="button" class="btn themaknop" data-thema="dag">Dag</button>
+            <button type="button" class="btn themaknop" data-thema="nacht">Nacht</button>
+          </div>
+          <p class="tp-hint" style="margin-top:1vh">Wordt direct toegepast op dit scherm.</p>
+        </div>
       </div>
 
       <div class="cfg-tabpaneel" data-tabpaneel="waarschuwingen">
-        <div class="cfg-leeg">Nog geen instellingen hier &mdash; hier komt straks bijvoorbeeld de weerwaarschuwing en de bezettingsdrempel (nu vast op 6).</div>
+        <div class="field">
+          <label for="cfgMinBezetting">Minimale bezetting per shift (voor rood/groen in de weekbezetting)</label>
+          <input id="cfgMinBezetting" type="number" min="1" max="20" autocomplete="off">
+        </div>
       </div>
 
       <div class="cfg-tabpaneel" data-tabpaneel="beheer">
@@ -463,9 +545,15 @@
           <label for="cfgBrandweer">Brandweer(regio)</label>
           <input id="cfgBrandweer" type="text" autocomplete="off" placeholder="bijv. Brandweer Flevoland">
         </div>
+        <div class="field">
+          <label>Werkzaamheden &mdash; kies per taak de dagen (niets aan = elke dag)</label>
+          <div id="takenLijst"></div>
+          <button type="button" class="btn ghost" onclick="taakToevoegen()">+ Taak toevoegen</button>
+        </div>
         <div class="tp-actions">
           <button class="btn primary" onclick="cfgOpslaan()">Opslaan</button>
           <button class="btn" onclick="document.getElementById('cfgPanel').classList.remove('open')">Annuleren</button>
+          <button class="btn ghost" onclick="cfgStandaardHerstellen()">Standaard herstellen</button>
         </div>
         <p class="tp-hint" id="cfgMsg"></p>
       </div>
@@ -474,25 +562,187 @@
 
 <script>
   // ===== Instellingen laden/opslaan (localStorage - puur lokale demo, geen server) =====
-  var STANDAARD = { postnaam: 'Post Swifterbant', brandweer: 'Brandweer Flevoland' };
+  var STANDAARD = {
+    postnaam: 'Post Swifterbant',
+    brandweer: 'Brandweer Flevoland',
+    thema: 'auto',
+    adres: '',
+    bron: 'beide',
+    capcodes: '254131 254132',
+    holdMin: 5,
+    minBezetting: 6,
+    voertuigen: [
+      { nummer: '254131', naam: 'Tankautospuit' }
+    ],
+    team: [
+      { naam: 'Bram Feenstra', bv:true,  ch:false, mc:false },
+      { naam: 'Kees Wieringa', bv:true,  ch:false, mc:false },
+      { naam: 'Willem Schoemaker', bv:true, ch:true, mc:false },
+      { naam: 'Marloes Tijssen', bv:false, ch:true, mc:false },
+      { naam: 'Tim Kuiper', bv:false, ch:false, mc:true }
+    ],
+    taken: [
+      { tekst: 'Oefening: Sloopband', dagen: ['wo'] }
+    ]
+  };
+  var HUIDIGE = {};
 
   function ladenInstellingen(){
     var opgeslagen = {};
     try { opgeslagen = JSON.parse(localStorage.getItem('postdash_instellingen') || '{}'); } catch(e){}
-    var actief = Object.assign({}, STANDAARD, opgeslagen);
-    document.getElementById('topbarPostnaam').textContent = actief.postnaam;
-    document.getElementById('topbarBrandweer').textContent = actief.brandweer;
-    document.getElementById('meldPostLabel').textContent = actief.postnaam;
-    document.getElementById('cfgPostnaam').value = actief.postnaam;
-    document.getElementById('cfgBrandweer').value = actief.brandweer;
+    HUIDIGE = Object.assign({}, STANDAARD, opgeslagen);
+
+    document.getElementById('topbarPostnaam').textContent = HUIDIGE.postnaam;
+    document.getElementById('topbarBrandweer').textContent = HUIDIGE.brandweer;
+    document.getElementById('meldPostLabel').textContent = HUIDIGE.postnaam;
+
+    document.getElementById('cfgPostnaam').value = HUIDIGE.postnaam;
+    document.getElementById('cfgBrandweer').value = HUIDIGE.brandweer;
+    document.getElementById('cfgAdres').value = HUIDIGE.adres;
+    document.getElementById('cfgBron').value = HUIDIGE.bron;
+    document.getElementById('cfgCaps').value = HUIDIGE.capcodes;
+    document.getElementById('cfgHold').value = HUIDIGE.holdMin;
+    document.getElementById('cfgMinBezetting').value = HUIDIGE.minBezetting;
+
+    zetThemaKnop(HUIDIGE.thema);
+    pasThemaToe(HUIDIGE.thema);
+
+    renderVoertuigen();
+    renderTeam();
+    renderTaken();
+  }
+
+  // ---------- Voertuigen (tabblad Posten & Voertuigen) ----------
+  function renderVoertuigen(){
+    var body = document.getElementById('voertuigenBody');
+    body.innerHTML = '';
+    HUIDIGE.voertuigen.forEach(function(v, i){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><input type="text" value="' + escapeAttr(v.nummer) + '" data-veld="nummer" data-i="' + i + '"></td>' +
+        '<td><input type="text" value="' + escapeAttr(v.naam) + '" data-veld="naam" data-i="' + i + '"></td>' +
+        '<td style="text-align:center"><button type="button" class="rij-verwijder" onclick="voertuigVerwijderen(' + i + ')">&times;</button></td>';
+      body.appendChild(tr);
+    });
+  }
+  function voertuigToevoegen(){
+    HUIDIGE.voertuigen.push({ nummer: '', naam: '' });
+    renderVoertuigen();
+  }
+  function voertuigVerwijderen(i){
+    HUIDIGE.voertuigen.splice(i, 1);
+    renderVoertuigen();
+  }
+
+  // ---------- Team (tabblad Team) ----------
+  function renderTeam(){
+    var body = document.getElementById('teamBody');
+    body.innerHTML = '';
+    HUIDIGE.team.forEach(function(p, i){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><input type="text" value="' + escapeAttr(p.naam) + '" data-veld="naam" data-i="' + i + '"></td>' +
+        '<td style="text-align:center"><input type="checkbox" ' + (p.bv ? 'checked' : '') + ' data-veld="bv" data-i="' + i + '"></td>' +
+        '<td style="text-align:center"><input type="checkbox" ' + (p.ch ? 'checked' : '') + ' data-veld="ch" data-i="' + i + '"></td>' +
+        '<td style="text-align:center"><input type="checkbox" ' + (p.mc ? 'checked' : '') + ' data-veld="mc" data-i="' + i + '"></td>' +
+        '<td style="text-align:center"><button type="button" class="rij-verwijder" onclick="teamVerwijderen(' + i + ')">&times;</button></td>';
+      body.appendChild(tr);
+    });
+  }
+  function teamToevoegen(){
+    HUIDIGE.team.push({ naam: '', bv:false, ch:false, mc:false });
+    renderTeam();
+  }
+  function teamVerwijderen(i){
+    HUIDIGE.team.splice(i, 1);
+    renderTeam();
+  }
+
+  // ---------- Taken/werkzaamheden (tabblad Beheer) ----------
+  var TAAK_DAGEN = ['ma','di','wo','do','vr','za','zo'];
+  function renderTaken(){
+    var lijst = document.getElementById('takenLijst');
+    lijst.innerHTML = '';
+    HUIDIGE.taken.forEach(function(t, i){
+      var regel = document.createElement('div');
+      regel.className = 'taak-regel';
+      var dagenHtml = TAAK_DAGEN.map(function(d){
+        var aan = t.dagen.indexOf(d) !== -1;
+        return '<label><input type="checkbox" ' + (aan ? 'checked' : '') + ' data-taak-dag="' + d + '" data-i="' + i + '">' + d + '</label>';
+      }).join('');
+      regel.innerHTML =
+        '<input type="text" value="' + escapeAttr(t.tekst) + '" data-taak-tekst data-i="' + i + '" placeholder="bijv. Kantine schoonmaken">' +
+        '<div class="taak-dagen">' + dagenHtml + '</div>' +
+        '<button type="button" class="rij-verwijder" onclick="taakVerwijderen(' + i + ')">&times;</button>';
+      lijst.appendChild(regel);
+    });
+  }
+  function taakToevoegen(){
+    HUIDIGE.taken.push({ tekst: '', dagen: [] });
+    renderTaken();
+  }
+  function taakVerwijderen(i){
+    HUIDIGE.taken.splice(i, 1);
+    renderTaken();
+  }
+
+  // ---------- Thema (tabblad Weergave) ----------
+  function zetThemaKnop(thema){
+    document.querySelectorAll('.themaknop').forEach(function(b){
+      b.classList.toggle('actief', b.getAttribute('data-thema') === thema);
+    });
+  }
+  function pasThemaToe(thema){
+    var werkelijk = thema;
+    if(thema === 'auto'){
+      var uur = new Date().getHours();
+      werkelijk = (uur >= 7 && uur < 20) ? 'dag' : 'nacht';
+    }
+    document.body.classList.toggle('tema-dag', werkelijk === 'dag');
+  }
+  document.querySelectorAll('.themaknop').forEach(function(knop){
+    knop.addEventListener('click', function(){
+      var thema = knop.getAttribute('data-thema');
+      HUIDIGE.thema = thema;
+      zetThemaKnop(thema);
+      pasThemaToe(thema);
+    });
+  });
+
+  // ---------- Alles verzamelen en opslaan ----------
+  function verzamelUitFormulier(){
+    HUIDIGE.postnaam = document.getElementById('cfgPostnaam').value.trim() || STANDAARD.postnaam;
+    HUIDIGE.brandweer = document.getElementById('cfgBrandweer').value.trim() || STANDAARD.brandweer;
+    HUIDIGE.adres = document.getElementById('cfgAdres').value.trim();
+    HUIDIGE.bron = document.getElementById('cfgBron').value;
+    HUIDIGE.capcodes = document.getElementById('cfgCaps').value.trim();
+    HUIDIGE.holdMin = parseInt(document.getElementById('cfgHold').value, 10) || STANDAARD.holdMin;
+    HUIDIGE.minBezetting = parseInt(document.getElementById('cfgMinBezetting').value, 10) || STANDAARD.minBezetting;
+
+    document.querySelectorAll('#voertuigenBody input').forEach(function(inp){
+      HUIDIGE.voertuigen[+inp.dataset.i][inp.dataset.veld] = inp.value;
+    });
+    document.querySelectorAll('#teamBody input[type="text"]').forEach(function(inp){
+      HUIDIGE.team[+inp.dataset.i].naam = inp.value;
+    });
+    document.querySelectorAll('#teamBody input[type="checkbox"]').forEach(function(inp){
+      HUIDIGE.team[+inp.dataset.i][inp.dataset.veld] = inp.checked;
+    });
+    document.querySelectorAll('[data-taak-tekst]').forEach(function(inp){
+      HUIDIGE.taken[+inp.dataset.i].tekst = inp.value;
+    });
+    document.querySelectorAll('[data-taak-dag]').forEach(function(inp){
+      var i = +inp.dataset.i, dag = inp.dataset.taakDag;
+      var dagen = HUIDIGE.taken[i].dagen;
+      var idx = dagen.indexOf(dag);
+      if(inp.checked && idx === -1) dagen.push(dag);
+      if(!inp.checked && idx !== -1) dagen.splice(idx, 1);
+    });
   }
 
   function cfgOpslaan(){
-    var nieuw = {
-      postnaam: document.getElementById('cfgPostnaam').value.trim() || STANDAARD.postnaam,
-      brandweer: document.getElementById('cfgBrandweer').value.trim() || STANDAARD.brandweer
-    };
-    localStorage.setItem('postdash_instellingen', JSON.stringify(nieuw));
+    verzamelUitFormulier();
+    localStorage.setItem('postdash_instellingen', JSON.stringify(HUIDIGE));
     ladenInstellingen();
     var msg = document.getElementById('cfgMsg');
     msg.textContent = '\u2713 Opgeslagen.';
@@ -502,7 +752,19 @@
     }, 600);
   }
 
+  function cfgStandaardHerstellen(){
+    if(!confirm('Alle instellingen terugzetten naar de standaardwaarden?')) return;
+    localStorage.removeItem('postdash_instellingen');
+    ladenInstellingen();
+    document.getElementById('cfgMsg').textContent = '\u2713 Standaardwaarden hersteld.';
+  }
+
+  function escapeAttr(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  }
+
   ladenInstellingen();
+  setInterval(function(){ if(HUIDIGE.thema === 'auto') pasThemaToe('auto'); }, 5 * 60 * 1000);
 
   // ===== Tabbladen instellingenpaneel =====
   document.getElementById('cfgTabs').addEventListener('click', function(e){
