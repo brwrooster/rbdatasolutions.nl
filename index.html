@@ -12,7 +12,18 @@
 <meta property="og:title" content="P2000 Kazernescherm">
 <meta property="og:description" content="De melding, de eenheden en de rijtijden op de tv in de kazerne. Binnen een seconde na de alarmering.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="./images/homepage.jpg">
+<meta property="og:image" content="./images/Tv-display.jpg">
+
+<script>
+/* Bestandsextensie onbekend? Probeer automatisch de gangbare varianten. */
+window.beeldFout = function(img){
+  var lijst = [".png",".jpeg",".webp",".JPG",".PNG",".jpg"],
+      n = parseInt(img.getAttribute("data-poging") || "0", 10);
+  if (n >= lijst.length) { img.style.display = "none"; return; }
+  img.setAttribute("data-poging", n + 1);
+  img.src = img.src.replace(/\.[a-z]+(\?.*)?$/i, lijst[n]);
+};
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -229,6 +240,95 @@ section{position:relative;z-index:1}
 .tv-schaduw{width:60%;height:26px;margin:1.4rem auto 0;background:radial-gradient(ellipse,rgba(249,115,22,.16),transparent 70%);filter:blur(9px)}
 .tv-onder{text-align:center;margin-top:1.8rem;font-family:var(--data);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:#5f7391}
 
+/* ---------- beeldstapel in de tv ---------- */
+.beeldstapel{
+  position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;
+  border-radius:4px;background:#050a13;
+}
+.beeldstapel img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;object-position:center;display:block;
+  opacity:0;transform:scale(1.01);
+  transition:opacity .9s cubic-bezier(.4,0,.2,1);
+  will-change:opacity,transform;
+}
+.beeldstapel img.actief{opacity:1;animation:kenburns 6.4s ease-out forwards}
+@keyframes kenburns{from{transform:scale(1.005)}to{transform:scale(1.055)}}
+
+/* scanlijnen over het beeld */
+.beeldstapel::before{
+  content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px);
+}
+/* korte flits bij het omschakelen, als een scherm dat aanspringt */
+.beeldstapel::after{
+  content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(62,193,255,.55));
+  opacity:0;
+}
+.beeldstapel.flits::after{animation:flits .55s ease-out}
+@keyframes flits{0%{opacity:.22}35%{opacity:.06}100%{opacity:0}}
+
+/* bezel kleurt mee met de toestand */
+.tv-bezel{transition:box-shadow .7s ease,border-color .7s ease}
+.tv.st-1 .tv-bezel{border-color:rgba(249,115,22,.55);box-shadow:0 60px 120px -50px rgba(0,0,0,1),0 0 0 1px rgba(249,115,22,.28),0 0 60px -12px rgba(249,115,22,.55)}
+.tv.st-2 .tv-bezel{border-color:rgba(62,193,255,.5);box-shadow:0 60px 120px -50px rgba(0,0,0,1),0 0 0 1px rgba(62,193,255,.25),0 0 60px -14px rgba(62,193,255,.45)}
+
+/* toestandsknoppen onder de tv */
+.scherm-staten{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;
+  margin-top:1.6rem;
+}
+.staat{
+  position:relative;overflow:hidden;cursor:pointer;
+  font-family:var(--data);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
+  color:#5f7391;background:rgba(255,255,255,.02);
+  border:1px solid var(--rand);border-radius:3px;
+  padding:.42rem .95rem;transition:color .3s,border-color .3s;
+}
+.staat:hover{color:var(--wit)}
+.staat span{position:relative;z-index:2}
+.staat::before{
+  content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;
+  background:var(--oranje);transform:scaleX(0);transform-origin:left;
+}
+.staat.aan{color:var(--wit);border-color:rgba(249,115,22,.45)}
+.staat.aan::before{animation:balk 5.4s linear forwards}
+@keyframes balk{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ---------- filmische beeldband ---------- */
+.beeldband{
+  position:relative;z-index:1;overflow:hidden;
+  border-top:1px solid var(--rand);border-bottom:1px solid var(--rand);
+  height:clamp(240px,48vh,540px);background:#050a13;
+}
+.beeldband img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transform:scale(1.06);
+  animation:zweef 26s ease-in-out infinite alternate;
+}
+@keyframes zweef{
+  from{transform:scale(1.06) translate3d(-1.4%,1%,0)}
+  to{transform:scale(1.16) translate3d(1.6%,-1.6%,0)}
+}
+.beeldband::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(180deg,var(--nacht) 0%,transparent 22%,transparent 74%,var(--nacht) 100%),
+    radial-gradient(ellipse 70% 60% at 50% 50%,transparent 35%,rgba(7,13,24,.65) 100%);
+}
+.beeldband::before{
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.016) 0 1px,transparent 1px 3px);
+}
+
+/* ---------- banner in de voet ---------- */
+.voet-banner{
+  display:block;max-width:230px;width:100%;height:auto;
+  border-radius:5px;margin:0 auto .9rem;opacity:.85;
+}
+@media(min-width:760px){.voet-banner{margin:0 0 .9rem}}
+
 /* ---------- tijdlijn ---------- */
 .tijdlijn{display:grid;gap:0;border-top:1px solid var(--rand)}
 .stap{
@@ -346,6 +446,9 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
   .onthul{opacity:1;transform:none}
   .tv{transform:none}
   .eenheid{opacity:1;transform:none}
+  .beeldstapel img.actief{opacity:1;transform:none}
+  .beeldband img{transform:none;animation:none}
+  .beeldstapel::after{display:none}
 }
 </style>
 </head>
@@ -357,7 +460,8 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 <header>
   <div class="balk">
     <div class="merk">
-      <img src="./images/logo.jpg" alt="RB Data Solutions">
+      <img src="./images/Logo-banner.jpg" alt="RB Data Solutions" onerror="beeldFout(this)">
+      <!-- Staat de naam al in de banner? Verwijder dan de regel hieronder. -->
       <div class="merk-naam">RB Data <span>Solutions</span></div>
     </div>
     <nav>
@@ -496,12 +600,23 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
     <div class="tv-podium">
       <div class="tv" id="tv">
         <div class="tv-bezel">
-          <img src="./images/homepage.jpg" alt="Het P2000 Kazernescherm met een actieve melding, kaart en gealarmeerde eenheden" loading="lazy">
+          <div class="beeldstapel" id="schermstapel">
+            <img src="./images/Scherm-rust.jpg" alt="Het rustscherm van het P2000 Kazernescherm met klok, weer en kazernetaken" loading="lazy" onerror="beeldFout(this)">
+            <img src="./images/Prio-1.jpg" alt="Het P2000 Kazernescherm bij een prio 1-melding met kaart en gealarmeerde eenheden" loading="lazy" onerror="beeldFout(this)">
+            <img src="./images/Prio-2.jpg" alt="Het P2000 Kazernescherm bij een prio 2-melding met kaart en gealarmeerde eenheden" loading="lazy" onerror="beeldFout(this)">
+          </div>
           <div class="tv-glans" aria-hidden="true"></div>
         </div>
         <div class="tv-voet" aria-hidden="true"></div>
       </div>
       <div class="tv-schaduw" aria-hidden="true"></div>
+
+      <div class="scherm-staten" id="schermstaten">
+        <button type="button" class="staat" data-beeld="0"><span>Rust</span></button>
+        <button type="button" class="staat" data-beeld="1"><span>Prio 1</span></button>
+        <button type="button" class="staat" data-beeld="2"><span>Prio 2</span></button>
+      </div>
+
       <p class="tv-onder">Werkt op elke tv, monitor of tablet met een browser</p>
     </div>
   </div>
@@ -552,7 +667,10 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
   </div>
 </section>
 
-<hr class="streep">
+<!-- ============ BEELDBAND ============ -->
+<section class="beeldband" aria-label="Het P2000 Kazernescherm op de tv in de kazerne">
+  <img src="./images/Tv-display.jpg" alt="Het P2000 Kazernescherm op een tv in de kazerne" loading="lazy" onerror="beeldFout(this)">
+</section>
 
 <!-- ============ VOORDELEN ============ -->
 <section class="sectie" id="voordelen">
@@ -733,6 +851,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 <footer>
   <div class="wrap voet">
     <div class="voet-tekst">
+      <img src="./images/Logo-banner.jpg" alt="RB Data Solutions" class="voet-banner" loading="lazy" onerror="beeldFout(this)">
       <strong style="font-family:var(--display);letter-spacing:.04em;text-transform:uppercase">RB Data Solutions</strong><br>
       P2000 Kazernescherm voor Nederlandse brandweerposten<br>
       &copy; 2026 — Alle rechten voorbehouden
@@ -775,6 +894,66 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
     tvObs.observe(tv);
   } else if (tv) {
     tv.classList.add("recht");
+  }
+
+  /* ---- beeldstapel in de tv: rust -> prio 1 -> prio 2 ---- */
+  var stapel = document.getElementById("schermstapel"),
+      staten = document.getElementById("schermstaten");
+
+  if (stapel) {
+    var beelden = stapel.querySelectorAll("img"),
+        knoppen = staten ? staten.querySelectorAll(".staat") : [],
+        beeldNr = 0,
+        beeldTimer = null,
+        WISSEL = 5400;
+
+    function toonBeeld(n){
+      beeldNr = n;
+      beelden.forEach(function(b, i){ b.classList.toggle("actief", i === n); });
+      knoppen.forEach(function(k, i){
+        k.classList.remove("aan");
+        if (i === n) { void k.offsetWidth; k.classList.add("aan"); }
+      });
+      if (tv) { tv.classList.remove("st-0","st-1","st-2"); tv.classList.add("st-" + n); }
+      if (!rustig) {
+        stapel.classList.remove("flits");
+        void stapel.offsetWidth;
+        stapel.classList.add("flits");
+      }
+    }
+
+    function startCyclus(){
+      clearInterval(beeldTimer);
+      if (rustig) return;
+      beeldTimer = setInterval(function(){
+        toonBeeld((beeldNr + 1) % beelden.length);
+      }, WISSEL);
+    }
+
+    toonBeeld(0);
+    startCyclus();
+
+    knoppen.forEach(function(k){
+      k.addEventListener("click", function(){
+        toonBeeld(parseInt(k.dataset.beeld || "0", 10));
+        startCyclus();
+      });
+    });
+
+    /* niet doordraaien als het scherm niet in beeld is */
+    if ("IntersectionObserver" in window && !rustig) {
+      var stapelObs = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) { startCyclus(); }
+          else { clearInterval(beeldTimer); }
+        });
+      }, { threshold:.15 });
+      stapelObs.observe(stapel);
+    }
+
+    document.addEventListener("visibilitychange", function(){
+      if (document.hidden) { clearInterval(beeldTimer); } else { startCyclus(); }
+    });
   }
 
   /* ---- klok op het rustscherm ---- */
