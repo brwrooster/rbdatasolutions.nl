@@ -492,41 +492,20 @@ section{position:relative;z-index:1}
 /* het scherm zelf: gepositioneerd op (0,0)-(520,290) in die tekenruimte,
    en met een matrix3d in perspectief getrokken naar de vier hoeken van de tv op de foto */
 .foto-tv-quad{
-  position:absolute;top:0;left:0;width:520px;height:290px;
+  position:absolute;top:0;left:0;width:1530px;height:704px;
   transform-origin:0 0;overflow:hidden;
-  transform:matrix3d(0.719585,-0.100317,0,-0.0002445, 0.030576,0.989966,0,0.00003891, 0,0,1,0, 517,170,0,1);
+  transform:matrix3d(0.2445656223,-0.0340944548,0,-0.0000831010, 0.0125948524,0.4078119066,0,0.0000160259, 0,0,1,0, 517,170,0,1);
 }
 .foto-scherm{position:absolute;inset:0;background:#0d1526}
-.foto-rust,.foto-alarm{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;text-align:center;
-  transition:opacity .4s ease;
+.foto-rust,.foto-alarm{position:absolute;inset:0;transition:opacity .5s ease}
+.foto-rust img,.foto-alarm img{
+  width:100%;height:100%;display:block;object-fit:cover;
+  transform-origin:50% 50%;animation:fotokb 16s ease-in-out infinite alternate;
 }
-.foto-rust{color:#9ec9ea}
-.foto-klok{
-  font-family:var(--data);font-weight:300;font-size:125px;line-height:1;
-  letter-spacing:.02em;font-variant-numeric:tabular-nums;
-}
-.foto-ploeg{
-  font-family:var(--data);font-size:33px;letter-spacing:.16em;text-transform:uppercase;
-  color:#7b8ea6;margin-top:16px;
-}
-.foto-stip{
-  width:13px;height:13px;border-radius:50%;background:#3ec1ff;margin-bottom:16px;
-  box-shadow:0 0 0 0 rgba(62,193,255,.6);animation:fotopuls 2.4s infinite;
-}
-@keyframes fotopuls{0%{box-shadow:0 0 0 0 rgba(62,193,255,.55)}70%{box-shadow:0 0 0 13px rgba(62,193,255,0)}100%{box-shadow:0 0 0 0 rgba(62,193,255,0)}}
-.foto-alarm{opacity:0;background:#e0483a}
+@keyframes fotokb{from{transform:scale(1.012)}to{transform:scale(1.05)}}
+.foto-alarm{opacity:0}
 .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
 .foto-tv-quad.staat-alarm .foto-rust{opacity:0}
-.foto-prio{
-  font-family:var(--display);font-weight:700;font-size:47px;letter-spacing:.2em;
-  text-transform:uppercase;color:#fff;
-}
-.foto-type{
-  font-family:var(--display);font-weight:800;font-size:86px;letter-spacing:.01em;
-  text-transform:uppercase;color:#1a0f0a;line-height:.96;margin-top:6px;
-}
 .foto-tv-quad.staat-alarm{animation:fotoflits .5s ease-out}
 @keyframes fotoflits{0%{filter:brightness(2.4)}100%{filter:brightness(1)}}
 
@@ -642,7 +621,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
   .beeld-glans,.beeld-rol{display:none}
   .foto-tv-binnen{transition:none}
   .foto-tv-quad.staat-alarm{animation:none}
-  .foto-stip{animation:none}
+  .foto-rust img,.foto-alarm img{animation:none}
   .gloed{opacity:.6}
 }
 
@@ -922,13 +901,10 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
         <div class="foto-tv-quad" id="fotoTvQuad">
           <div class="foto-scherm">
             <div class="foto-rust">
-              <span class="foto-stip" aria-hidden="true"></span>
-              <div class="foto-klok" data-foto-klok>20:23</div>
-              <div class="foto-ploeg" data-foto-ploeg>D-ploeg &middot; dienst</div>
+              <img src="./images/Scherm-rust.JPG" alt="Het rustscherm van het P2000 Kazernescherm" loading="lazy" onerror="beeldFout(this)">
             </div>
             <div class="foto-alarm">
-              <div class="foto-prio">Prioriteit 1</div>
-              <div class="foto-type">Gebouw&shy;brand</div>
+              <img src="./images/Prio-1.JPG" alt="Het P2000 Kazernescherm bij een prio 1-melding" loading="lazy" onerror="beeldFout(this)">
             </div>
           </div>
         </div>
@@ -1269,10 +1245,6 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
 
   function pad(n){ return n < 10 ? "0" + n : "" + n; }
 
-  var fotoKlok = document.querySelector("[data-foto-klok]"),
-      fotoPloegEl = document.querySelector("[data-foto-ploeg]"),
-      ploegNamen = ["A-ploeg","B-ploeg","C-ploeg","D-ploeg"];
-
   function tikKlok(){
     var d = new Date();
     if (klok) {
@@ -1280,12 +1252,6 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
     }
     if (datum) {
       datum.textContent = dagen[d.getDay()] + " " + d.getDate() + " " + maanden[d.getMonth()] + " " + d.getFullYear();
-    }
-    if (fotoKlok) {
-      fotoKlok.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
-    }
-    if (fotoPloegEl) {
-      fotoPloegEl.textContent = ploegNamen[d.getDay() % 4] + " \u00b7 dienst";
     }
   }
   tikKlok();
