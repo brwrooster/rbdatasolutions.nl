@@ -1290,21 +1290,30 @@ html[data-beweging="uit"] .foto-tv-wrap.staat-alarm .foto-tv-alarm{opacity:1}
     eenheden.forEach(function(el){ el.style.opacity = 1; el.style.transform = "none"; });
   }
 
-  /* niet doorlopen als het scherm niet in beeld is */
-  if (frame && !uit && "IntersectionObserver" in window) {
-    var demoObs = new IntersectionObserver(function(entries){
+  /* niet doorlopen als geen van beide (de demo bovenin of de foto verderop) in beeld is */
+  if (!uit && "IntersectionObserver" in window && (frame || fotoWrap)) {
+    var zichtbaarFrame = !frame, zichtbaarFoto = !fotoWrap;
+
+    function herzieCyclus(){
+      if (zichtbaarFrame || zichtbaarFoto) {
+        if (!cyclus && !loopTimer) { cyclus = setTimeout(startAlarm, 1500); }
+      } else {
+        clearTimeout(cyclus);
+        clearInterval(loopTimer);
+        cyclus = null;
+        loopTimer = null;
+      }
+    }
+
+    var zichtObs = new IntersectionObserver(function(entries){
       entries.forEach(function(e){
-        if (!e.isIntersecting) {
-          clearTimeout(cyclus);
-          clearInterval(loopTimer);
-          frame.classList.remove("staat-alarm");
-        } else if (!frame.classList.contains("staat-alarm")) {
-          clearTimeout(cyclus);
-          cyclus = setTimeout(startAlarm, 1800);
-        }
+        if (e.target === frame) { zichtbaarFrame = e.isIntersecting; }
+        if (e.target === fotoWrap) { zichtbaarFoto = e.isIntersecting; }
       });
-    }, { threshold:.2 });
-    demoObs.observe(frame);
+      herzieCyclus();
+    }, { threshold:.15 });
+    if (frame) zichtObs.observe(frame);
+    if (fotoWrap) zichtObs.observe(fotoWrap);
   }
 })();
 </script>
