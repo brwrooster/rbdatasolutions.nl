@@ -480,11 +480,21 @@ section{position:relative;z-index:1}
   border-top:1px solid var(--rand);border-bottom:1px solid var(--rand);
   background:#050a13;height:clamp(240px,48vh,540px);
 }
+/* staand gebruik (telefoon rechtop): een liggende foto in een brede, korte band
+   knijpt dan tot een onherkenbare reep. Geef het scherm meer hoogte in plaats
+   van breedte, zodat de tv goed in beeld blijft. */
+@media (max-width:760px), (orientation:portrait){
+  .foto-tv-sectie{height:auto;aspect-ratio:4/5}
+}
 .foto-tv-wrap{position:absolute;inset:0}
 .foto-tv-wrap img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+  object-position:50% 40%;
   transition:opacity 1s ease;
   transform-origin:50% 40%;animation:fotokb 22s ease-in-out infinite alternate;
+}
+@media (max-width:760px), (orientation:portrait){
+  .foto-tv-wrap img{object-position:62% 38%;transform-origin:62% 38%}
 }
 @keyframes fotokb{from{transform:scale(1.04)}to{transform:scale(1.1)}}
 .foto-tv-rust{opacity:1;z-index:1}
@@ -615,7 +625,6 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
   .beeldstapel::after{display:none}
   .beeld-glans,.beeld-rol{display:none}
   .foto-tv-wrap.staat-alarm{animation:none}
-  .foto-tv-wrap img{animation:none}
   .gloed{opacity:.6}
 }
 
@@ -1230,10 +1239,10 @@ html[data-beweging="uit"] .foto-tv-wrap.staat-alarm .foto-tv-alarm{opacity:1}
       cyclus = null;
 
   function startAlarm(){
+    if (fotoWrap) fotoWrap.classList.add("staat-alarm");
     if (!frame) return;
 
     frame.classList.add("staat-alarm");
-    if (fotoWrap) fotoWrap.classList.add("staat-alarm");
 
     smil("a-route");
     smil("a-wagen");
@@ -1259,19 +1268,21 @@ html[data-beweging="uit"] .foto-tv-wrap.staat-alarm .foto-tv-alarm{opacity:1}
   }
 
   function stopAlarm(){
-    if (!frame) return;
+    if (fotoWrap) fotoWrap.classList.remove("staat-alarm");
+    if (!frame) { cyclus = setTimeout(startAlarm, 8000); return; }
     clearInterval(loopTimer);
     frame.classList.remove("staat-alarm");
-    if (fotoWrap) fotoWrap.classList.remove("staat-alarm");
     smil("a-route-uit");
     smil("a-wagen-uit");
     eenheden.forEach(function(el){ el.classList.remove("aan"); });
     cyclus = setTimeout(startAlarm, 8000);
   }
 
-  if (frame && !uit) {
-    frame.classList.remove("staat-alarm");
-    eenheden.forEach(function(el){ el.classList.remove("aan"); });
+  if ((frame || fotoWrap) && !uit) {
+    if (frame) {
+      frame.classList.remove("staat-alarm");
+      eenheden.forEach(function(el){ el.classList.remove("aan"); });
+    }
     cyclus = setTimeout(startAlarm, 3000);
   } else if (frame) {
     frame.classList.add("staat-alarm");
