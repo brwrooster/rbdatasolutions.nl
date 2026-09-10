@@ -474,40 +474,35 @@ section{position:relative;z-index:1}
 .staat.aan::before{animation:balk 6.8s linear forwards}
 @keyframes balk{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
-/* ---------- foto van de tv in de kazerne, met een levend scherm erin ---------- */
+/* ---------- foto van de tv in de kazerne: twee echte foto's die in elkaar overvloeien ---------- */
 .foto-tv-sectie{
   position:relative;z-index:1;overflow:hidden;
   border-top:1px solid var(--rand);border-bottom:1px solid var(--rand);
-  background:#050a13;
+  background:#050a13;height:clamp(240px,48vh,540px);
 }
-/* de buitenmaat volgt exact de verhouding van de foto (1527:704), dus er wordt nooit bijgesneden */
-.foto-tv-wrap{position:relative;width:100%;aspect-ratio:1527/704;overflow:hidden}
-.foto-tv-binnen{position:absolute;inset:0;transform-origin:50% 43%;transition:transform 1.3s cubic-bezier(.22,.61,.36,1)}
-.foto-tv-wrap.staat-alarm .foto-tv-binnen{transform:scale(1.045)}
-.foto-tv-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-
-/* schaalt de hele 1527x704-tekenruimte gelijkmatig mee met de weergegeven breedte */
-.foto-tv-schaal{position:absolute;top:0;left:0;width:1527px;height:704px;transform-origin:0 0}
-
-/* het scherm zelf: gepositioneerd op (0,0)-(520,290) in die tekenruimte,
-   en met een matrix3d in perspectief getrokken naar de vier hoeken van de tv op de foto */
-.foto-tv-quad{
-  position:absolute;top:0;left:0;width:1530px;height:704px;
-  transform-origin:0 0;overflow:hidden;
-  transform:matrix3d(0.2445656223,-0.0340944548,0,-0.0000831010, 0.0125948524,0.4078119066,0,0.0000160259, 0,0,1,0, 517,170,0,1);
+.foto-tv-wrap{position:absolute;inset:0}
+.foto-tv-wrap img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+  transition:opacity 1s ease;
+  transform-origin:50% 40%;animation:fotokb 22s ease-in-out infinite alternate;
 }
-.foto-scherm{position:absolute;inset:0;background:#0d1526}
-.foto-rust,.foto-alarm{position:absolute;inset:0;transition:opacity .5s ease}
-.foto-rust img,.foto-alarm img{
-  width:100%;height:100%;display:block;object-fit:cover;
-  transform-origin:50% 50%;animation:fotokb 16s ease-in-out infinite alternate;
+@keyframes fotokb{from{transform:scale(1.04)}to{transform:scale(1.1)}}
+.foto-tv-rust{opacity:1;z-index:1}
+.foto-tv-alarm{opacity:0;z-index:2}
+.foto-tv-wrap.staat-alarm .foto-tv-rust{opacity:0}
+.foto-tv-wrap.staat-alarm .foto-tv-alarm{opacity:1}
+.foto-tv-wrap.staat-alarm{animation:fotoflits .5s ease-out}
+@keyframes fotoflits{0%{filter:brightness(1.7)}100%{filter:brightness(1)}}
+.foto-tv-sectie::after{
+  content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:
+    linear-gradient(180deg,var(--nacht) 0%,transparent 16%,transparent 82%,var(--nacht) 100%),
+    radial-gradient(ellipse 75% 65% at 50% 45%,transparent 45%,rgba(7,13,24,.55) 100%);
 }
-@keyframes fotokb{from{transform:scale(1.012)}to{transform:scale(1.05)}}
-.foto-alarm{opacity:0}
-.foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
-.foto-tv-quad.staat-alarm .foto-rust{opacity:0}
-.foto-tv-quad.staat-alarm{animation:fotoflits .5s ease-out}
-@keyframes fotoflits{0%{filter:brightness(2.4)}100%{filter:brightness(1)}}
+.foto-tv-sectie::before{
+  content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px);
+}
 
 /* ---------- banner in de voet ---------- */
 .voet-banner{
@@ -619,9 +614,8 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
   .beeldstapel.flits{animation:none}
   .beeldstapel::after{display:none}
   .beeld-glans,.beeld-rol{display:none}
-  .foto-tv-binnen{transition:none}
-  .foto-tv-quad.staat-alarm{animation:none}
-  .foto-rust img,.foto-alarm img{animation:none}
+  .foto-tv-wrap.staat-alarm{animation:none}
+  .foto-tv-wrap img{animation:none}
   .gloed{opacity:.6}
 }
 
@@ -634,8 +628,8 @@ html[data-beweging="uit"] *::after{
 html[data-beweging="uit"] .onthul{opacity:1;transform:none}
 html[data-beweging="uit"] .beeldstapel img.actief{opacity:1}
 html[data-beweging="uit"] .eenheid{opacity:1;transform:none}
-html[data-beweging="uit"] .foto-alarm{opacity:0}
-html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
+html[data-beweging="uit"] .foto-tv-alarm{opacity:0}
+html[data-beweging="uit"] .foto-tv-wrap.staat-alarm .foto-tv-alarm{opacity:1}
 
 </style>
 </head>
@@ -647,7 +641,7 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
 <header>
   <div class="balk">
     <div class="merk">
-      <img src="./images/Logo-banner.JPG" alt="RB Data Solutions" onerror="beeldFout(this)">
+      <img src="./images/Logo-transparant.jpg" alt="RB Data Solutions" onerror="beeldFout(this)">
       <!-- Staat de naam al in de banner? Verwijder dan de regel hieronder. -->
       <div class="merk-naam">RB Data <span>Solutions</span></div>
     </div>
@@ -895,21 +889,8 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
 <!-- ============ BEELDBAND ============ -->
 <section class="foto-tv-sectie" aria-label="Het P2000 Kazernescherm op de tv in de kazerne">
   <div class="foto-tv-wrap" id="fotoTvWrap">
-    <div class="foto-tv-binnen">
-      <img src="./images/Tv-display.JPG" alt="Het P2000 Kazernescherm op een tv in de kazerne" loading="lazy" onerror="beeldFout(this)">
-      <div class="foto-tv-schaal" id="fotoTvSchaal">
-        <div class="foto-tv-quad" id="fotoTvQuad">
-          <div class="foto-scherm">
-            <div class="foto-rust">
-              <img src="./images/Scherm-rust.JPG" alt="Het rustscherm van het P2000 Kazernescherm" loading="lazy" onerror="beeldFout(this)">
-            </div>
-            <div class="foto-alarm">
-              <img src="./images/Prio-1.JPG" alt="Het P2000 Kazernescherm bij een prio 1-melding" loading="lazy" onerror="beeldFout(this)">
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <img src="./images/Kazerne-rust.JPG" alt="De tv met het rustscherm in de kazerne" loading="lazy" onerror="beeldFout(this)" class="foto-tv-rust">
+    <img src="./images/Kazerne-prio-1.JPG" alt="De tv met een prio 1-melding in de kazerne" loading="lazy" onerror="beeldFout(this)" class="foto-tv-alarm">
   </div>
 </section>
 
@@ -1092,7 +1073,7 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
 <footer>
   <div class="wrap voet">
     <div class="voet-tekst">
-      <img src="./images/Logo-banner.JPG" alt="RB Data Solutions" class="voet-banner" loading="lazy" onerror="beeldFout(this)">
+      <img src="./images/Logo-transparant.jpg" alt="RB Data Solutions" class="voet-banner" loading="lazy" onerror="beeldFout(this)">
       <strong style="font-family:var(--display);letter-spacing:.04em;text-transform:uppercase">RB Data Solutions</strong><br>
       P2000 Kazernescherm voor Nederlandse brandweerposten<br>
       &copy; 2026, alle rechten voorbehouden
@@ -1218,24 +1199,8 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
     });
   }
 
-  /* ---- het scherm in de foto: schaalt gelijkmatig mee met de weergegeven breedte,
-     zodat het perspectief precies op de tv in de foto blijft liggen ---- */
-  var fotoWrap = document.getElementById("fotoTvWrap"),
-      fotoSchaal = document.getElementById("fotoTvSchaal"),
-      fotoQuad = document.getElementById("fotoTvQuad");
-
-  function schaalFoto(){
-    if (!fotoWrap || !fotoSchaal) return;
-    var k = fotoWrap.clientWidth / 1527;
-    fotoSchaal.style.transform = "scale(" + k + ")";
-  }
-  schaalFoto();
-
-  if ("ResizeObserver" in window && fotoWrap) {
-    new ResizeObserver(schaalFoto).observe(fotoWrap);
-  } else {
-    window.addEventListener("resize", schaalFoto);
-  }
+  /* ---- de tv-foto: gewoon twee lagen die in elkaar overvloeien ---- */
+  var fotoWrap = document.getElementById("fotoTvWrap");
 
 /* ---- klok op het rustscherm ---- */
   var klok = document.getElementById("klok"),
@@ -1268,7 +1233,6 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
     if (!frame) return;
 
     frame.classList.add("staat-alarm");
-    if (fotoQuad) fotoQuad.classList.add("staat-alarm");
     if (fotoWrap) fotoWrap.classList.add("staat-alarm");
 
     smil("a-route");
@@ -1298,7 +1262,6 @@ html[data-beweging="uit"] .foto-tv-quad.staat-alarm .foto-alarm{opacity:1}
     if (!frame) return;
     clearInterval(loopTimer);
     frame.classList.remove("staat-alarm");
-    if (fotoQuad) fotoQuad.classList.remove("staat-alarm");
     if (fotoWrap) fotoWrap.classList.remove("staat-alarm");
     smil("a-route-uit");
     smil("a-wagen-uit");
