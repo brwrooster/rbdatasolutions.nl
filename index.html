@@ -12,12 +12,12 @@
 <meta property="og:title" content="P2000 Kazernescherm">
 <meta property="og:description" content="De melding, de eenheden en de rijtijden op de tv in de kazerne. Binnen een seconde na de alarmering.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="./images/Tv-display.jpg">
+<meta property="og:image" content="./images/Tv-display.JPG">
 
 <script>
 /* Bestandsextensie onbekend? Probeer automatisch de gangbare varianten. */
 window.beeldFout = function(img){
-  var lijst = [".png",".jpeg",".webp",".JPG",".PNG",".jpg"],
+  var lijst = [".jpg",".png",".jpeg",".webp",".PNG",".JPEG"],
       n = parseInt(img.getAttribute("data-poging") || "0", 10);
   if (n >= lijst.length) { img.style.display = "none"; return; }
   img.setAttribute("data-poging", n + 1);
@@ -115,6 +115,14 @@ nav a{
 }
 nav a:hover,nav a:focus-visible{color:var(--wit);border-bottom-color:var(--oranje)}
 .nav-demo{color:var(--oranje)!important}
+@media(max-width:760px){
+  .balk{padding:.55rem clamp(.9rem,4vw,1.2rem);gap:.6rem}
+  .merk-naam{display:none}
+  .merk img{height:32px}
+  nav{flex-wrap:nowrap;overflow-x:auto;gap:1.1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  nav::-webkit-scrollbar{display:none}
+  nav a{white-space:nowrap;font-size:.7rem;letter-spacing:.1em}
+}
 
 /* ---------- knoppen ---------- */
 .knop{
@@ -146,14 +154,14 @@ nav a:hover,nav a:focus-visible{color:var(--wit);border-bottom-color:var(--oranj
 .hero-meta span{display:flex;align-items:center;gap:.5rem}
 .hero-meta span::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--rand)}
 
-/* ---------- live scherm ---------- */
+/* ---------- live scherm: nabouw van het kazernescherm ---------- */
 .scherm-frame{
   position:relative;border:1px solid var(--rand);border-radius:8px;overflow:hidden;
-  background:#050a13;box-shadow:0 40px 90px -40px rgba(0,0,0,.95);
+  background:#0b1220;box-shadow:0 40px 90px -40px rgba(0,0,0,.95);
 }
 .scherm-frame::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(180deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px);
 }
 .scherm-bar{
   display:flex;align-items:center;justify-content:space-between;gap:1rem;
@@ -164,47 +172,166 @@ nav a:hover,nav a:focus-visible{color:var(--wit);border-bottom-color:var(--oranj
 @keyframes puls{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 .scherm-bar .links{display:flex;align-items:center;gap:.55rem}
 
-.scherm{position:relative;aspect-ratio:16/10;padding:clamp(.9rem,2.4vw,1.4rem);display:flex;flex-direction:column}
-@media(min-width:940px){.scherm{aspect-ratio:16/9}}
-
-/* rusttoestand */
-.rust{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;transition:opacity .35s}
-.rust-klok{font-family:var(--data);font-size:clamp(2.6rem,8vw,4.2rem);font-weight:400;color:#c3d3e8;line-height:1;letter-spacing:.02em}
-.rust-klok em{font-style:normal;color:var(--sein)}
-.rust-datum{font-family:var(--data);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:#7288a6;margin-top:.5rem}
-.rust-regels{margin-top:1.5rem;display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1.4rem;font-family:var(--data);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#5f7391;text-align:center}
-.rust-ploeg{margin-top:1rem;font-family:var(--display);font-size:1.1rem;letter-spacing:.16em;color:var(--oranje);text-transform:uppercase}
-
-/* alarmtoestand */
-.alarm{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none}
-.scherm-frame.staat-alarm .alarm{opacity:1;transform:none}
-.scherm-frame.staat-alarm .rust{opacity:0}
-.scherm-frame.staat-alarm{border-color:rgba(249,115,22,.6);box-shadow:0 0 0 1px rgba(249,115,22,.25),0 40px 90px -40px rgba(249,115,22,.5)}
-
-.prio{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem}
-.prio-tag{
-  font-family:var(--data);font-size:.68rem;font-weight:600;letter-spacing:.16em;
-  background:var(--oranje);color:#0a0f1a;padding:.22rem .6rem;border-radius:2px;
+/* alles binnen het scherm schaalt mee met de breedte */
+.scherm{
+  position:relative;aspect-ratio:16/9;overflow:hidden;
+  background:#0d1526;color:#dbe6f4;
+  font-size:11px;
 }
-.prio-tijd{font-family:var(--data);font-size:.68rem;letter-spacing:.14em;color:#7288a6;text-transform:uppercase}
-.alarm-type{font-family:var(--display);font-size:clamp(1.5rem,4.6vw,2.2rem);font-weight:700;color:var(--wit);text-transform:uppercase;line-height:1.05}
-.alarm-adres{font-family:var(--data);font-size:clamp(.8rem,2.1vw,.95rem);color:var(--sein);margin-top:.35rem}
-.alarm-wijk{font-family:var(--data);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#7288a6;margin-top:.2rem}
+@supports (font-size:1cqw){
+  .scherm{container-type:inline-size}
+  .mok{font-size:clamp(8px,2.75cqw,19px)}
+}
 
-.eenheden{margin-top:auto;padding-top:1rem;display:flex;flex-direction:column;gap:.35rem}
-.eenheden-kop{font-family:var(--data);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:#5f7391;margin-bottom:.15rem}
+/* ---- kopbalk ---- */
+.mok-kop{
+  position:relative;z-index:3;display:flex;align-items:center;gap:1em;
+  padding:.55em 1em;
+}
+.mok-post{display:flex;align-items:center;gap:.6em;min-width:0}
+.mok-wapen{width:1.9em;height:1.9em;fill:#e8b923;flex:none}
+.mok-postnaam b{
+  display:block;font-family:var(--display);font-size:1.15em;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:#fff;line-height:1.1;white-space:nowrap;
+}
+.mok-postnaam span{
+  display:block;font-family:var(--data);font-size:.62em;letter-spacing:.16em;
+  text-transform:uppercase;color:#8fa3bf;white-space:nowrap;
+}
+.mok-taak{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:.5em;
+  font-size:.9em;color:#c9d8ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.mok-stip{width:.5em;height:.5em;border-radius:50%;background:#3ec1ff;flex:none}
+.mok-wifi svg{width:1.5em;height:1.5em;stroke:#22c55e;stroke-width:1.8;fill:none;stroke-linecap:round;display:block}
+.mok-wifi circle{fill:#22c55e;stroke:none}
+
+/* ---- rusttoestand ---- */
+.rust{position:absolute;inset:0;padding-top:3.1em;display:flex;flex-direction:column;transition:opacity .4s}
+.mok-knmi{
+  background:#e8952a;color:#1a1206;text-align:center;
+  font-family:var(--display);font-size:.86em;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:.42em .8em;
+}
+.rust-midden{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:.4em}
+.rust-ploeg{font-size:1.05em;font-weight:600;color:#fff;margin-bottom:.15em}
+.rust-klok{
+  font-family:var(--data);font-size:4.6em;font-weight:300;color:#9ec9ea;
+  line-height:1;letter-spacing:.06em;font-variant-numeric:tabular-nums;
+}
+.rust-klok em{font-style:normal;color:#6ea8d0}
+.rust-datum{
+  font-family:var(--data);font-size:.86em;letter-spacing:.22em;text-transform:uppercase;
+  color:#b9c9dc;margin-top:.5em;
+}
+.rust-weer{display:flex;align-items:center;justify-content:center;gap:.7em;margin-top:.7em;flex-wrap:wrap}
+.rust-weer svg{width:1.7em;height:1.7em;fill:#cfd9e5}
+.rust-weer b{font-size:1.5em;font-weight:400;color:#e8eff8}
+.rust-weer span{font-family:var(--data);font-size:.82em;color:#93a7c0;letter-spacing:.04em}
+.rust-cijfers{display:flex;gap:2.4em;margin-top:1.1em;font-size:.86em;color:#c9d8ea}
+.rust-cijfers small{
+  display:block;font-family:var(--data);font-size:.66em;letter-spacing:.18em;
+  text-transform:uppercase;color:#6b8099;margin-bottom:.3em;
+}
+.rust-ploegen{margin-top:1.6em}
+.rust-ploegen small{
+  display:block;font-family:var(--data);font-size:.56em;letter-spacing:.2em;
+  text-transform:uppercase;color:#5f7391;margin-bottom:.5em;
+}
+.rust-ploegen div{display:flex;gap:1.6em;justify-content:center;font-family:var(--data);font-size:.68em;color:#8fa3bf}
+
+/* ---- alarmtoestand ---- */
+.alarm{
+  position:absolute;inset:0;padding-top:3.1em;display:flex;flex-direction:column;
+  opacity:0;transition:opacity .28s;pointer-events:none;
+}
+.scherm-frame.staat-alarm .alarm{opacity:1}
+.scherm-frame.staat-alarm .rust{opacity:0}
+.scherm-frame.staat-alarm{border-color:rgba(232,72,58,.55);box-shadow:0 0 0 1px rgba(232,72,58,.2),0 40px 90px -40px rgba(232,72,58,.45)}
+
+.mok-test{
+  background:#f2cb52;color:#1a1206;text-align:center;
+  font-family:var(--display);font-size:1.1em;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  padding:.3em;
+}
+.mok-prio{
+  display:flex;align-items:center;justify-content:space-between;gap:1em;
+  background:#e0483a;color:#fff;padding:.32em 1em;
+}
+.mok-prio-tag{font-family:var(--display);font-size:1.15em;font-weight:700;letter-spacing:.26em;text-transform:uppercase}
+.mok-prio-rechts{font-family:var(--data);font-size:.72em;letter-spacing:.14em;text-transform:uppercase;color:#ffe3df;white-space:nowrap}
+.mok-prio-rechts b{font-weight:500;color:#fff;margin-right:.9em;font-variant-numeric:tabular-nums}
+
+.mok-body{flex:1;display:grid;grid-template-columns:1.38fr 1fr;min-height:0;border-top:2px solid #0d1526}
+.mok-links{
+  position:relative;overflow:hidden;padding:.75em 1em;
+  background:#0f1828;border:1px solid rgba(242,203,82,.5);border-right:0;
+  display:flex;flex-direction:column;
+}
+.mok-watermerk{
+  position:absolute;top:50%;left:52%;transform:translate(-50%,-50%) rotate(-18deg);
+  font-family:var(--display);font-size:6.4em;font-weight:800;letter-spacing:.06em;
+  color:transparent;-webkit-text-stroke:2px rgba(212,160,44,.5);opacity:.55;pointer-events:none;
+}
+.mok-label{
+  position:relative;z-index:2;
+  font-family:var(--data);font-size:.62em;letter-spacing:.22em;text-transform:uppercase;color:#7b8ea6;
+}
+.mok-type{
+  position:relative;z-index:2;
+  font-family:var(--display);font-size:2.9em;font-weight:800;line-height:1;
+  text-transform:uppercase;color:#e0483a;margin:.1em 0 .12em;
+}
+.mok-kanaal{position:relative;z-index:2;font-family:var(--data);font-size:.92em;color:#e0483a;letter-spacing:.02em}
+.mok-adres{position:relative;z-index:2;border-left:.22em solid #4a5b73;padding-left:.6em;margin:.5em 0 .8em}
+.mok-adres b{display:block;font-size:1.25em;font-weight:500;color:#fff;line-height:1.2}
+.mok-adres span{display:block;font-size:.95em;color:#93a7c0}
+.mok-eenheden{position:relative;z-index:2;margin-top:.35em;display:flex;flex-direction:column;gap:.18em}
 .eenheid{
-  display:flex;align-items:center;justify-content:space-between;gap:.8rem;
-  background:rgba(62,193,255,.05);border-left:2px solid var(--sein);
-  padding:.4rem .7rem;border-radius:0 3px 3px 0;
-  font-family:var(--data);font-size:clamp(.72rem,1.9vw,.85rem);color:#c3d3e8;
-  opacity:0;transform:translateX(-10px);
+  display:flex;align-items:baseline;gap:.55em;opacity:0;transform:translateX(-8px);
 }
 .eenheid.aan{animation:inschuif .35s forwards}
 @keyframes inschuif{to{opacity:1;transform:none}}
-.eenheid .eta{color:var(--sein);font-weight:600;font-variant-numeric:tabular-nums}
-.eenheid.wacht{border-left-color:#3a4d6d}
-.eenheid.wacht .eta{color:#7288a6}
+.eenheid b{font-size:1.02em;font-weight:400;color:#5fb3e8}
+.eenheid i{font-family:var(--data);font-style:normal;font-size:.76em;color:#7b8ea6;letter-spacing:.04em}
+.eenheid span{font-family:var(--data);font-size:.82em;color:#c9d8ea}
+
+/* ---- kaart ---- */
+.mok-kaart{position:relative;overflow:hidden;border:1px solid rgba(242,203,82,.5);border-left:0}
+.mok-kaartbeeld{
+  width:100%;height:100%;display:block;
+  transform-origin:38% 46%;
+}
+.scherm-frame.staat-alarm .mok-kaartbeeld{animation:kaartzoom 13s cubic-bezier(.25,.6,.25,1) .3s forwards}
+@keyframes kaartzoom{0%{transform:scale(1)}14%{transform:scale(1.05)}100%{transform:scale(1.45)}}
+
+.mok-kaartnaam text{fill:#3d4654;font-family:var(--body);font-size:7px;font-weight:500}
+.route-basis{fill:none;stroke:#2b56a0;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;opacity:.28}
+.route{fill:none;stroke:#3b6fc4;stroke-width:4.4;stroke-linecap:round;stroke-linejoin:round}
+.mok-ster path{fill:#e23b2e;stroke:#fff;stroke-width:1.2;stroke-linejoin:round}
+.mok-huis path{fill:#2f6cc4;stroke:#fff;stroke-width:1.2;stroke-linejoin:round}
+.wagen{fill:#fff;stroke:#1e3f7a;stroke-width:.8}
+.wagen-gloed{fill:rgba(59,111,196,.35);animation:gloedpuls 1.2s ease-in-out infinite}
+@keyframes gloedpuls{0%,100%{r:5}50%{r:8}}
+
+.mok-kaartkaart{
+  position:absolute;top:.7em;left:.7em;right:.7em;z-index:2;
+  display:flex;gap:.2em;border-radius:.6em;
+  background:rgba(12,20,34,.86);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  padding:.45em .6em;
+}
+.mok-kaartkaart div{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.12)}
+.mok-kaartkaart div:last-child{border-right:0}
+.mok-kaartkaart small{
+  display:block;font-family:var(--data);font-size:.56em;letter-spacing:.18em;
+  text-transform:uppercase;color:#8fa3bf;margin-bottom:.15em;
+}
+.mok-kaartkaart b{font-family:var(--data);font-size:1.15em;font-weight:500;color:#7fc4ef}
+
+@media(max-width:520px){
+  .mok-watermerk{font-size:4.6em}
+  .rust-cijfers{gap:1.2em}
+}
 
 /* ---------- secties ---------- */
 section{position:relative;z-index:1}
@@ -252,8 +379,51 @@ section{position:relative;z-index:1}
   transition:opacity .9s cubic-bezier(.4,0,.2,1);
   will-change:opacity,transform;
 }
-.beeldstapel img.actief{opacity:1;animation:kenburns 6.4s ease-out forwards}
-@keyframes kenburns{from{transform:scale(1.005)}to{transform:scale(1.055)}}
+.beeldstapel img.actief{opacity:1}
+/* elke foto zijn eigen camerabeweging; --focus bepaalt waar naartoe gezoomd wordt */
+.beeldstapel img{transform-origin:var(--focus,50% 50%)}
+.beeldstapel img.actief:nth-of-type(1){animation:kb-a 7.6s ease-out forwards}
+.beeldstapel img.actief:nth-of-type(2){animation:kb-b 7.6s cubic-bezier(.3,.5,.2,1) forwards}
+.beeldstapel img.actief:nth-of-type(3){animation:kb-c 7.6s cubic-bezier(.3,.5,.2,1) forwards}
+@keyframes kb-a{from{transform:scale(1.005) translate3d(0,0,0)}to{transform:scale(1.075) translate3d(-1.9%,-1.1%,0)}}
+@keyframes kb-b{0%{transform:scale(1.005)}22%{transform:scale(1.09)}100%{transform:scale(1.42)}}
+@keyframes kb-c{0%{transform:scale(1.02)}20%{transform:scale(1.1)}100%{transform:scale(1.36)}}
+
+/* glans die over het glas trekt */
+.beeld-glans{
+  position:absolute;top:-25%;bottom:-25%;left:-70%;right:-70%;z-index:5;pointer-events:none;
+  background:linear-gradient(112deg,transparent 40%,rgba(255,255,255,.10) 47%,rgba(180,225,255,.17) 50%,rgba(255,255,255,.08) 53%,transparent 61%);
+  transform:translateX(-45%);
+  animation:glans 7.6s ease-in-out infinite;
+}
+@keyframes glans{0%{transform:translateX(-45%)}52%{transform:translateX(45%)}100%{transform:translateX(45%)}}
+
+/* langzaam doorlopende beeldrol, zoals een scherm dat ververst */
+.beeld-rol{
+  position:absolute;left:0;right:0;height:24%;z-index:4;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(62,193,255,.06),transparent);
+  animation:rol 5.6s linear infinite;
+}
+@keyframes rol{from{transform:translateY(-130%)}to{transform:translateY(560%)}}
+
+/* lichte flikker van de buis */
+.tv-bezel{animation:flikker 7s steps(1) infinite}
+@keyframes flikker{
+  0%,96.5%{filter:none}
+  97%{filter:brightness(1.13)}
+  97.6%{filter:none}
+  98.4%{filter:brightness(.94)}
+  99%{filter:none}
+}
+
+/* schokje bij het omschakelen */
+.beeldstapel.flits{animation:schok .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes schok{
+  0%{transform:translate3d(-4px,0,0) skewX(.7deg)}
+  28%{transform:translate3d(3px,0,0) skewX(-.5deg)}
+  60%{transform:translate3d(-1px,0,0) skewX(.15deg)}
+  100%{transform:none}
+}
 
 /* scanlijnen over het beeld */
 .beeldstapel::before{
@@ -275,6 +445,14 @@ section{position:relative;z-index:1}
 .tv.st-2 .tv-bezel{border-color:rgba(62,193,255,.5);box-shadow:0 60px 120px -50px rgba(0,0,0,1),0 0 0 1px rgba(62,193,255,.25),0 0 60px -14px rgba(62,193,255,.45)}
 
 /* toestandsknoppen onder de tv */
+.beweging-knop{
+  display:inline-block;margin-left:.6rem;cursor:pointer;
+  background:none;border:0;padding:0;
+  font-family:var(--data);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+  color:#5f7391;border-bottom:1px solid rgba(95,115,145,.5);
+}
+.beweging-knop:hover{color:var(--wit);border-bottom-color:var(--wit)}
+
 .scherm-staten{
   display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;
   margin-top:1.6rem;
@@ -293,7 +471,7 @@ section{position:relative;z-index:1}
   background:var(--oranje);transform:scaleX(0);transform-origin:left;
 }
 .staat.aan{color:var(--wit);border-color:rgba(249,115,22,.45)}
-.staat.aan::before{animation:balk 5.4s linear forwards}
+.staat.aan::before{animation:balk 6.8s linear forwards}
 @keyframes balk{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
 /* ---------- filmische beeldband ---------- */
@@ -302,6 +480,14 @@ section{position:relative;z-index:1}
   border-top:1px solid var(--rand);border-bottom:1px solid var(--rand);
   height:clamp(240px,48vh,540px);background:#050a13;
 }
+.beeldband-media{position:absolute;left:0;right:0;top:-10%;bottom:-10%;will-change:transform}
+.beeldband-glans{
+  position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(104deg,transparent 40%,rgba(255,255,255,.07) 47%,rgba(190,230,255,.10) 50%,transparent 58%);
+  transform:translateX(-110%);
+  animation:bandglans 12s ease-in-out infinite;
+}
+@keyframes bandglans{0%{transform:translateX(-110%)}48%{transform:translateX(110%)}100%{transform:translateX(110%)}}
 .beeldband img{
   width:100%;height:100%;object-fit:cover;display:block;
   transform:scale(1.06);
@@ -328,22 +514,6 @@ section{position:relative;z-index:1}
   border-radius:5px;margin:0 auto .9rem;opacity:.85;
 }
 @media(min-width:760px){.voet-banner{margin:0 0 .9rem}}
-
-/* ---------- tijdlijn ---------- */
-.tijdlijn{display:grid;gap:0;border-top:1px solid var(--rand)}
-.stap{
-  display:grid;grid-template-columns:auto 1fr;gap:1rem clamp(1rem,3vw,2.4rem);
-  padding:clamp(1.3rem,3vw,1.9rem) 0;border-bottom:1px solid var(--rand);
-  align-items:start;transition:background .3s;
-}
-@media(min-width:760px){.stap{grid-template-columns:110px 1fr}}
-.stap:hover{background:rgba(62,193,255,.03)}
-.stap-tijd{
-  font-family:var(--data);font-size:.85rem;font-weight:600;letter-spacing:.06em;
-  color:var(--oranje);padding-top:.15rem;white-space:nowrap;font-variant-numeric:tabular-nums;
-}
-.stap h3{margin-bottom:.45rem}
-.stap p{font-size:.96rem;max-width:64ch}
 
 /* ---------- kaarten ---------- */
 .kaarten{display:grid;grid-template-columns:1fr;gap:1px;background:var(--rand);border:1px solid var(--rand);border-radius:6px;overflow:hidden}
@@ -440,16 +610,29 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 .onthul{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.19,1,.22,1),transform .8s cubic-bezier(.19,1,.22,1);transition-delay:var(--d,0s)}
 .onthul.zichtbaar{opacity:1;transform:none}
 
+/* Beperkte beweging: rustiger, maar de demo blijft draaien.
+   Alleen de decoratieve effecten gaan uit. */
 @media(prefers-reduced-motion:reduce){
-  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   html{scroll-behavior:auto}
-  .onthul{opacity:1;transform:none}
-  .tv{transform:none}
-  .eenheid{opacity:1;transform:none}
-  .beeldstapel img.actief{opacity:1;transform:none}
-  .beeldband img{transform:none;animation:none}
+  .tv-bezel{animation:none}
+  .beeldstapel.flits{animation:none}
   .beeldstapel::after{display:none}
+  .beeld-glans,.beeld-rol{display:none}
+  .beeldband img{animation:none;transform:scale(1.04)}
+  .beeldband-glans{display:none}
+  .gloed{opacity:.6}
 }
+
+/* Wie beweging echt uit wil, zet het uit met de knop onder de tv. */
+html[data-beweging="uit"] *,
+html[data-beweging="uit"] *::before,
+html[data-beweging="uit"] *::after{
+  animation:none!important;transition-duration:.01ms!important;
+}
+html[data-beweging="uit"] .onthul{opacity:1;transform:none}
+html[data-beweging="uit"] .beeldstapel img.actief{opacity:1}
+html[data-beweging="uit"] .eenheid{opacity:1;transform:none}
+
 </style>
 </head>
 <body>
@@ -460,12 +643,12 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 <header>
   <div class="balk">
     <div class="merk">
-      <img src="./images/Logo-banner.jpg" alt="RB Data Solutions" onerror="beeldFout(this)">
+      <img src="./images/Logo-banner.JPG" alt="RB Data Solutions" onerror="beeldFout(this)">
       <!-- Staat de naam al in de banner? Verwijder dan de regel hieronder. -->
       <div class="merk-naam">RB Data <span>Solutions</span></div>
     </div>
     <nav>
-      <a href="#werking">Werking</a>
+      <a href="#scherm">Het scherm</a>
       <a href="#voor-wie">Voor wie</a>
       <a href="#landelijk">Landelijk</a>
       <a href="#kosten">Wat het kost</a>
@@ -484,7 +667,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
       <p class="lead">Zodra de pieper gaat, staat de melding op de tv in de kazerne. Type incident, volledig adres met wijk, en per voertuig de rijtijd naar de plaats incident — gesorteerd op wie er als eerste is.</p>
       <div class="hero-knoppen">
         <a href="#contact" class="knop knop-vol">Demo aanvragen</a>
-        <a href="#werking" class="knop knop-leeg">Bekijk de werking</a>
+        <a href="#scherm" class="knop knop-leeg">Bekijk de werking</a>
       </div>
       <div class="hero-meta">
         <span>Eigen ontvanger in de kazerne</span>
@@ -500,37 +683,122 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
           <div>Voorbeeldpost</div>
         </div>
 
-        <div class="scherm">
+        <div class="scherm mok">
+
+          <!-- kopbalk van de kazerne -->
+          <div class="mok-kop">
+            <div class="mok-post">
+              <svg class="mok-wapen" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6.5c0 4.6 3.4 8.6 8 10.5 4.6-1.9 8-5.9 8-10.5V5l-8-3z"/></svg>
+              <div class="mok-postnaam">
+                <b>Post Noorderduin</b>
+                <span>Brandweer IJsselmeerlanden</span>
+              </div>
+            </div>
+            <div class="mok-taak"><i class="mok-stip"></i> Papierbak buiten zetten.</div>
+            <div class="mok-wifi">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16.4a5 5 0 0 1 7 0"/><circle cx="12" cy="20" r="1.2"/></svg>
+            </div>
+          </div>
+
           <!-- rusttoestand -->
           <div class="rust">
-            <div class="rust-klok" id="klok">19<em>:</em>42</div>
-            <div class="rust-datum" id="datum">Donderdag 20 augustus</div>
-            <div class="rust-ploeg" id="ploeg">Ploeg A — dienst</div>
-            <div class="rust-regels">
-              <span>18°C · wind ZW 4</span>
-              <span>Taak: ademlucht controleren</span>
-              <span>Meldingen deze dienst: 3</span>
+            <div class="mok-knmi">&#9888; KNMI code oranje &mdash; zware windstoten tot 75 km/uur verwacht</div>
+            <div class="rust-midden">
+              <div class="rust-ploeg" id="ploeg">D-ploeg</div>
+              <div class="rust-klok" id="klok">20<em>:</em>23<em>:</em>16</div>
+              <div class="rust-datum" id="datum">Woensdag 9 september 2026</div>
+              <div class="rust-weer">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a3.6 3.6 0 0 0 .3-7.2A5.2 5.2 0 0 0 7.2 11 3.5 3.5 0 0 0 7 18z"/></svg>
+                <b>16&deg;</b><span>Bewolkt</span><span>Wind NW windkracht 3</span><span>Noorderduin</span>
+              </div>
+              <div class="rust-cijfers">
+                <div><small>Deze dienst</small>1 melding (D-ploeg)</div>
+                <div><small>Totaal meldingen 2026</small>8 meldingen</div>
+              </div>
+              <div class="rust-ploegen">
+                <small>Totaal meldingen per ploeg 2026</small>
+                <div><span>A-ploeg 0</span><span>B-ploeg 2</span><span>C-ploeg 5</span><span>D-ploeg 1</span></div>
+              </div>
             </div>
           </div>
 
           <!-- alarmtoestand -->
           <div class="alarm">
-            <div class="prio">
-              <span class="prio-tag">PRIO 1</span>
-              <span class="prio-tijd" id="meldtijd">Gealarmeerd 19:43</span>
+            <div class="mok-test">Testmelding &mdash; geen echt alarm</div>
+            <div class="mok-prio">
+              <span class="mok-prio-tag">Prioriteit 1</span>
+              <span class="mok-prio-rechts"><b id="meldtijd">00:07</b> Testmelding &mdash; geen echt alarm</span>
             </div>
-            <div class="alarm-type">Brandmelding<br>automatisch</div>
-            <div class="alarm-adres">Odinstraat, Almere</div>
-            <div class="alarm-wijk">Columbuskwartier · Almere Poort</div>
 
-            <div class="eenheden" id="eenheden">
-              <div class="eenheden-kop">Gealarmeerde eenheden — op rijtijd</div>
-              <div class="eenheid" data-eta="164"><span>TS 99-1131</span><span class="eta">2:44</span></div>
-              <div class="eenheid" data-eta="223"><span>HW 99-1152</span><span class="eta">3:43</span></div>
-              <div class="eenheid" data-eta="352"><span>TS 99-1133</span><span class="eta">5:52</span></div>
-              <div class="eenheid wacht"><span>OVD 99-1101</span><span class="eta">—</span></div>
+            <div class="mok-body">
+              <div class="mok-links">
+                <div class="mok-watermerk" aria-hidden="true">TEST</div>
+                <div class="mok-label">Melding</div>
+                <div class="mok-type">Gebouwbrand</div>
+                <div class="mok-kanaal">Incidentkanaal 1</div>
+                <div class="mok-adres">
+                  <b>Molenwetering 88, Noorderduin</b>
+                  <span>Noorderduin-Centrum</span>
+                </div>
+                <div class="mok-label">Ingezette eenheden</div>
+                <div class="mok-eenheden" id="eenheden">
+                  <div class="eenheid"><b>Tankautospuit Noorderduin</b><i>11-22-33</i><span>7 min</span></div>
+                  <div class="eenheid"><b>Autoladder Noorderduin</b><i>11-22-44</i><span>7 min</span></div>
+                  <div class="eenheid"><b>Tankautospuit Waterstad</b><i>12-11-22</i><span>12 min</span></div>
+                </div>
+              </div>
+
+              <div class="mok-kaart">
+                <svg class="mok-kaartbeeld" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" xmlns:xlink="http://www.w3.org/1999/xlink">
+                  <rect width="200" height="160" fill="#eeece6"/>
+                  <path d="M0 30 C34 24 62 42 92 40 L200 26 L200 44 L96 58 C64 60 34 44 0 50 Z" fill="#a9cbe8"/>
+                  <path d="M150 0 L170 0 L190 160 L168 160 Z" fill="#a9cbe8"/>
+                  <rect x="6" y="118" width="48" height="34" fill="#d5e6c4"/>
+                  <rect x="112" y="104" width="28" height="22" fill="#d5e6c4"/>
+                  <g stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="square">
+                    <path d="M0 70 H150"/><path d="M0 98 H150"/><path d="M0 134 H150"/>
+                    <path d="M26 20 V160"/><path d="M66 20 V160"/><path d="M106 20 V160"/><path d="M146 20 V160"/>
+                    <path d="M0 20 H150"/>
+                  </g>
+                  <g stroke="#ffffff" stroke-width="1.4" fill="none">
+                    <path d="M0 84 H150"/><path d="M0 116 H150"/><path d="M46 20 V160"/><path d="M86 20 V160"/><path d="M126 20 V160"/>
+                  </g>
+                  <path d="M118 160 L200 116" stroke="#f4d06a" stroke-width="6" fill="none"/>
+                  <g class="mok-kaartnaam">
+                    <text x="8" y="64">Noorderduin-Centrum</text>
+                    <text x="150" y="152">Polderstad</text>
+                  </g>
+                  <path id="route-pad" class="route-basis" d="M166 134 L166 98 L126 98 L126 76 L86 76 L86 70 L68 70"/>
+                  <path class="route" d="M166 134 L166 98 L126 98 L126 76 L86 76 L86 70 L68 70" stroke-dasharray="220" stroke-dashoffset="220">
+                    <animate id="a-route" attributeName="stroke-dashoffset" from="220" to="0" dur="3.2s" begin="indefinite" fill="freeze"/>
+                    <animate id="a-route-uit" attributeName="stroke-dashoffset" from="0" to="220" dur="0.4s" begin="indefinite" fill="freeze"/>
+                  </path>
+                  <g class="mok-ster" transform="translate(66 70)">
+                    <path d="M0 -9 L2.6 -2.8 L9 -2.8 L3.9 1.2 L5.8 7.6 L0 3.8 L-5.8 7.6 L-3.9 1.2 L-9 -2.8 L-2.6 -2.8 Z"/>
+                  </g>
+                  <g class="mok-huis" transform="translate(166 134)">
+                    <path d="M-7 1 L0 -6 L7 1 L7 7 L-7 7 Z"/>
+                  </g>
+                  <g class="wagen-groep" opacity="0">
+                    <circle class="wagen-gloed" r="6"/>
+                    <circle class="wagen" r="2.6"/>
+                    <animateMotion id="a-wagen" dur="6.5s" begin="indefinite" fill="freeze" rotate="auto" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+                      <mpath href="#route-pad" xlink:href="#route-pad"/>
+                    </animateMotion>
+                    <animate id="a-wagen-aan" attributeName="opacity" from="0" to="1" dur="0.4s" begin="indefinite" fill="freeze"/>
+                    <animate id="a-wagen-uit" attributeName="opacity" from="1" to="0" dur="0.35s" begin="indefinite" fill="freeze"/>
+                  </g>
+                </svg>
+
+                <div class="mok-kaartkaart">
+                  <div><small>Rijtijd</small><b>7 min</b></div>
+                  <div><small>Afstand</small><b>4.1 km</b></div>
+                  <div><small>Wind</small><b>NW</b></div>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -539,55 +807,6 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 </section>
 
 <hr class="streep">
-
-<!-- ============ WERKING ============ -->
-<section class="sectie" id="werking">
-  <div class="wrap">
-    <div class="sectie-kop onthul">
-      <div class="kop-label">Van melding tot uitruk</div>
-      <h2>Wat er gebeurt<br>in de eerste minuut</h2>
-      <p class="lead">De pieper geeft je een regel tekst. Het scherm geeft dezelfde melding, maar dan met de locatie op de kaart, de wijk erbij, en per voertuig een rijtijd. Alles wat je normaal alsnog moet opzoeken of wil weten, staat er al voordat je daadwerkelijk uitrukt.</p>
-    </div>
-
-    <div class="tijdlijn">
-      <div class="stap onthul">
-        <div class="stap-tijd">00:00</div>
-        <div>
-          <h3>De melding komt binnen</h3>
-          <p>De post heeft een eigen P2000-ontvanger. Die vangt de alarmering rechtstreeks op, zonder tussenpartij en zonder vertraging van een website of app.</p>
-        </div>
-      </div>
-      <div class="stap onthul">
-        <div class="stap-tijd">00:01</div>
-        <div>
-          <h3>Het scherm springt aan</h3>
-          <p>Prioriteit, type incident en de locatie — met wijk en stadsdeel erbij, zoals het in de omgeving genoemd wordt. Ook als de melding zelf alleen een straatnaam bevat.</p>
-        </div>
-      </div>
-      <div class="stap onthul">
-        <div class="stap-tijd">00:03</div>
-        <div>
-          <h3>De kaart en de route staan er</h3>
-          <p>De route wordt berekend met een profiel voor voorrangsvoertuigen. Waar de regio busbanen vrijgeeft, worden die meegenomen. Per eenheid een rijtijd en een afstand, niet één gemiddelde voor de hele uitruk. De rijtijd is een indicatie: verkeer, weer en de route die je zelf kiest bepalen wat het werkelijk wordt.</p>
-        </div>
-      </div>
-      <div class="stap onthul">
-        <div class="stap-tijd">00:06</div>
-        <div>
-          <h3>Eenheden op volgorde</h3>
-          <p>De gealarmeerde eenheden staan gesorteerd op rijtijd: wie het eerst ter plaatse is, staat bovenaan. In één blik weet je wie je onderweg treft en wanneer.</p>
-        </div>
-      </div>
-      <div class="stap onthul">
-        <div class="stap-tijd">Daarna</div>
-        <div>
-          <h3>Terug naar rust</h3>
-          <p>Klok, weerbericht, de kazernetaken van vandaag en welke ploeg dienst heeft. Het scherm is de rest van de dag gewoon nuttig om naar te kijken.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- ============ HET SCHERM ============ -->
 <section class="sectie tv-sectie" id="scherm">
@@ -601,9 +820,11 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
       <div class="tv" id="tv">
         <div class="tv-bezel">
           <div class="beeldstapel" id="schermstapel">
-            <img src="./images/Scherm-rust.jpg" alt="Het rustscherm van het P2000 Kazernescherm met klok, weer en kazernetaken" loading="lazy" onerror="beeldFout(this)">
-            <img src="./images/Prio-1.jpg" alt="Het P2000 Kazernescherm bij een prio 1-melding met kaart en gealarmeerde eenheden" loading="lazy" onerror="beeldFout(this)">
-            <img src="./images/Prio-2.jpg" alt="Het P2000 Kazernescherm bij een prio 2-melding met kaart en gealarmeerde eenheden" loading="lazy" onerror="beeldFout(this)">
+            <img src="./images/Scherm-rust.JPG" alt="Het rustscherm van het P2000 Kazernescherm met klok, weer en kazernetaken" loading="lazy" onerror="beeldFout(this)">
+            <img src="./images/Prio-1.JPG" alt="Het P2000 Kazernescherm bij een prio 1-melding met kaart en gealarmeerde eenheden" loading="lazy" onerror="beeldFout(this)" style="--focus:70% 55%">
+            <img src="./images/Prio-2.JPG" alt="Het P2000 Kazernescherm bij een prio 2-melding met kaart en gealarmeerde eenheden" loading="lazy" onerror="beeldFout(this)" style="--focus:70% 55%">
+            <div class="beeld-rol" aria-hidden="true"></div>
+            <div class="beeld-glans" aria-hidden="true"></div>
           </div>
           <div class="tv-glans" aria-hidden="true"></div>
         </div>
@@ -617,7 +838,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
         <button type="button" class="staat" data-beeld="2"><span>Prio 2</span></button>
       </div>
 
-      <p class="tv-onder">Werkt op elke tv, monitor of tablet met een browser</p>
+      <p class="tv-onder">Werkt op elke tv, monitor of tablet met een browser<button type="button" class="beweging-knop" id="bewegingKnop">Beweging uit</button></p>
     </div>
   </div>
 </section>
@@ -669,7 +890,10 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 
 <!-- ============ BEELDBAND ============ -->
 <section class="beeldband" aria-label="Het P2000 Kazernescherm op de tv in de kazerne">
-  <img src="./images/Tv-display.jpg" alt="Het P2000 Kazernescherm op een tv in de kazerne" loading="lazy" onerror="beeldFout(this)">
+  <div class="beeldband-media">
+    <img src="./images/Tv-display.JPG" alt="Het P2000 Kazernescherm op een tv in de kazerne" loading="lazy" onerror="beeldFout(this)">
+  </div>
+  <div class="beeldband-glans" aria-hidden="true"></div>
 </section>
 
 <!-- ============ VOORDELEN ============ -->
@@ -841,7 +1065,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
       <p class="lead" style="margin-left:auto;margin-right:auto">Stuur een bericht met de naam van je post en je regio. Je krijgt een werkende demo-omgeving met de voertuignummers van je eigen kazerne erin.</p>
       <div class="contact-knoppen">
         <a href="mailto:info@rbdatasolutions.nl?subject=Demo%20P2000%20Kazernescherm&body=Post%3A%20%0ARegio%3A%20%0AAantal%20schermen%3A%20%0A%0AVraag%3A%20" class="knop knop-vol">Demo aanvragen</a>
-        <a href="#werking" class="knop knop-leeg">Nog even lezen</a>
+        <a href="#scherm" class="knop knop-leeg">Nog even lezen</a>
       </div>
       <p class="contact-mail">Of gewoon mailen: <a href="mailto:info@rbdatasolutions.nl">info@rbdatasolutions.nl</a></p>
     </div>
@@ -851,13 +1075,12 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 <footer>
   <div class="wrap voet">
     <div class="voet-tekst">
-      <img src="./images/Logo-banner.jpg" alt="RB Data Solutions" class="voet-banner" loading="lazy" onerror="beeldFout(this)">
+      <img src="./images/Logo-banner.JPG" alt="RB Data Solutions" class="voet-banner" loading="lazy" onerror="beeldFout(this)">
       <strong style="font-family:var(--display);letter-spacing:.04em;text-transform:uppercase">RB Data Solutions</strong><br>
       P2000 Kazernescherm voor Nederlandse brandweerposten<br>
       &copy; 2026 — Alle rechten voorbehouden
     </div>
     <div class="voet-links">
-      <a href="#werking">Werking</a>
       <a href="#scherm">Het scherm</a>
       <a href="#voor-wie">Voor wie</a>
       <a href="#landelijk">Landelijk</a>
@@ -870,11 +1093,33 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 <script>
 (function(){
   "use strict";
-  var rustig = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var kalm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* Beweging blijft standaard aan, ook bij "beperk beweging" van het toestel.
+     Alleen wie zelf op de knop drukt zet alles stil. */
+  var uit = false;
+  try { uit = localStorage.getItem("beweging") === "uit"; } catch(e){}
+  document.documentElement.setAttribute("data-beweging", uit ? "uit" : "aan");
+
+  var knop = document.getElementById("bewegingKnop");
+  if (knop) {
+    knop.textContent = uit ? "Beweging aan" : "Beweging uit";
+    knop.addEventListener("click", function(){
+      try { localStorage.setItem("beweging", uit ? "aan" : "uit"); } catch(e){}
+      location.reload();
+    });
+  }
+
+  /* SVG-animaties (SMIL) starten los van CSS, zodat ze ook draaien
+     als het toestel CSS-animaties afknijpt. */
+  function smil(id){
+    var el = document.getElementById(id);
+    if (el && typeof el.beginElement === "function") { try { el.beginElement(); } catch(e){} }
+  }
 
   /* ---- scroll-onthulling ---- */
   var items = document.querySelectorAll(".onthul");
-  if (!("IntersectionObserver" in window) || rustig) {
+  if (!("IntersectionObserver" in window) || uit) {
     items.forEach(function(el){ el.classList.add("zichtbaar"); });
   } else {
     var obs = new IntersectionObserver(function(entries){
@@ -887,7 +1132,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 
   /* ---- tv rechtdraaien bij scrollen ---- */
   var tv = document.getElementById("tv");
-  if (tv && "IntersectionObserver" in window && !rustig) {
+  if (tv && "IntersectionObserver" in window && !uit) {
     var tvObs = new IntersectionObserver(function(entries){
       entries.forEach(function(e){ if (e.isIntersecting) { tv.classList.add("recht"); tvObs.unobserve(e.target); } });
     }, { threshold:.35 });
@@ -905,7 +1150,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
         knoppen = staten ? staten.querySelectorAll(".staat") : [],
         beeldNr = 0,
         beeldTimer = null,
-        WISSEL = 5400;
+        WISSEL = 6800;
 
     function toonBeeld(n){
       beeldNr = n;
@@ -915,7 +1160,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
         if (i === n) { void k.offsetWidth; k.classList.add("aan"); }
       });
       if (tv) { tv.classList.remove("st-0","st-1","st-2"); tv.classList.add("st-" + n); }
-      if (!rustig) {
+      if (!uit && !kalm) {
         stapel.classList.remove("flits");
         void stapel.offsetWidth;
         stapel.classList.add("flits");
@@ -924,7 +1169,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 
     function startCyclus(){
       clearInterval(beeldTimer);
-      if (rustig) return;
+      if (uit) return;
       beeldTimer = setInterval(function(){
         toonBeeld((beeldNr + 1) % beelden.length);
       }, WISSEL);
@@ -941,7 +1186,7 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
     });
 
     /* niet doordraaien als het scherm niet in beeld is */
-    if ("IntersectionObserver" in window && !rustig) {
+    if ("IntersectionObserver" in window && !uit) {
       var stapelObs = new IntersectionObserver(function(entries){
         entries.forEach(function(e){
           if (e.isIntersecting) { startCyclus(); }
@@ -956,6 +1201,29 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
     });
   }
 
+  /* ---- parallax op de brede beeldband ---- */
+  var band = document.querySelector(".beeldband"),
+      bandMedia = document.querySelector(".beeldband-media");
+
+  if (band && bandMedia && !uit && !kalm) {
+    var wacht = false;
+    var schuif = function(){
+      var r = band.getBoundingClientRect(),
+          vh = window.innerHeight || 1;
+      if (r.bottom > -100 && r.top < vh + 100) {
+        var p = (r.top + r.height / 2 - vh / 2) / vh;
+        bandMedia.style.transform = "translate3d(0," + (p * -10).toFixed(2) + "%,0)";
+      }
+      wacht = false;
+    };
+    window.addEventListener("scroll", function(){
+      if (wacht) return;
+      wacht = true;
+      window.requestAnimationFrame(schuif);
+    }, { passive:true });
+    schuif();
+  }
+
   /* ---- klok op het rustscherm ---- */
   var klok = document.getElementById("klok"),
       datum = document.getElementById("datum"),
@@ -966,71 +1234,85 @@ footer{border-top:1px solid var(--rand);background:#050a12;padding:2.6rem 0}
 
   function tikKlok(){
     var d = new Date();
-    if (klok) klok.innerHTML = pad(d.getHours()) + "<em>:</em>" + pad(d.getMinutes());
-    if (datum) datum.textContent = dagen[d.getDay()] + " " + d.getDate() + " " + maanden[d.getMonth()];
+    if (klok) {
+      klok.innerHTML = pad(d.getHours()) + "<em>:</em>" + pad(d.getMinutes()) + "<em>:</em>" + pad(d.getSeconds());
+    }
+    if (datum) {
+      datum.textContent = dagen[d.getDay()] + " " + d.getDate() + " " + maanden[d.getMonth()] + " " + d.getFullYear();
+    }
   }
   tikKlok();
-  setInterval(tikKlok, 10000);
+  setInterval(tikKlok, 1000);
 
-  /* ---- demo: rust -> alarm -> rust ---- */
+  /* ---- demo: rust -> melding -> rust ---- */
   var frame = document.getElementById("demo"),
       meldtijd = document.getElementById("meldtijd"),
       eenheden = frame ? frame.querySelectorAll(".eenheid") : [],
-      etaTimer = null;
-
-  function toonEta(el, sec){
-    var m = Math.floor(sec / 60), s = sec % 60;
-    el.querySelector(".eta").textContent = m + ":" + pad(s);
-  }
+      loopTimer = null,
+      cyclus = null;
 
   function startAlarm(){
     if (!frame) return;
-    var d = new Date();
-    if (meldtijd) meldtijd.textContent = "Gealarmeerd " + pad(d.getHours()) + ":" + pad(d.getMinutes());
 
     frame.classList.add("staat-alarm");
+
+    smil("a-route");
+    smil("a-wagen");
+    smil("a-wagen-aan");
 
     eenheden.forEach(function(el, i){
       el.classList.remove("aan");
       void el.offsetWidth;
-      el.style.animationDelay = (0.35 + i * 0.28) + "s";
+      el.style.animationDelay = (0.3 + i * 0.26) + "s";
       el.classList.add("aan");
     });
 
-    /* rijtijden lopen terug */
-    var rest = [];
-    eenheden.forEach(function(el){ rest.push(parseInt(el.dataset.eta || "0", 10)); });
-    clearInterval(etaTimer);
-    etaTimer = setInterval(function(){
-      eenheden.forEach(function(el, i){
-        if (!rest[i]) return;
-        rest[i] = Math.max(0, rest[i] - 1);
-        toonEta(el, rest[i]);
-      });
+    /* tijd sinds alarmering loopt op, net als op het echte scherm */
+    var sec = 0;
+    if (meldtijd) meldtijd.textContent = "00:00";
+    clearInterval(loopTimer);
+    loopTimer = setInterval(function(){
+      sec++;
+      if (meldtijd) meldtijd.textContent = pad(Math.floor(sec / 60)) + ":" + pad(sec % 60);
     }, 1000);
 
-    setTimeout(stopAlarm, 13000);
+    cyclus = setTimeout(stopAlarm, 15000);
   }
 
   function stopAlarm(){
     if (!frame) return;
-    clearInterval(etaTimer);
+    clearInterval(loopTimer);
     frame.classList.remove("staat-alarm");
-    eenheden.forEach(function(el){
-      el.classList.remove("aan");
-      var basis = parseInt(el.dataset.eta || "0", 10);
-      if (basis) toonEta(el, basis);
-    });
-    setTimeout(startAlarm, 9000);
+    smil("a-route-uit");
+    smil("a-wagen-uit");
+    eenheden.forEach(function(el){ el.classList.remove("aan"); });
+    cyclus = setTimeout(startAlarm, 8000);
   }
 
-  if (frame && !rustig) {
+  if (frame && !uit) {
     frame.classList.remove("staat-alarm");
     eenheden.forEach(function(el){ el.classList.remove("aan"); });
-    setTimeout(startAlarm, 3200);
+    cyclus = setTimeout(startAlarm, 3000);
   } else if (frame) {
     frame.classList.add("staat-alarm");
     eenheden.forEach(function(el){ el.style.opacity = 1; el.style.transform = "none"; });
+  }
+
+  /* niet doorlopen als het scherm niet in beeld is */
+  if (frame && !uit && "IntersectionObserver" in window) {
+    var demoObs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (!e.isIntersecting) {
+          clearTimeout(cyclus);
+          clearInterval(loopTimer);
+          frame.classList.remove("staat-alarm");
+        } else if (!frame.classList.contains("staat-alarm")) {
+          clearTimeout(cyclus);
+          cyclus = setTimeout(startAlarm, 1800);
+        }
+      });
+    }, { threshold:.2 });
+    demoObs.observe(frame);
   }
 })();
 </script>
