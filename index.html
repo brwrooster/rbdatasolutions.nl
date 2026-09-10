@@ -33,6 +33,7 @@ window.beeldFout = function(img){
 *{margin:0;padding:0;box-sizing:border-box}
 
 :root{
+  color-scheme:dark;
   --nacht:#070d18;
   --staal:#0e1728;
   --paneel:#131f34;
@@ -49,7 +50,7 @@ window.beeldFout = function(img){
   --breed:1180px;
 }
 
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;background:var(--nacht)}
 
 body{
   font-family:var(--body);
@@ -481,10 +482,10 @@ section{position:relative;z-index:1}
   background:#050a13;height:clamp(240px,48vh,540px);
 }
 /* staand gebruik (telefoon rechtop): een liggende foto in een brede, korte band
-   knijpt dan tot een onherkenbare reep. Geef het scherm meer hoogte in plaats
-   van breedte, zodat de tv goed in beeld blijft. */
+   knijpt dan tot een onherkenbare reep. Op staand laten we de hele foto zien
+   in plaats van te gokken naar een uitsnede. */
 @media (max-width:760px), (orientation:portrait){
-  .foto-tv-sectie{height:auto;aspect-ratio:4/5}
+  .foto-tv-sectie{height:auto;aspect-ratio:5/4;background:#050a13}
 }
 .foto-tv-wrap{position:absolute;inset:0}
 .foto-tv-wrap img{
@@ -494,7 +495,7 @@ section{position:relative;z-index:1}
   transform-origin:50% 40%;animation:fotokb 22s ease-in-out infinite alternate;
 }
 @media (max-width:760px), (orientation:portrait){
-  .foto-tv-wrap img{object-position:62% 38%;transform-origin:62% 38%}
+  .foto-tv-wrap img{object-fit:contain;object-position:50% 50%;transform-origin:50% 50%}
 }
 @keyframes fotokb{from{transform:scale(1.04)}to{transform:scale(1.1)}}
 .foto-tv-rust{opacity:1;z-index:1}
