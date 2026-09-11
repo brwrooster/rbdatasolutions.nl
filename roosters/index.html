@@ -769,7 +769,7 @@
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-1">
-                {Object.values(personMap).map((p) => {
+                {Object.values(personMap).filter((p) => !p.gast && !p.vrijwilliger).map((p) => {
                   const actief = (dienst.beschikbaar || []).includes(p.id);
                   return (
                     <button
