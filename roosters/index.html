@@ -434,19 +434,21 @@
     // Bij deze functies heeft het eigen team altijd voorrang op een gast
     const EIGEN_TEAM_VOORRANG = ["B", "CTS", "CL"];
     const MAX_NAMEN = 10;
-    const LOGO_URL = "/c953c7ff-b499-4aad-a62a-b332b3bed244.jpeg";
+    const LOGO_URL = "c953c7ff-b499-4aad-a62a-b332b3bed244.jpeg";
     // Eigen logo per ploeg — bestanden staan in de map /logo/ van de repo
+    // Relatieve paden (geen beginnende "/"), zodat dit ook werkt als de site
+    // in een submap draait (bijv. rbdatasolutions.nl/roosters/) i.p.v. op de hoofdmap.
     const LOGO_PER_TEAM = {
-      veluwsekant: "/logo/ploeg-d.png",
-      aploeg: "/logo/ploeg-a.png",
-      bploeg: "/logo/ploeg-b.png",
-      cploeg: "/logo/ploeg-c.png",
+      veluwsekant: "logo/ploeg-d.png",
+      aploeg: "logo/ploeg-a.png",
+      bploeg: "logo/ploeg-b.png",
+      cploeg: "logo/ploeg-c.png",
     };
     function logoVoorTeam(team) {
       return LOGO_PER_TEAM[team] || LOGO_URL;
     }
     // Logo onderaan het inlogscherm — mag zichtbaar branding zijn
-    const LOGO_MAIL_URL = "/logo/logo-mail.png";
+    const LOGO_MAIL_URL = "logo/logo-mail.png";
 
     function todayISO() {
       return new Date().toISOString().slice(0, 10);
@@ -1103,8 +1105,8 @@
             />
             <p className="text-[10px] text-[#5A5F68] leading-relaxed">
               © 2026 rbdatasolutions.nl | Web Development by Bos. All rights reserved.<br />
-              <a href="mailto:richardbos@icloud.com" className="text-[#6B7280] hover:text-[#8A8F9C] transition-colors">
-                richardbos@icloud.com
+              <a href="mailto:info@rbdatasolutions.nl" className="text-[#6B7280] hover:text-[#8A8F9C] transition-colors">
+                info@rbdatasolutions.nl
               </a>
             </p>
           </div>
