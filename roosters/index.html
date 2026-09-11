@@ -540,7 +540,12 @@
           if (token) headers["Authorization"] = "Bearer " + token;
           const res = await fetch(API_BASE + path, { ...opts, headers });
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || "Onbekende fout (" + res.status + ")");
+          if (!res.ok) {
+            const err = new Error(data.error || "Onbekende fout (" + res.status + ")");
+            err.data = data; // bevat o.a. { waarschuwing: true } zodat de UI kan vragen om bevestiging
+            err.status = res.status;
+            throw err;
+          }
           return data;
         },
         [token]
@@ -649,12 +654,13 @@
           }
         });
 
-        // Gasten uit het gekoppelde team: alleen bevoegde mensen, en bij B/CTS/CL
-        // alleen als er géén eigen kandidaat meer beschikbaar is.
+        // Gasten uit het gekoppelde team: iedereen die bevoegd is en nog niet in
+        // deze dienst staat. Bij B/CTS/CL waarschuwt het systeem pas ná de keuze
+        // als er nog een eigen kandidaat beschikbaar was — niet vooraf verbergen.
         const gasten = [];
         const eigenNogBeschikbaar = vrij.length > 0;
-        const magGast = !EIGEN_TEAM_VOORRANG.includes(code) || !eigenNogBeschikbaar;
-        if (magGast && onWijzigToewijzing) {
+        const voorrangGeldt = EIGEN_TEAM_VOORRANG.includes(code) && eigenNogBeschikbaar;
+        if (onWijzigToewijzing) {
           (gastKandidaten || []).forEach((g) => {
             if (!(g.functies || []).some((f) => f.code === code)) return;
             if (toegewezenAan[g.id] !== undefined) return; // staat al ergens in deze dienst
@@ -663,7 +669,7 @@
           });
         }
 
-        return { vrij, ruil, gasten, gastGeblokkeerd: !magGast && (gastKandidaten || []).length > 0 };
+        return { vrij, ruil, gasten, voorrangGeldt };
       }
 
       return (
@@ -781,17 +787,10 @@
                 </div>
                 <div className="space-y-1">
                   {(() => {
-                    const { vrij, ruil, gasten, gastGeblokkeerd } = kandidatenVoor(wijzigSlot.code, wijzigSlot
+                    const { vrij, ruil, gasten, voorrangGeldt } = kandidatenVoor(wijzigSlot.code, wijzigSlot
                       .persoonId);
                     if (vrij.length === 0 && ruil.length === 0 && (gasten || []).length === 0) {
-                      return (
-                        <div className="text-[11px] text-[#5A5F68] px-2 py-1.5">
-                          Geen bevoegde mensen beschikbaar.
-                          {gastGeblokkeerd && (
-                            <div className="mt-1 text-[#8AA0B5]">Een gast mag deze functie niet vervullen zolang er een eigen teamlid beschikbaar is.</div>
-                          )}
-                        </div>
-                      );
+                      return <div className="text-[11px] text-[#5A5F68] px-2 py-1.5">Geen bevoegde mensen beschikbaar.</div>;
                     }
                     return (
                       <>
@@ -823,9 +822,14 @@
                         {(gasten || []).length > 0 && (
                           <>
                             <div className="border-t border-[#2A2E37] mt-2 pt-2">
-                              <div className="text-[10px] uppercase tracking-wider text-[#8AA0B5] px-3 pb-1">
+                              <div className="text-[10px] uppercase tracking-wider text-[#8AA0B5] px-3 pb-0.5">
                                 Gast vanuit {gastTeamNaam || "gekoppelde ploeg"}
                               </div>
+                              {voorrangGeldt && (
+                                <div className="text-[10px] text-[#E0A33D] px-3 pb-1">
+                                  Let op: er is nog een eigen teamlid beschikbaar voor deze rol.
+                                </div>
+                              )}
                             </div>
                             {gasten.map((kp) => (
                               <button
@@ -1362,15 +1366,28 @@
         } catch (e) { alert(e.message); }
       }
 
-      async function wijzigToewijzing(dienstId, functieCode, oudePersoonId, nieuwePersoonId) {
+      async function wijzigToewijzing(dienstId, functieCode, oudePersoonId, nieuwePersoonId, negeerVoorrang) {
         try {
           await api.call("/api/diensten/" + dienstId + "/wijzig-toewijzing", {
             method: "POST",
-            body: JSON.stringify({ functie_code: functieCode, oude_persoon_id: oudePersoonId, nieuwe_persoon_id: nieuwePersoonId }),
+            body: JSON.stringify({
+              functie_code: functieCode,
+              oude_persoon_id: oudePersoonId,
+              nieuwe_persoon_id: nieuwePersoonId,
+              negeer_voorrang: !!negeerVoorrang,
+            }),
           });
           bumpRefresh();
         } catch (e) {
-          alert(e.message);
+          // Waarschuwing (bijv. eigen team nog beschikbaar) i.p.v. harde fout:
+          // vraag om bevestiging en probeer dan opnieuw met de negeer-vlag aan.
+          if (e.data && e.data.waarschuwing) {
+            if (window.confirm(e.message + "\n\nToch doorgaan?")) {
+              wijzigToewijzing(dienstId, functieCode, oudePersoonId, nieuwePersoonId, true);
+            }
+          } else {
+            alert(e.message);
+          }
         }
       }
 
