@@ -435,6 +435,18 @@
     const EIGEN_TEAM_VOORRANG = ["B", "CTS", "CL"];
     const MAX_NAMEN = 10;
     const LOGO_URL = "/c953c7ff-b499-4aad-a62a-b332b3bed244.jpeg";
+    // Eigen logo per ploeg — bestanden staan in de map /logo/ van de repo
+    const LOGO_PER_TEAM = {
+      veluwsekant: "/logo/ploeg-d.png",
+      aploeg: "/logo/ploeg-a.png",
+      bploeg: "/logo/ploeg-b.png",
+      cploeg: "/logo/ploeg-c.png",
+    };
+    function logoVoorTeam(team) {
+      return LOGO_PER_TEAM[team] || LOGO_URL;
+    }
+    // Logo onderaan het inlogscherm — mag zichtbaar branding zijn
+    const LOGO_MAIL_URL = "/logo/logo-mail.png";
 
     function todayISO() {
       return new Date().toISOString().slice(0, 10);
@@ -533,6 +545,7 @@
     function useApi() {
       const [token, setToken] = useState(() => sessionStorage.getItem("rooster_token") || null);
       const [teamNaam, setTeamNaam] = useState(() => sessionStorage.getItem("rooster_team_naam") || "");
+      const [teamId, setTeamId] = useState(() => sessionStorage.getItem("rooster_team_id") || "");
 
       const call = useCallback(
         async (path, opts = {}) => {
@@ -561,19 +574,23 @@
         if (!res.ok) throw new Error(data.error || "Inloggen mislukt.");
         sessionStorage.setItem("rooster_token", data.token);
         sessionStorage.setItem("rooster_team_naam", data.team_naam || "");
+        sessionStorage.setItem("rooster_team_id", data.team_id || "");
         setToken(data.token);
         setTeamNaam(data.team_naam || "");
+        setTeamId(data.team_id || "");
         return data;
       }, []);
 
       const logout = useCallback(() => {
         sessionStorage.removeItem("rooster_token");
         sessionStorage.removeItem("rooster_team_naam");
+        sessionStorage.removeItem("rooster_team_id");
         setToken(null);
         setTeamNaam("");
+        setTeamId("");
       }, []);
 
-      return { call, login, logout, ingelogd: !!token, teamNaam };
+      return { call, login, logout, ingelogd: !!token, teamNaam, teamId };
     }
 
     // ---------- Visual bits ----------
@@ -970,10 +987,10 @@
           <div className="sticky top-0 z-10 bg-[#101216]/95 backdrop-blur border-b border-[#1F222A] px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-md bg-[#B5483D] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover" onError={(e) => { e.target
+                <img src={logoVoorTeam(gekozenTeam)} alt="Logo" className="w-full h-full object-cover" onError={(e) => { e.target
                     .style.display = "none";
                   e.target.parentElement.innerHTML =
-                    '<span class="text-[#101216] font-bold text-sm">D</span>'; }} />
+                    '<span class="text-[#101216] font-bold text-sm">' + (gekozenTeam || "?").charAt(0).toUpperCase() + '</span>'; }} />
               </div>
               <div className="min-w-0">
                 <div className="text-[#E8E6E1] font-bold text-base leading-tight truncate">{data.team_naam || "Rooster"}</div>
@@ -1078,8 +1095,14 @@
 
           {/* Footer */}
           <div className="w-full max-w-sm mt-8 pt-4 border-t border-[#2A2E37] text-center">
+            <img
+              src={LOGO_MAIL_URL}
+              alt="R-Tech logo"
+              className="h-10 mx-auto mb-3 opacity-90"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
             <p className="text-[10px] text-[#5A5F68] leading-relaxed">
-              © 2026 R-Tech | Web Development by Bos. All rights reserved.<br />
+              © 2026 rbdatasolutions.nl | Web Development by Bos. All rights reserved.<br />
               <a href="mailto:richardbos@icloud.com" className="text-[#6B7280] hover:text-[#8A8F9C] transition-colors">
                 richardbos@icloud.com
               </a>
@@ -1958,10 +1981,10 @@
           <div className="sticky top-0 z-10 bg-[#101216]/95 backdrop-blur border-b border-[#1F222A] px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-md bg-[#B5483D] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover" onError={(e) => { e.target
+                <img src={logoVoorTeam(api.teamId)} alt="Logo" className="w-full h-full object-cover" onError={(e) => { e.target
                     .style.display = "none";
                   e.target.parentElement.innerHTML =
-                    '<span class="text-[#101216] font-bold text-sm">D</span>'; }} />
+                    '<span class="text-[#101216] font-bold text-sm">' + (api.teamNaam || "?").charAt(0).toUpperCase() + '</span>'; }} />
               </div>
               <div className="text-[#E8E6E1] font-bold text-sm leading-tight">{api.teamNaam || "Rooster"}</div>
             </div>
