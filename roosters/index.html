@@ -14,6 +14,8 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer">
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer">
+</script>
 
 <style>
   body {
@@ -429,6 +431,8 @@
       { code: "OL", label: "Opstapper 4152", slots: 1, color: "#7A6B9C" },
     ];
     const FUNCTIE_ORDER = ["B", "M", "CTS", "CL", "OL"];
+    // Bij deze functies heeft het eigen team altijd voorrang op een gast
+    const EIGEN_TEAM_VOORRANG = ["B", "CTS", "CL"];
     const MAX_NAMEN = 10;
     const LOGO_URL = "/c953c7ff-b499-4aad-a62a-b332b3bed244.jpeg";
 
@@ -583,7 +587,7 @@
       );
     }
 
-    function PersonChip({ naam, code }) {
+    function PersonChip({ naam, code, gast, gastTeamNaam }) {
       const f = FUNCTIES.find((x) => x.code === code);
       return (
         <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1A1D23] border border-[#2A2E37]">
@@ -591,7 +595,10 @@
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-wider text-[#8A8F9C] leading-none mb-0.5">{f ? f.label :
               code}</div>
-            <div className="text-sm font-medium text-[#E8E6E1] truncate">{naam}</div>
+            <div className="text-sm font-medium text-[#E8E6E1] truncate">
+              {naam}
+              {gast && <span className="text-[10px] text-[#8AA0B5] font-normal ml-1.5" title={gastTeamNaam || ""}>· gast</span>}
+            </div>
           </div>
         </div>
       );
@@ -610,7 +617,7 @@
     }
 
     function DienstKaart({ dienst, personMap, beschikbaarMode, onToggleBeschikbaar, onSetAlle, weerPerDatum,
-      onWijzigToewijzing }) {
+      onWijzigToewijzing, gastKandidaten, gastTeamNaam }) {
       const heeftTekort = dienst.tekorten && dienst.tekorten.length > 0;
       const taak = schoonmaakTaakVoor(dienst.datum);
       const [wijzigSlot, setWijzigSlot] = useState(null);
@@ -626,6 +633,7 @@
         const ruil = [];
 
         Object.values(personMap).forEach((p) => {
+          if (p.gast) return; // gasten worden apart behandeld
           if (!beschikbaarIds.has(p.id)) return;
           if (!(p.functies || []).some((f) => f.code === code)) return;
           if (p.id === huidigePersoonId) return;
@@ -641,7 +649,21 @@
           }
         });
 
-        return { vrij, ruil };
+        // Gasten uit het gekoppelde team: alleen bevoegde mensen, en bij B/CTS/CL
+        // alleen als er géén eigen kandidaat meer beschikbaar is.
+        const gasten = [];
+        const eigenNogBeschikbaar = vrij.length > 0;
+        const magGast = !EIGEN_TEAM_VOORRANG.includes(code) || !eigenNogBeschikbaar;
+        if (magGast && onWijzigToewijzing) {
+          (gastKandidaten || []).forEach((g) => {
+            if (!(g.functies || []).some((f) => f.code === code)) return;
+            if (toegewezenAan[g.id] !== undefined) return; // staat al ergens in deze dienst
+            if (g.id === huidigePersoonId) return;
+            gasten.push(g);
+          });
+        }
+
+        return { vrij, ruil, gasten, gastGeblokkeerd: !magGast && (gastKandidaten || []).length > 0 };
       }
 
       return (
@@ -704,7 +726,7 @@
                       <div key={code + pid}>
                         <div className="flex items-center gap-1">
                           <div className="flex-1 min-w-0">
-                            <PersonChip naam={personMap[pid]?.naam || "?"} code={code} />
+                            <PersonChip naam={personMap[pid]?.naam || "?"} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} />
                           </div>
                           {onWijzigToewijzing && (
                             <button
@@ -759,9 +781,17 @@
                 </div>
                 <div className="space-y-1">
                   {(() => {
-                    const { vrij, ruil } = kandidatenVoor(wijzigSlot.code, wijzigSlot.persoonId);
-                    if (vrij.length === 0 && ruil.length === 0) {
-                      return <div className="text-[11px] text-[#5A5F68] px-2 py-1.5">Geen bevoegde mensen beschikbaar.</div>;
+                    const { vrij, ruil, gasten, gastGeblokkeerd } = kandidatenVoor(wijzigSlot.code, wijzigSlot
+                      .persoonId);
+                    if (vrij.length === 0 && ruil.length === 0 && (gasten || []).length === 0) {
+                      return (
+                        <div className="text-[11px] text-[#5A5F68] px-2 py-1.5">
+                          Geen bevoegde mensen beschikbaar.
+                          {gastGeblokkeerd && (
+                            <div className="mt-1 text-[#8AA0B5]">Een gast mag deze functie niet vervullen zolang er een eigen teamlid beschikbaar is.</div>
+                          )}
+                        </div>
+                      );
                     }
                     return (
                       <>
@@ -790,6 +820,27 @@
                                 wijzigSlot.persoonId]?.naam}</span>
                           </button>
                         ))}
+                        {(gasten || []).length > 0 && (
+                          <>
+                            <div className="border-t border-[#2A2E37] mt-2 pt-2">
+                              <div className="text-[10px] uppercase tracking-wider text-[#8AA0B5] px-3 pb-1">
+                                Gast vanuit {gastTeamNaam || "gekoppelde ploeg"}
+                              </div>
+                            </div>
+                            {gasten.map((kp) => (
+                              <button
+                                key={kp.id}
+                                onClick={() => { onWijzigToewijzing(dienst.id, wijzigSlot.code, wijzigSlot
+                                    .persoonId, kp.id);
+                                  setWijzigSlot(null); }}
+                                className="w-full text-left text-[13px] text-[#E8E6E1] hover:bg-[#1F222A] rounded-md px-3 py-2 flex items-center justify-between gap-2"
+                              >
+                                <span>{kp.naam}</span>
+                                <span className="text-[10px] text-[#8AA0B5] flex-shrink-0">gast</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
                       </>
                     );
                   })()}
@@ -840,7 +891,7 @@
               {FUNCTIE_ORDER.map((code) =>
                 (dienst.toewijzing?.[code] || []).length > 0 ? (
                   dienst.toewijzing[code].map((pid) => <PersonChip key={code + pid} naam={personMap[pid]?.naam ||
-                      "?"} code={code} />)
+                      "?"} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} />)
                 ) : (
                   <div key={code} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1A1D23] border border-dashed border-[#3A3320]">
                     <FunctieBadge code={code} />
@@ -895,6 +946,10 @@
       const personMap = useMemo(() => {
         const m = {};
         (data?.personen || []).forEach((p) => (m[p.id] = p));
+        // Gasten uit het gekoppelde team meenemen, zodat hun échte naam getoond wordt
+        Object.entries(data?.gasten || {}).forEach(([id, g]) => {
+          if (!m[id]) m[id] = { id, naam: g.naam, functies: [], gast: true, gastTeamNaam: g.teamNaam };
+        });
         return m;
       }, [data]);
 
@@ -1187,18 +1242,32 @@
       const [periodeInterval, setPeriodeInterval] = useState(4);
       const weerPerDatum = useWeerAlmere();
 
+      const [gasten, setGasten] = useState({});
+      const [gastKandidaten, setGastKandidaten] = useState([]);
+      const [gastTeamNaam, setGastTeamNaam] = useState("");
+
       useEffect(() => {
         setLaden(true);
         Promise.all([api.call("/api/diensten"), api.call("/api/personen")])
           .then(([d, p]) => { setDiensten(d.diensten);
+            setGasten(d.gasten || {});
             setPersonen(p.personen); })
           .finally(() => setLaden(false));
+      }, [refreshKey]);
+
+      // Gastkandidaten uit het gekoppelde team (alleen voor handmatig invullen)
+      useEffect(() => {
+        api.call("/api/gastkandidaten")
+          .then((d) => { setGastKandidaten(d.personen || []);
+            setGastTeamNaam(d.gastTeamNaam || ""); })
+          .catch(() => {});
       }, [refreshKey]);
 
       useEffect(() => {
         const interval = setInterval(() => {
           Promise.all([api.call("/api/diensten"), api.call("/api/personen")])
             .then(([d, p]) => { setDiensten(d.diensten);
+              setGasten(d.gasten || {});
               setPersonen(p.personen); })
             .catch(() => {});
         }, 2 * 60 * 1000);
@@ -1208,8 +1277,12 @@
       const personMap = useMemo(() => {
         const m = {};
         personen.forEach((p) => (m[p.id] = p));
+        // Gasten die al ingedeeld staan, zodat hun naam getoond wordt
+        Object.entries(gasten).forEach(([id, g]) => {
+          if (!m[id]) m[id] = { id, naam: g.naam, functies: [], gast: true, gastTeamNaam: g.teamNaam };
+        });
         return m;
-      }, [personen]);
+      }, [personen, gasten]);
 
       async function addDienst() {
         if (!nieuweDatum) return;
@@ -1308,7 +1381,7 @@
           <div className="flex items-center justify-between">
             <h2 className="text-[#E8E6E1] font-semibold text-base">Diensten</h2>
             <div className="flex items-center gap-2">
-              <PDFKnop diensten={diensten} personen={personen} teamNaam={teamNaam} />
+              <PDFKnop diensten={diensten} personen={personen} teamNaam={teamNaam} personMap={personMap} />
               {diensten.length > 0 && (
                 <button onClick={indelenAlles} disabled={personen.length === 0} className="text-[11px] font-medium text-[#101216] bg-[#C9A24B] hover:bg-[#B8923F] disabled:opacity-30 rounded-lg px-3 py-1.5">Indelen</button>
               )}
@@ -1364,7 +1437,7 @@
                   </div>
                   <DienstKaart dienst={d} personMap={personMap} beschikbaarMode={editId === d.id} onToggleBeschikbaar={
                       toggleBeschikbaar} onSetAlle={setAlle} weerPerDatum={weerPerDatum} onWijzigToewijzing={
-                      wijzigToewijzing} />
+                      wijzigToewijzing} gastKandidaten={gastKandidaten} gastTeamNaam={gastTeamNaam} />
                   {editId !== d.id && (
                     <div className="flex justify-end mt-1.5">
                       <button onClick={() => indelenEen(d.id)} disabled={(d.beschikbaar || []).length === 0} className="text-[11px] font-medium text-[#C9A24B] hover:text-[#DDB35E] disabled:opacity-30">Opnieuw indelen</button>
@@ -1393,7 +1466,7 @@
       return [...set].sort();
     }
 
-    function PDFKnop({ diensten, personen, teamNaam }) {
+    function PDFKnop({ diensten, personen, teamNaam, personMap }) {
       const [open, setOpen] = useState(false);
       const [bezig, setBezig] = useState(false);
       const [definitief, setDefinitief] = useState({});
@@ -1441,6 +1514,120 @@
         }
         return "";
       }
+
+      // ---- Excel-export voor planning ----
+      // Twee tabbladen:
+      //   "Rooster"  = één regel per ingedeelde persoon (makkelijk te verwerken/importeren)
+      //   "Overzicht" = matrix namen x dagen (om snel te lezen)
+      const genereerExcel = () => {
+        try {
+          const maandNaam = gekozenMaand ? maandLabel(gekozenMaand) : "";
+          const wb = XLSX.utils.book_new();
+
+          // --- Tabblad 1: regelsgewijs, voor verwerking in het planningssysteem ---
+          const regels = [];
+          dagenInMaand.forEach((datum) => {
+            const dienst = dienstPerDatum[datum];
+            if (!dienst || !dienst.toewijzing) return;
+            const d = new Date(datum + "T00:00:00");
+            const weekdag = d.toLocaleDateString("nl-NL", { weekday: "long" });
+            FUNCTIE_ORDER.forEach((code) => {
+              (dienst.toewijzing[code] || []).forEach((pid) => {
+                const p = personMap ? personMap[pid] : null;
+                const f = FUNCTIES.find((x) => x.code === code);
+                regels.push({
+                  Datum: datum,
+                  Weekdag: weekdag.charAt(0).toUpperCase() + weekdag.slice(1),
+                  Ploeg: teamNaam || "",
+                  Naam: p?.naam || "",
+                  Code: code,
+                  Functie: f ? f.label : code,
+                  Gast: p?.gast ? "Ja" : "Nee",
+                  Herkomst: p?.gast ? p.gastTeamNaam || "Andere ploeg" : teamNaam || "",
+                });
+              });
+            });
+          });
+
+          const ws1 = XLSX.utils.json_to_sheet(regels, {
+            header: ["Datum", "Weekdag", "Ploeg", "Naam", "Code", "Functie", "Gast", "Herkomst"],
+          });
+          ws1["!cols"] = [
+            { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 22 },
+            { wch: 7 }, { wch: 18 }, { wch: 6 }, { wch: 20 },
+          ];
+          ws1["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(regels.length, 1), c: 7 } }) };
+          ws1["!freeze"] = { xSplit: 0, ySplit: 1 };
+          XLSX.utils.book_append_sheet(wb, ws1, "Rooster");
+
+          // --- Tabblad 2: matrix namen x dagen ---
+          const kop = ["Naam"];
+          dagenInMaand.forEach((datum) => {
+            const d = new Date(datum + "T00:00:00");
+            const dagNr = Number(datum.slice(8, 10));
+            const dagLetter = d.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2);
+            kop.push(dagNr + " " + dagLetter);
+          });
+
+          const matrix = [kop];
+          // Eigen teamleden
+          personen.forEach((p) => {
+            const rij = [p.naam];
+            dagenInMaand.forEach((datum) => {
+              rij.push(functieVoor(p.id, dienstPerDatum[datum]) || "");
+            });
+            matrix.push(rij);
+          });
+          // Gasten die deze maand zijn ingedeeld, onderaan apart
+          const gastIds = new Set();
+          dagenInMaand.forEach((datum) => {
+            const dienst = dienstPerDatum[datum];
+            if (!dienst || !dienst.toewijzing) return;
+            FUNCTIE_ORDER.forEach((code) => {
+              (dienst.toewijzing[code] || []).forEach((pid) => {
+                if (personMap && personMap[pid]?.gast) gastIds.add(pid);
+              });
+            });
+          });
+          if (gastIds.size > 0) {
+            matrix.push([]);
+            matrix.push(["Gasten uit andere ploeg"]);
+            gastIds.forEach((pid) => {
+              const p = personMap[pid];
+              const rij = [(p?.naam || "?") + " (gast)"];
+              dagenInMaand.forEach((datum) => {
+                rij.push(functieVoor(pid, dienstPerDatum[datum]) || "");
+              });
+              matrix.push(rij);
+            });
+          }
+
+          // Legenda onder de matrix
+          matrix.push([]);
+          matrix.push(["Legenda"]);
+          FUNCTIES.forEach((f) => matrix.push([f.code + " = " + f.label]));
+
+          const ws2 = XLSX.utils.aoa_to_sheet(matrix);
+          ws2["!cols"] = [{ wch: 24 }, ...dagenInMaand.map(() => ({ wch: 6 }))];
+          ws2["!freeze"] = { xSplit: 1, ySplit: 1 };
+          XLSX.utils.book_append_sheet(wb, ws2, "Overzicht");
+
+          const bestandsnaam =
+            "Rooster_" + (teamNaam || "ploeg").replace(/[^A-Za-z0-9]/g, "_") + "_" +
+            maandNaam.replace(/\s/g, "_") + ".xlsx";
+          XLSX.writeFile(wb, bestandsnaam);
+
+          if (gekozenMaand) {
+            const updated = { ...definitief, [gekozenMaand]: true };
+            setDefinitief(updated);
+            localStorage.setItem("definitief_maanden", JSON.stringify(updated));
+          }
+          setOpen(false);
+        } catch (error) {
+          console.error("Excel generatie fout:", error);
+          alert("Er is een fout opgetreden bij het maken van het Excel-bestand. Probeer het opnieuw.");
+        }
+      };
 
       const genereerPDF = async () => {
         setBezig(true);
@@ -1605,7 +1792,7 @@
             onClick={() => setOpen(true)}
             className="text-[11px] font-medium text-[#8A8F9C] hover:text-[#E8E6E1] border border-[#2A2E37] rounded-lg px-3 py-1.5 flex-shrink-0"
           >
-            📄 PDF
+            📤 Export
           </button>
 
           {open && (
@@ -1615,7 +1802,7 @@
                 className="bg-[#16181D] border border-[#2A2E37] rounded-xl p-5 max-w-md w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="text-[#E8E6E1] font-semibold text-base mb-3">PDF genereren</div>
+                <div className="text-[#E8E6E1] font-semibold text-base mb-3">Rooster exporteren</div>
                 
                 <label className="block text-[11px] uppercase tracking-wider text-[#6B7280] mb-1.5">Maand</label>
                 <select
@@ -1660,6 +1847,12 @@
                     </button>
                   </div>
                   <button
+                    onClick={genereerExcel}
+                    className="w-full text-sm font-semibold text-[#101216] bg-[#3D8C5A] hover:bg-[#347A4E] rounded-lg py-2"
+                  >
+                    📊 Download Excel (voor planning)
+                  </button>
+                  <button
                     onClick={verstuurMail}
                     className="w-full text-sm font-semibold text-[#101216] bg-[#3D6B9C] hover:bg-[#345A82] rounded-lg py-2"
                   >
@@ -1667,10 +1860,11 @@
                   </button>
                 </div>
                 <p className="text-[10px] text-[#5A5F68] mt-3">
-                  Klik op 'Download PDF' om het maandoverzicht als PDF op te slaan.
+                  <strong className="text-[#8A8F9C]">Excel</strong> heeft twee tabbladen: 'Rooster' met één regel per
+                  ingedeelde persoon (handig om te verwerken in InPlanning) en 'Overzicht' met de maandmatrix.
                 </p>
-                <p className="text-[10px] text-[#5A5F68]">
-                  Via 'Verstuur per mail' wordt de tekstversie in de e-mail gezet.
+                <p className="text-[10px] text-[#5A5F68] mt-1">
+                  <strong className="text-[#8A8F9C]">PDF</strong> is het maandoverzicht om te printen of te delen.
                 </p>
               </div>
             </div>
