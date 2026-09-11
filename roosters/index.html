@@ -431,6 +431,9 @@
       { code: "OL", label: "Opstapper 4152", slots: 1, color: "#7A6B9C" },
     ];
     const FUNCTIE_ORDER = ["B", "M", "CTS", "CL", "OL"];
+    // Aantal plekken per functie — nodig om bij een tekort het juiste aantal
+    // lege vakjes te tonen (bijv. Manschap heeft 2 plekken).
+    const FUNCTIE_SLOTS = { B: 1, M: 2, CTS: 1, CL: 1, OL: 1 };
     // Bij deze functies heeft het eigen team altijd voorrang op een gast
     const EIGEN_TEAM_VOORRANG = ["B", "CTS", "CL"];
     const MAX_NAMEN = 10;
@@ -469,6 +472,16 @@
     function schoonmaakTaakVoor(iso) {
       const dag = new Date(iso + "T00:00:00").getDay();
       return SCHOONMAAK_PER_WEEKDAG[dag] || null;
+    }
+
+    // Weergavenaam voor een persoon IN EEN SPECIFIEKE DIENST: een naamoverride
+    // (bijv. teamlid "Vrijwilliger" die op déze dag "Henk" heet) geldt alleen
+    // voor die ene dienst, niet voor het hele rooster.
+    function weergaveNaam(dienst, personMap, pid) {
+      return dienst?.naamOverrides?.[pid] || personMap[pid]?.naam || "?";
+    }
+    function isNaamOverride(dienst, pid) {
+      return !!dienst?.naamOverrides?.[pid];
     }
 
     // ---------- Weer ----------
@@ -612,7 +625,7 @@
       );
     }
 
-    function PersonChip({ naam, code, gast, gastTeamNaam }) {
+    function PersonChip({ naam, code, gast, gastTeamNaam, vrijwilliger }) {
       const f = FUNCTIES.find((x) => x.code === code);
       return (
         <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1A1D23] border border-[#2A2E37]">
@@ -623,6 +636,7 @@
             <div className="text-sm font-medium text-[#E8E6E1] truncate">
               {naam}
               {gast && <span className="text-[10px] text-[#8AA0B5] font-normal ml-1.5" title={gastTeamNaam || ""}>· gast</span>}
+              {vrijwilliger && <span className="text-[10px] text-[#8AA0B5] font-normal ml-1.5">· vrijwilliger</span>}
             </div>
           </div>
         </div>
@@ -641,8 +655,42 @@
       );
     }
 
+    // Klein invoerveld om een ad-hoc vrijwilliger een (voor)naam te geven, of
+    // een al ingevulde vrijwilliger achteraf een echte naam te geven i.p.v. "Vrijwilliger".
+    function VrijwilligerInvoer({ huidigeNaam, isHernoemen, onOpslaan }) {
+      const [naam, setNaam] = useState(huidigeNaam || "");
+
+      function opslaan() {
+        const waarde = naam.trim() || "Vrijwilliger";
+        onOpslaan(waarde);
+      }
+
+      return (
+        <div className="border-t border-[#2A2E37] mt-2 pt-2">
+          <div className="text-[10px] uppercase tracking-wider text-[#8AA0B5] px-1 pb-1.5">
+            {isHernoemen ? "Naam voor deze dienst aanpassen" : "Naam voor deze dienst invullen"}
+          </div>
+          <div className="flex gap-1.5 px-1">
+            <input
+              value={naam}
+              onChange={(e) => setNaam(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && opslaan()}
+              placeholder="Voornaam..."
+              className="flex-1 bg-[#1C1F26] border border-[#2E323C] rounded-lg px-2.5 py-1.5 text-[13px] text-[#E8E6E1] outline-none focus:border-[#B5483D]"
+            />
+            <button
+              onClick={opslaan}
+              className="text-[12px] font-medium text-[#101216] bg-[#C9A24B] hover:bg-[#B8923F] rounded-lg px-3"
+            >
+              {isHernoemen ? "Opslaan" : "Invullen"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     function DienstKaart({ dienst, personMap, beschikbaarMode, onToggleBeschikbaar, onSetAlle, weerPerDatum,
-      onWijzigToewijzing, gastKandidaten, gastTeamNaam }) {
+      onWijzigToewijzing, onVulVrijwilliger, gastKandidaten, gastTeamNaam }) {
       const heeftTekort = dienst.tekorten && dienst.tekorten.length > 0;
       const taak = schoonmaakTaakVoor(dienst.datum);
       const [wijzigSlot, setWijzigSlot] = useState(null);
@@ -744,49 +792,56 @@
             </div>
           ) : (
             <div className="p-3 grid grid-cols-2 gap-2">
-              {FUNCTIE_ORDER.map((code) =>
-                (dienst.toewijzing?.[code] || []).length > 0 ? (
-                  dienst.toewijzing[code].map((pid) => {
-                    const isHandmatig = handmatigSet.has(pid);
-                    return (
-                      <div key={code + pid}>
-                        <div className="flex items-center gap-1">
-                          <div className="flex-1 min-w-0">
-                            <PersonChip naam={personMap[pid]?.naam || "?"} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} />
+              {FUNCTIE_ORDER.map((code) => {
+                const toegewezen = dienst.toewijzing?.[code] || [];
+                const slots = FUNCTIE_SLOTS[code] || 1;
+                const legePlekken = Math.max(0, slots - toegewezen.length);
+                return (
+                  <React.Fragment key={code}>
+                    {toegewezen.map((pid) => {
+                      const isHandmatig = handmatigSet.has(pid);
+                      return (
+                        <div key={code + pid}>
+                          <div className="flex items-center gap-1">
+                            <div className="flex-1 min-w-0">
+                              <PersonChip naam={weergaveNaam(dienst, personMap, pid)} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} vrijwilliger={isNaamOverride(dienst, pid)} />
+                            </div>
+                            {onWijzigToewijzing && (
+                              <button
+                                onClick={() => setWijzigSlot({ code, persoonId: pid })}
+                                title="Wijzig of ruil deze toewijzing"
+                                className="text-[#5A5F68] hover:text-[#C9A24B] text-xs flex-shrink-0 px-1"
+                              >
+                                ✎
+                              </button>
+                            )}
                           </div>
-                          {onWijzigToewijzing && (
-                            <button
-                              onClick={() => setWijzigSlot({ code, persoonId: pid })}
-                              title="Wijzig of ruil deze toewijzing"
-                              className="text-[#5A5F68] hover:text-[#C9A24B] text-xs flex-shrink-0 px-1"
-                            >
-                              ✎
-                            </button>
+                          {isHandmatig && (
+                            <div className="text-[9px] text-[#C9A24B] mt-0.5 px-1">✋ handmatig aangepast</div>
                           )}
                         </div>
-                        {isHandmatig && (
-                          <div className="text-[9px] text-[#C9A24B] mt-0.5 px-1">✋ handmatig aangepast</div>
+                      );
+                    })}
+                    {Array.from({ length: legePlekken }).map((_, i) => (
+                      <div key={code + "-leeg-" + i} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1F1B12] border border-dashed border-[#E0A33D]">
+                        <FunctieBadge code={code} />
+                        <span className="text-[#E0A33D] text-xs flex-1 flex items-center gap-1">
+                          <span>⚠</span> {dienst.toewijzing ? "tekort" : "nog niet ingedeeld"}
+                        </span>
+                        {onWijzigToewijzing && dienst.toewijzing && (
+                          <button
+                            onClick={() => setWijzigSlot({ code, persoonId: null })}
+                            title="Vul deze plek handmatig in"
+                            className="text-[#5A5F68] hover:text-[#C9A24B] text-xs flex-shrink-0"
+                          >
+                            ✎
+                          </button>
                         )}
                       </div>
-                    );
-                  })
-                ) : (
-                  <div key={code} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1A1D23] border border-dashed border-[#3A3320]">
-                    <FunctieBadge code={code} />
-                    <span className="text-[#6B7280] text-xs italic flex-1">{dienst.toewijzing ? "niet ingevuld" :
-                      "nog niet ingedeeld"}</span>
-                    {onWijzigToewijzing && dienst.toewijzing && (
-                      <button
-                        onClick={() => setWijzigSlot({ code, persoonId: null })}
-                        title="Vul deze plek handmatig in"
-                        className="text-[#5A5F68] hover:text-[#C9A24B] text-xs flex-shrink-0"
-                      >
-                        ✎
-                      </button>
-                    )}
-                  </div>
-                )
-              )}
+                    ))}
+                  </React.Fragment>
+                );
+              })}
             </div>
           )}
 
@@ -803,7 +858,7 @@
                 <div className="text-[11px] text-[#6B7280] mb-3">
                   <FunctieBadge code={wijzigSlot.code} small /> {FUNCTIES.find((f) => f.code === wijzigSlot.code)
                     ?.label}
-                  {wijzigSlot.persoonId && <> · momenteel {personMap[wijzigSlot.persoonId]?.naam}</>}
+                  {wijzigSlot.persoonId && <> · momenteel {weergaveNaam(dienst, personMap, wijzigSlot.persoonId)}</>}
                 </div>
                 <div className="space-y-1">
                   {(() => {
@@ -835,8 +890,8 @@
                             className="w-full text-left text-[13px] text-[#E8E6E1] hover:bg-[#1F222A] rounded-md px-3 py-2 flex items-center justify-between gap-2"
                           >
                             <span>{kp.naam}</span>
-                            <span className="text-[10px] text-[#8AA0B5] flex-shrink-0">↔ ruilt met {personMap[
-                                wijzigSlot.persoonId]?.naam}</span>
+                            <span className="text-[10px] text-[#8AA0B5] flex-shrink-0">↔ ruilt met {weergaveNaam(
+                                dienst, personMap, wijzigSlot.persoonId)}</span>
                           </button>
                         ))}
                         {(gasten || []).length > 0 && (
@@ -869,6 +924,16 @@
                     );
                   })()}
                 </div>
+                {onVulVrijwilliger && (
+                  <VrijwilligerInvoer
+                    huidigeNaam={wijzigSlot.persoonId ? dienst.naamOverrides?.[wijzigSlot.persoonId] || "" : ""}
+                    isHernoemen={!!(wijzigSlot.persoonId && dienst.naamOverrides?.[wijzigSlot.persoonId])}
+                    onOpslaan={(naam) => {
+                      onVulVrijwilliger(dienst.id, wijzigSlot.code, wijzigSlot.persoonId, naam);
+                      setWijzigSlot(null);
+                    }}
+                  />
+                )}
                 <button onClick={() => setWijzigSlot(null)} className="w-full text-center text-[12px] text-[#6B7280] hover:text-[#8A8F9C] mt-3 pt-2 border-t border-[#2A2E37]">
                   Annuleren
                 </button>
@@ -912,17 +977,24 @@
           </div>
           {dienst.toewijzing ? (
             <div className="grid grid-cols-2 gap-2">
-              {FUNCTIE_ORDER.map((code) =>
-                (dienst.toewijzing?.[code] || []).length > 0 ? (
-                  dienst.toewijzing[code].map((pid) => <PersonChip key={code + pid} naam={personMap[pid]?.naam ||
-                      "?"} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} />)
-                ) : (
-                  <div key={code} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1A1D23] border border-dashed border-[#3A3320]">
-                    <FunctieBadge code={code} />
-                    <span className="text-[#6B7280] text-xs italic">niet ingevuld</span>
-                  </div>
-                )
-              )}
+              {FUNCTIE_ORDER.map((code) => {
+                const toegewezen = dienst.toewijzing?.[code] || [];
+                const slots = FUNCTIE_SLOTS[code] || 1;
+                const legePlekken = Math.max(0, slots - toegewezen.length);
+                return (
+                  <React.Fragment key={code}>
+                    {toegewezen.map((pid) => (
+                      <PersonChip key={code + pid} naam={weergaveNaam(dienst, personMap, pid)} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} vrijwilliger={isNaamOverride(dienst, pid)} />
+                    ))}
+                    {Array.from({ length: legePlekken }).map((_, i) => (
+                      <div key={code + "-leeg-" + i} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1F1B12] border border-dashed border-[#E0A33D]">
+                        <FunctieBadge code={code} />
+                        <span className="text-[#E0A33D] text-xs flex items-center gap-1"><span>⚠</span> tekort</span>
+                      </div>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
             </div>
           ) : (
             <div className="text-[#5A5F68] text-sm italic">Nog niet ingedeeld.</div>
@@ -1417,6 +1489,36 @@
         }
       }
 
+      // Weergavenaam voor déze dienst aanpassen (bijv. teamlid "Vrijwilliger" -> "Henk"
+      // op deze ene dag), of — als de plek nog helemaal leeg is — een gloednieuwe
+      // ad-hoc invulling aanmaken.
+      async function vulVrijwilligerIn(dienstId, functieCode, huidigPersoonId, naam) {
+        try {
+          if (huidigPersoonId) {
+            // Er staat al iemand op deze plek: alleen de weergavenaam voor déze
+            // dienst aanpassen. De onderliggende toewijzing (bevoegdheden, telling
+            // voor de rotatie) blijft gewoon gekoppeld aan de echte persoon.
+            await api.call("/api/diensten/" + dienstId + "/naam-override", {
+              method: "POST",
+              body: JSON.stringify({ persoon_id: huidigPersoonId, functie_code: functieCode, naam }),
+            });
+          } else {
+            // Nog niemand op deze plek: nieuwe ad-hoc invulling aanmaken
+            await api.call("/api/diensten/" + dienstId + "/wijzig-toewijzing", {
+              method: "POST",
+              body: JSON.stringify({
+                functie_code: functieCode,
+                oude_persoon_id: huidigPersoonId,
+                vrijwilliger_naam: naam,
+              }),
+            });
+          }
+          bumpRefresh();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+
       if (laden) return <div className="text-[#6B7280] text-sm">Laden...</div>;
 
       return (
@@ -1424,7 +1526,7 @@
           <div className="flex items-center justify-between">
             <h2 className="text-[#E8E6E1] font-semibold text-base">Diensten</h2>
             <div className="flex items-center gap-2">
-              <PDFKnop diensten={diensten} personen={personen} teamNaam={teamNaam} personMap={personMap} />
+              <PDFKnop diensten={diensten} personen={personen} teamNaam={teamNaam} teamId={api.teamId} personMap={personMap} />
               {diensten.length > 0 && (
                 <button onClick={indelenAlles} disabled={personen.length === 0} className="text-[11px] font-medium text-[#101216] bg-[#C9A24B] hover:bg-[#B8923F] disabled:opacity-30 rounded-lg px-3 py-1.5">Indelen</button>
               )}
@@ -1480,7 +1582,7 @@
                   </div>
                   <DienstKaart dienst={d} personMap={personMap} beschikbaarMode={editId === d.id} onToggleBeschikbaar={
                       toggleBeschikbaar} onSetAlle={setAlle} weerPerDatum={weerPerDatum} onWijzigToewijzing={
-                      wijzigToewijzing} gastKandidaten={gastKandidaten} gastTeamNaam={gastTeamNaam} />
+                      wijzigToewijzing} onVulVrijwilliger={vulVrijwilligerIn} gastKandidaten={gastKandidaten} gastTeamNaam={gastTeamNaam} />
                   {editId !== d.id && (
                     <div className="flex justify-end mt-1.5">
                       <button onClick={() => indelenEen(d.id)} disabled={(d.beschikbaar || []).length === 0} className="text-[11px] font-medium text-[#C9A24B] hover:text-[#DDB35E] disabled:opacity-30">Opnieuw indelen</button>
@@ -1509,7 +1611,7 @@
       return [...set].sort();
     }
 
-    function PDFKnop({ diensten, personen, teamNaam, personMap }) {
+    function PDFKnop({ diensten, personen, teamNaam, teamId, personMap }) {
       const [open, setOpen] = useState(false);
       const [bezig, setBezig] = useState(false);
       const [definitief, setDefinitief] = useState({});
@@ -1676,6 +1778,7 @@
         setBezig(true);
         try {
           const maandNaam = gekozenMaand ? maandLabel(gekozenMaand) : '';
+          const jaarLabel = gekozenMaand ? gekozenMaand.slice(0, 4) : '';
           const isDefinitief = definitief[gekozenMaand] || false;
           const kleuren = {
             'B': '#C9A24B',
@@ -1684,23 +1787,49 @@
             'CL': '#3D6B9C',
             'OL': '#7A6B9C'
           };
+          const labels = {
+            'B': 'Bevelvoerder',
+            'M': 'Manschap',
+            'CTS': 'Chauffeur 4133',
+            'CL': 'Chauffeur 4152',
+            'OL': 'Opstapper 4152'
+          };
+          const logoSrc = logoVoorTeam(teamId);
 
           // Bouw de PDF inhoud direct in een tijdelijk element
           const container = document.createElement('div');
-          container.style.cssText = 'padding:20px;font-family:Arial,sans-serif;color:#000;background:#fff;';
-          
+          container.style.cssText = 'font-family:Arial,sans-serif;color:#1a1a1a;background:#fff;width:1050px;';
+
           let html = `
-            <h1 style="font-size:18px;margin-bottom:4px;text-align:center;">${teamNaam || "Rooster"}</h1>
-            <h2 style="font-size:14px;margin-bottom:10px;text-align:center;color:#333;">Maandrooster ${maandNaam}${isDefinitief ? ' ✓' : ''}</h2>
-            <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#7A2F26,#B5483D);padding:18px 26px;border-radius:10px 10px 0 0;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:56px;height:56px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                  <img src="${logoSrc}" style="width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <div style="color:#fff;font-size:20px;font-weight:bold;letter-spacing:0.3px;">${teamNaam || "Rooster"}</div>
+                  <div style="color:#F2D9C9;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Maandelijks dienstrooster${isDefinitief ? ' · definitief' : ''}</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="color:#fff;font-size:18px;font-weight:bold;text-transform:capitalize;">${maandNaam}</div>
+                <div style="color:#F2D9C9;font-size:11px;">${jaarLabel}</div>
+              </div>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:10px;border:1px solid #ddd;border-top:none;">
               <thead>
                 <tr>
-                  <th style="border:1px solid #333;padding:6px 8px;text-align:left;background:#e8e8e8;font-weight:bold;">Naam</th>
+                  <th style="border:1px solid #ddd;padding:7px 10px;text-align:left;background:#F2EFE9;font-weight:bold;color:#333;min-width:110px;">Naam</th>
           `;
 
           dagenInMaand.forEach((datum) => {
             const dag = Number(datum.slice(8, 10));
-            html += `<th style="border:1px solid #333;padding:4px 6px;text-align:center;background:#e8e8e8;font-weight:bold;min-width:22px;">${dag}</th>`;
+            const d = new Date(datum + "T00:00:00");
+            const dagLetter = d.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2);
+            html += `<th style="border:1px solid #ddd;padding:5px 3px;text-align:center;background:#F2EFE9;font-weight:bold;color:#333;min-width:26px;">
+                        <div>${dag}</div>
+                        <div style="font-weight:normal;color:#999;font-size:8px;">${dagLetter}</div>
+                      </th>`;
           });
 
           html += `
@@ -1709,14 +1838,21 @@
               <tbody>
           `;
 
-          personen.forEach((p) => {
-            html += `<tr><td style="border:1px solid #333;padding:4px 8px;font-weight:bold;background:#f5f5f5;text-align:left;">${p.naam}</td>`;
+          function badge(code) {
+            if (!code) return '<span style="color:#ccc;">·</span>';
+            const kleur = kleuren[code] || '#888';
+            return `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:${kleur};color:#fff;font-weight:bold;font-size:9px;line-height:1;">${code}</span>`;
+          }
+
+          const rijkleur = (i) => (i % 2 === 0 ? '#fff' : '#FAF8F4');
+
+          personen.forEach((p, i) => {
+            html += `<tr style="background:${rijkleur(i)};">
+                       <td style="border:1px solid #eee;padding:6px 10px;font-weight:bold;color:#333;">${p.naam}</td>`;
             dagenInMaand.forEach((datum) => {
               const dienst = dienstPerDatum[datum];
               const code = functieVoor(p.id, dienst);
-              const kleur = code ? kleuren[code] || '#888' : '#ddd';
-              const tekst = code || '·';
-              html += `<td style="border:1px solid #333;padding:3px 6px;text-align:center;font-weight:bold;color:${kleur};background:${kleur}22;">${tekst}</td>`;
+              html += `<td style="border:1px solid #eee;padding:3px;text-align:center;">${badge(code)}</td>`;
             });
             html += `</tr>`;
           });
@@ -1724,17 +1860,16 @@
           html += `
               </tbody>
             </table>
-            <div style="margin-top:10px;font-size:9px;color:#555;border-top:1px solid #ccc;padding-top:6px;text-align:center;">
-              <strong>Legenda:</strong> 
-              <span style="color:#C9A24B;font-weight:bold;">B</span> = Bevelvoerder · 
-              <span style="color:#5B8C8C;font-weight:bold;">M</span> = Manschap · 
-              <span style="color:#B5483D;font-weight:bold;">CTS</span> = Chauffeur 4133 · 
-              <span style="color:#3D6B9C;font-weight:bold;">CL</span> = Chauffeur 4152 · 
-              <span style="color:#7A6B9C;font-weight:bold;">OL</span> = Opstapper 4152
-              <span style="margin-left:10px;color:#999;">· = geen dienst</span>
-            </div>
-            <div style="margin-top:4px;font-size:8px;color:#999;text-align:right;">
-              Gegenereerd op ${new Date().toLocaleString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 10px;border:1px solid #ddd;border-top:none;border-radius:0 0 10px 10px;background:#FAF8F4;">
+              <span style="font-size:10px;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Rollen</span>
+              ${FUNCTIE_ORDER.map((code) => `
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;color:#333;">
+                  ${badge(code)} ${labels[code]}
+                </span>
+              `).join('')}
+              <span style="font-size:10px;color:#999;margin-left:auto;">
+                Gegenereerd op ${new Date().toLocaleString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           `;
 
@@ -1742,14 +1877,14 @@
 
           // Voeg tijdelijk toe aan de DOM
           const tempDiv = document.createElement('div');
-          tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;';
+          tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;';
           tempDiv.appendChild(container);
           document.body.appendChild(tempDiv);
 
           // Genereer PDF
           const opt = {
-            margin: 10,
-            filename: `Maandrooster_${maandNaam.replace(/\s/g, '_')}.pdf`,
+            margin: 8,
+            filename: `Maandrooster_${(teamNaam || "ploeg").replace(/[^A-Za-z0-9]/g, "_")}_${maandNaam.replace(/\s/g, '_')}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
