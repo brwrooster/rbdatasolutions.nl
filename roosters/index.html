@@ -1358,14 +1358,19 @@
       const [gasten, setGasten] = useState({});
       const [gastKandidaten, setGastKandidaten] = useState([]);
       const [gastTeamNaam, setGastTeamNaam] = useState("");
+      // Onthoudt of de eerste lading al is geweest — daarna nooit meer het hele
+      // scherm vervangen door "Laden...", anders springt de scrollpositie steeds
+      // terug naar boven bij elke kleine wijziging verderop in een lange lijst.
+      const eersteLadingGedaan = useRef(false);
 
       useEffect(() => {
-        setLaden(true);
+        if (!eersteLadingGedaan.current) setLaden(true);
         Promise.all([api.call("/api/diensten"), api.call("/api/personen")])
           .then(([d, p]) => { setDiensten(d.diensten);
             setGasten(d.gasten || {});
             setPersonen(p.personen); })
-          .finally(() => setLaden(false));
+          .finally(() => { setLaden(false);
+            eersteLadingGedaan.current = true; });
       }, [refreshKey]);
 
       // Gastkandidaten uit het gekoppelde team (alleen voor handmatig invullen)
