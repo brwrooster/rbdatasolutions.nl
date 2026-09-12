@@ -1358,6 +1358,16 @@
       const [gasten, setGasten] = useState({});
       const [gastKandidaten, setGastKandidaten] = useState([]);
       const [gastTeamNaam, setGastTeamNaam] = useState("");
+      // Jaarkeuze: bij meerdere jaren aan diensten (bijv. 2026 én 2027) kan de
+      // beheerder het overzicht beperken tot één jaar, in plaats van alles
+      // door elkaar te zien staan.
+      const [gekozenJaar, setGekozenJaar] = useState(String(new Date().getFullYear()));
+      const JAAR_OPTIES = useMemo(() => {
+        const start = 2025, eind = 2035;
+        const jaren = [];
+        for (let j = start; j <= eind; j++) jaren.push(String(j));
+        return jaren;
+      }, []);
       // Onthoudt of de eerste lading al is geweest — daarna nooit meer het hele
       // scherm vervangen door "Laden...", anders springt de scrollpositie steeds
       // terug naar boven bij elke kleine wijziging verderop in een lange lijst.
@@ -1401,6 +1411,11 @@
         });
         return m;
       }, [personen, gasten]);
+
+      // Alleen diensten van het gekozen jaar tonen (datum begint met "JJJJ-")
+      const dienstenJaar = useMemo(() => {
+        return diensten.filter((d) => d.datum.slice(0, 4) === gekozenJaar);
+      }, [diensten, gekozenJaar]);
 
       async function addDienst() {
         if (!nieuweDatum) return;
@@ -1475,7 +1490,7 @@
 
       async function indelenAlles() {
         try {
-          await api.call("/api/diensten/indelen-alles", { method: "POST" });
+          await api.call("/api/diensten/indelen-alles", { method: "POST", body: JSON.stringify({ jaar: gekozenJaar }) });
           bumpRefresh();
         } catch (e) { alert(e.message); }
       }
@@ -1542,11 +1557,24 @@
           <div className="flex items-center justify-between">
             <h2 className="text-[#E8E6E1] font-semibold text-base">Diensten</h2>
             <div className="flex items-center gap-2">
-              <PDFKnop diensten={diensten} personen={personen} teamNaam={teamNaam} teamId={api.teamId} personMap={personMap} />
-              {diensten.length > 0 && (
-                <button onClick={indelenAlles} disabled={personen.length === 0} className="text-[11px] font-medium text-[#101216] bg-[#C9A24B] hover:bg-[#B8923F] disabled:opacity-30 rounded-lg px-3 py-1.5">Indelen</button>
+              <PDFKnop diensten={dienstenJaar} personen={personen} teamNaam={teamNaam} teamId={api.teamId} personMap={personMap} />
+              {dienstenJaar.length > 0 && (
+                <button onClick={indelenAlles} disabled={personen.length === 0} title={"Herberekent alleen de diensten van " + gekozenJaar + " — andere jaren blijven ongewijzigd"} className="text-[11px] font-medium text-[#101216] bg-[#C9A24B] hover:bg-[#B8923F] disabled:opacity-30 rounded-lg px-3 py-1.5">Indelen {gekozenJaar}</button>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 bg-[#16181D] border border-[#262A33] rounded-xl px-3 py-2">
+            <span className="text-[11px] uppercase tracking-wider text-[#6B7280]">Jaar</span>
+            <select
+              value={gekozenJaar}
+              onChange={(e) => setGekozenJaar(e.target.value)}
+              className="bg-[#1C1F26] border border-[#2E323C] rounded-lg px-2.5 py-1.5 text-sm text-[#E8E6E1] outline-none"
+            >
+              {JAAR_OPTIES.map((j) => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-1 bg-[#16181D] border border-[#262A33] rounded-xl p-1">
@@ -1585,9 +1613,11 @@
 
           {diensten.length === 0 ? (
             <EmptyState title="Nog geen diensten" body="Voeg een datum toe, of maak een hele periode in 1x aan." />
+          ) : dienstenJaar.length === 0 ? (
+            <EmptyState title={"Geen diensten in " + gekozenJaar} body="Kies een ander jaar hierboven, of voeg een dienst toe voor dit jaar." />
           ) : (
             <div className="space-y-3">
-              {diensten.map((d) => (
+              {dienstenJaar.map((d) => (
                 <div key={d.id}>
                   <div className="flex items-center justify-between mb-1.5 px-1">
                     <button onClick={() => setEditId(editId === d.id ? null : d.id)} className="text-[11px] uppercase tracking-wider text-[#6B7280] hover:text-[#8A8F9C]">
@@ -1609,7 +1639,7 @@
             </div>
           )}
 
-          {personen.length > 0 && diensten.length > 0 && <VerdelingTabel personen={personen} diensten={diensten} />}
+          {personen.length > 0 && dienstenJaar.length > 0 && <VerdelingTabel personen={personen} diensten={dienstenJaar} />}
         </div>
       );
     }
