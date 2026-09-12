@@ -1055,7 +1055,7 @@
         (data?.personen || []).forEach((p) => (m[p.id] = p));
         // Gasten uit het gekoppelde team meenemen, zodat hun échte naam getoond wordt
         Object.entries(data?.gasten || {}).forEach(([id, g]) => {
-          if (!m[id]) m[id] = { id, naam: g.naam, functies: [], gast: true, gastTeamNaam: g.teamNaam };
+          if (!m[id]) m[id] = { id, naam: g.naam, functies: g.functies || [], gast: true, gastTeamNaam: g.teamNaam };
         });
         return m;
       }, [data]);
@@ -1392,7 +1392,7 @@
         personen.forEach((p) => (m[p.id] = p));
         // Gasten die al ingedeeld staan, zodat hun naam getoond wordt
         Object.entries(gasten).forEach(([id, g]) => {
-          if (!m[id]) m[id] = { id, naam: g.naam, functies: [], gast: true, gastTeamNaam: g.teamNaam };
+          if (!m[id]) m[id] = { id, naam: g.naam, functies: g.functies || [], gast: true, gastTeamNaam: g.teamNaam };
         });
         return m;
       }, [personen, gasten]);
