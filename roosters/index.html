@@ -434,6 +434,14 @@
     // Aantal plekken per functie — nodig om bij een tekort het juiste aantal
     // lege vakjes te tonen (bijv. Manschap heeft 2 plekken).
     const FUNCTIE_SLOTS = { B: 1, M: 2, CTS: 1, CL: 1, OL: 1 };
+    // Bij functies met meer dan 1 plek (nu alleen Manschap) tonen we "Manschap 1"/"Manschap 2"
+    // in plaats van twee keer dezelfde naam — puur ter onderscheid, geen aparte bevoegdheid.
+    function functieLabelVoorSlot(code, volgnummer) {
+      const f = FUNCTIES.find((x) => x.code === code);
+      const basis = f ? f.label : code;
+      const slots = FUNCTIE_SLOTS[code] || 1;
+      return slots > 1 && volgnummer ? basis + " " + volgnummer : basis;
+    }
     // Bij deze functies heeft het eigen team altijd voorrang op een gast
     const EIGEN_TEAM_VOORRANG = ["B", "CTS", "CL"];
     const MAX_NAMEN = 10;
@@ -625,14 +633,14 @@
       );
     }
 
-    function PersonChip({ naam, code, gast, gastTeamNaam, vrijwilliger }) {
+    function PersonChip({ naam, code, gast, gastTeamNaam, vrijwilliger, labelOverride }) {
       const f = FUNCTIES.find((x) => x.code === code);
       return (
         <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1A1D23] border border-[#2A2E37]">
           <span className="w-1.5 h-6 rounded-full flex-shrink-0" style={{ background: f ? f.color : "#555" }} />
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-wider text-[#8A8F9C] leading-none mb-0.5">{f ? f.label :
-              code}</div>
+            <div className="text-[10px] uppercase tracking-wider text-[#8A8F9C] leading-none mb-0.5">{labelOverride ||
+              (f ? f.label : code)}</div>
             <div className="text-sm font-medium text-[#E8E6E1] truncate">
               {naam}
               {gast && <span className="text-[10px] text-[#8AA0B5] font-normal ml-1.5" title={gastTeamNaam || ""}>· gast</span>}
@@ -798,17 +806,18 @@
                 const legePlekken = Math.max(0, slots - toegewezen.length);
                 return (
                   <React.Fragment key={code}>
-                    {toegewezen.map((pid) => {
+                    {toegewezen.map((pid, i) => {
                       const isHandmatig = handmatigSet.has(pid);
+                      const volgnummer = i + 1;
                       return (
                         <div key={code + pid}>
                           <div className="flex items-center gap-1">
                             <div className="flex-1 min-w-0">
-                              <PersonChip naam={weergaveNaam(dienst, personMap, pid)} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} vrijwilliger={isNaamOverride(dienst, pid)} />
+                              <PersonChip naam={weergaveNaam(dienst, personMap, pid)} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} vrijwilliger={isNaamOverride(dienst, pid)} labelOverride={functieLabelVoorSlot(code, volgnummer)} />
                             </div>
                             {onWijzigToewijzing && (
                               <button
-                                onClick={() => setWijzigSlot({ code, persoonId: pid })}
+                                onClick={() => setWijzigSlot({ code, persoonId: pid, volgnummer })}
                                 title="Wijzig of ruil deze toewijzing"
                                 className="text-[#5A5F68] hover:text-[#C9A24B] text-xs flex-shrink-0 px-1"
                               >
@@ -822,15 +831,17 @@
                         </div>
                       );
                     })}
-                    {Array.from({ length: legePlekken }).map((_, i) => (
+                    {Array.from({ length: legePlekken }).map((_, i) => {
+                      const volgnummer = toegewezen.length + i + 1;
+                      return (
                       <div key={code + "-leeg-" + i} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1F1B12] border border-dashed border-[#E0A33D]">
                         <FunctieBadge code={code} />
                         <span className="text-[#E0A33D] text-xs flex-1 flex items-center gap-1">
-                          <span>⚠</span> {dienst.toewijzing ? "tekort" : "nog niet ingedeeld"}
+                          <span>⚠</span> {dienst.toewijzing ? functieLabelVoorSlot(code, volgnummer) + " — tekort" : "nog niet ingedeeld"}
                         </span>
                         {onWijzigToewijzing && dienst.toewijzing && (
                           <button
-                            onClick={() => setWijzigSlot({ code, persoonId: null })}
+                            onClick={() => setWijzigSlot({ code, persoonId: null, volgnummer })}
                             title="Vul deze plek handmatig in"
                             className="text-[#5A5F68] hover:text-[#C9A24B] text-xs flex-shrink-0"
                           >
@@ -838,7 +849,8 @@
                           </button>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </React.Fragment>
                 );
               })}
@@ -856,8 +868,7 @@
                   {wijzigSlot.persoonId ? "Wijzig of ruil deze plek" : "Vul deze plek handmatig in"}
                 </div>
                 <div className="text-[11px] text-[#6B7280] mb-3">
-                  <FunctieBadge code={wijzigSlot.code} small /> {FUNCTIES.find((f) => f.code === wijzigSlot.code)
-                    ?.label}
+                  <FunctieBadge code={wijzigSlot.code} small /> {functieLabelVoorSlot(wijzigSlot.code, wijzigSlot.volgnummer)}
                   {wijzigSlot.persoonId && <> · momenteel {weergaveNaam(dienst, personMap, wijzigSlot.persoonId)}</>}
                 </div>
                 <div className="space-y-1">
@@ -983,13 +994,13 @@
                 const legePlekken = Math.max(0, slots - toegewezen.length);
                 return (
                   <React.Fragment key={code}>
-                    {toegewezen.map((pid) => (
-                      <PersonChip key={code + pid} naam={weergaveNaam(dienst, personMap, pid)} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} vrijwilliger={isNaamOverride(dienst, pid)} />
+                    {toegewezen.map((pid, i) => (
+                      <PersonChip key={code + pid} naam={weergaveNaam(dienst, personMap, pid)} code={code} gast={personMap[pid]?.gast} gastTeamNaam={personMap[pid]?.gastTeamNaam} vrijwilliger={isNaamOverride(dienst, pid)} labelOverride={functieLabelVoorSlot(code, i + 1)} />
                     ))}
                     {Array.from({ length: legePlekken }).map((_, i) => (
                       <div key={code + "-leeg-" + i} className="flex items-center gap-2 rounded-lg px-3 py-2 bg-[#1F1B12] border border-dashed border-[#E0A33D]">
                         <FunctieBadge code={code} />
-                        <span className="text-[#E0A33D] text-xs flex items-center gap-1"><span>⚠</span> tekort</span>
+                        <span className="text-[#E0A33D] text-xs flex items-center gap-1"><span>⚠</span> {functieLabelVoorSlot(code, toegewezen.length + i + 1)} — tekort</span>
                       </div>
                     ))}
                   </React.Fragment>
@@ -1660,6 +1671,22 @@
         return "";
       }
 
+      // Zoals functieVoor, maar geeft bij functies met meerdere plekken (Manschap)
+      // een genummerde korte code terug (bijv. "M1"/"M2") i.p.v. alleen "M" —
+      // gebruikt in de PDF- en Excel-export, zodat het onderscheid ook daar zichtbaar is.
+      function functieSlotCode(persoonId, dienst) {
+        if (!dienst || !dienst.toewijzing) return "";
+        for (const code of FUNCTIE_ORDER) {
+          const lijst = dienst.toewijzing[code] || [];
+          const idx = lijst.indexOf(persoonId);
+          if (idx !== -1) {
+            const slots = FUNCTIE_SLOTS[code] || 1;
+            return slots > 1 ? code + (idx + 1) : code;
+          }
+        }
+        return "";
+      }
+
       // ---- Excel-export voor planning ----
       // Twee tabbladen:
       //   "Rooster"  = één regel per ingedeelde persoon (makkelijk te verwerken/importeren)
@@ -1677,16 +1704,15 @@
             const d = new Date(datum + "T00:00:00");
             const weekdag = d.toLocaleDateString("nl-NL", { weekday: "long" });
             FUNCTIE_ORDER.forEach((code) => {
-              (dienst.toewijzing[code] || []).forEach((pid) => {
+              (dienst.toewijzing[code] || []).forEach((pid, idx) => {
                 const p = personMap ? personMap[pid] : null;
-                const f = FUNCTIES.find((x) => x.code === code);
                 regels.push({
                   Datum: datum,
                   Weekdag: weekdag.charAt(0).toUpperCase() + weekdag.slice(1),
                   Ploeg: teamNaam || "",
                   Naam: p?.naam || "",
-                  Code: code,
-                  Functie: f ? f.label : code,
+                  Code: (FUNCTIE_SLOTS[code] || 1) > 1 ? code + (idx + 1) : code,
+                  Functie: functieLabelVoorSlot(code, idx + 1),
                   Gast: p?.gast ? "Ja" : "Nee",
                   Herkomst: p?.gast ? p.gastTeamNaam || "Andere ploeg" : teamNaam || "",
                 });
@@ -1719,7 +1745,7 @@
           personen.forEach((p) => {
             const rij = [p.naam];
             dagenInMaand.forEach((datum) => {
-              rij.push(functieVoor(p.id, dienstPerDatum[datum]) || "");
+              rij.push(functieSlotCode(p.id, dienstPerDatum[datum]) || "");
             });
             matrix.push(rij);
           });
@@ -1741,7 +1767,7 @@
               const p = personMap[pid];
               const rij = [(p?.naam || "?") + " (gast)"];
               dagenInMaand.forEach((datum) => {
-                rij.push(functieVoor(pid, dienstPerDatum[datum]) || "");
+                rij.push(functieSlotCode(pid, dienstPerDatum[datum]) || "");
               });
               matrix.push(rij);
             });
@@ -1789,7 +1815,7 @@
           };
           const labels = {
             'B': 'Bevelvoerder',
-            'M': 'Manschap',
+            'M': 'Manschap (1 en 2)',
             'CTS': 'Chauffeur 4133',
             'CL': 'Chauffeur 4152',
             'OL': 'Opstapper 4152'
@@ -1838,10 +1864,11 @@
               <tbody>
           `;
 
-          function badge(code) {
+          function badge(code, tekst) {
             if (!code) return '<span style="color:#ccc;">·</span>';
             const kleur = kleuren[code] || '#888';
-            return `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:${kleur};color:#fff;font-weight:bold;font-size:9px;line-height:1;">${code}</span>`;
+            const label = tekst || code;
+            return `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:${kleur};color:#fff;font-weight:bold;font-size:${label.length > 2 ? 8 : 9}px;line-height:1;">${label}</span>`;
           }
 
           const rijkleur = (i) => (i % 2 === 0 ? '#fff' : '#FAF8F4');
@@ -1852,7 +1879,8 @@
             dagenInMaand.forEach((datum) => {
               const dienst = dienstPerDatum[datum];
               const code = functieVoor(p.id, dienst);
-              html += `<td style="border:1px solid #eee;padding:3px;text-align:center;">${badge(code)}</td>`;
+              const slotTekst = functieSlotCode(p.id, dienst);
+              html += `<td style="border:1px solid #eee;padding:3px;text-align:center;">${badge(code, slotTekst)}</td>`;
             });
             html += `</tr>`;
           });
@@ -1920,7 +1948,7 @@
         tekst += `${'='.repeat(70)}\n\n`;
         let header = 'Naam'.padEnd(18);
         dagenInMaand.forEach((datum) => {
-          const dag = String(Number(datum.slice(8, 10))).padStart(2, ' ');
+          const dag = String(Number(datum.slice(8, 10))).padStart(3, ' ');
           header += dag + ' ';
         });
         tekst += header + '\n';
@@ -1929,13 +1957,13 @@
           let rij = p.naam.padEnd(18);
           dagenInMaand.forEach((datum) => {
             const dienst = dienstPerDatum[datum];
-            const code = functieVoor(p.id, dienst);
-            rij += (code || '·').padStart(2, ' ') + ' ';
+            const code = functieSlotCode(p.id, dienst);
+            rij += (code || '·').padStart(3, ' ') + ' ';
           });
           tekst += rij + '\n';
         });
         tekst += '\n' + '-'.repeat(70) + '\n';
-        tekst += 'Legenda: B=Bevelvoerder · M=Manschap · CTS=Chauffeur4133 · CL=Chauffeur4152 · OL=Opstapper4152\n';
+        tekst += 'Legenda: B=Bevelvoerder · M1/M2=Manschap · CTS=Chauffeur4133 · CL=Chauffeur4152 · OL=Opstapper4152\n';
         tekst += `Gegenereerd op ${new Date().toLocaleString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
 
         const mailTekst =
