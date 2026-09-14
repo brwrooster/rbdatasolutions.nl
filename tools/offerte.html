@@ -67,6 +67,8 @@
   .knop{display:block;width:100%;padding:14px;border-radius:10px;border:none;background:var(--rood);color:#fff;font-size:16px;font-weight:600;margin-top:8px}
   .knop.stil{background:#22303f;color:#dbe4ec}
   .knop.groen{background:var(--groen)}
+  .stapblok{display:flex;gap:8px;margin-top:4px}
+  .stapblok a.knop{flex:1;margin-top:0}
   .hint{font-size:12.5px;color:#8d9aa8;margin:8px 2px 0;line-height:1.55}
 
   .intern{border-color:#2a4a3a;background:#0f1d16}
@@ -166,7 +168,7 @@
       <a href="overzicht.html">Overzicht</a>
       <a href="klanten.html">Klanten</a>
       <a href="offerte.html" class="actief">Offertes</a>
-      <a href="opleverbon.html">Opleverbonnen</a>
+      <a href="opleverbon.html">Werkbon</a>
       <a href="facturen.html">Facturen</a>
       <a href="bestellingen.html">Onderdelen</a>
       <a href="prijzen.html">Prijzen</a>
@@ -178,7 +180,10 @@
       <input id="bib_zoek" placeholder="Typ om te filteren">
       <label for="bib_select">Bewaarde offertes</label>
       <select id="bib_select"></select>
-      <button class="knop stil" id="bib_nieuw">Nieuwe offerte starten</button>
+      <div class="duo">
+        <button class="knop stil" id="bib_nieuw">Nieuwe offerte starten</button>
+        <button class="knop stil" id="bib_verwijder" style="color:#ff8d9c">Deze offerte verwijderen</button>
+      </div>
       <p class="hint">Elke wijziging wordt automatisch bewaard en gesynchroniseerd — open dezelfde offerte straks gerust op je laptop, ook als er weken tussen offerte en factuur zitten. Zonder internet werkt alles gewoon door en wordt de laatste stand bijgewerkt zodra je weer verbinding hebt.</p>
     </fieldset>
 
@@ -423,6 +428,10 @@ async function apiPost(pad, data){
     if(!r.ok) return null;
     return await r.json();
   }catch(e){ return null; }
+}
+async function apiDelete(pad){
+  try{ const r = await fetch(API+pad, {method:"DELETE"}); return r.ok; }
+  catch(e){ return false; }
 }
 function klantNaamVan(d){
   if(!d) return "naam nog niet ingevuld";
@@ -729,21 +738,21 @@ function statusPaneelTonen(){
     return;
   }
 
+  const nr = el("o_nr").value.trim();
   const s1 = statusExtra.akkoord
     ? `✅ Akkoord ontvangen op ${dNL(statusExtra.akkoord.datum)} (${statusExtra.akkoord.wijze==="mail" ? "per e-mail" : "op toestel getekend"})`
-    : "⭘ Nog geen akkoord";
-  const s2 = statusExtra.opgeleverd ? `✅ Opgeleverd op ${dNL(statusExtra.opgeleverd.datum)}` : "⭘ Nog niet opgeleverd";
-  const s3 = statusExtra.factuur ? `✅ Factuur ${statusExtra.factuur.nr} aangemaakt op ${dNL(statusExtra.factuur.datum)}` : "⭘ Nog geen factuur";
-  el("status_stappen").innerHTML = `<div class="stap">${s1}</div><div class="stap">${s2}</div><div class="stap">${s3}</div>`;
+    : "⭘ Nog geen akkoord — leg dat hieronder vast";
+  el("status_stappen").innerHTML = `<div class="stap">${s1}</div>`;
 
-  const nr = el("o_nr").value.trim();
-  let volgende = "";
-  if(statusExtra.akkoord && !statusExtra.opgeleverd){
-    volgende = `<a class="knop" href="opleverbon.html?nr=${encodeURIComponent(nr)}">Opleverbon openen voor deze offerte</a>`;
-  } else if(statusExtra.opgeleverd && !statusExtra.factuur){
-    volgende = `<a class="knop" href="facturen.html?nr=${encodeURIComponent(nr)}">Factuur maken voor deze offerte</a>`;
-  }
-  el("status_volgende").innerHTML = volgende;
+  if(!statusExtra.akkoord){ el("status_volgende").innerHTML = ""; return; }
+
+  el("status_volgende").innerHTML = `
+    <p class="hint" style="margin:2px 2px 6px">Alle vervolgstappen voor deze offerte, in willekeurige volgorde:</p>
+    <div class="stapblok">
+      <a class="knop" href="opleverbon.html?nr=${encodeURIComponent(nr)}">${statusExtra.opgeleverd?"✅ ":""}Werkbon</a>
+      <a class="knop stil" href="bestellingen.html">Bestellijst</a>
+      <a class="knop groen" href="facturen.html?nr=${encodeURIComponent(nr)}">${statusExtra.factuur?"✅ ":""}Factuur</a>
+    </div>`;
 }
 
 /* ====================== opslaan ====================== */
@@ -885,8 +894,7 @@ el("bib_select").addEventListener("change", async ()=>{
   bibliotheekDropdownVullen();
 });
 
-el("bib_nieuw").addEventListener("click", async ()=>{
-  if(!confirm("Nieuwe, lege offerte starten? De huidige offerte staat al bewaard onder zijn eigen nummer en blijft gewoon terug te vinden.")) return;
+async function nieuweOfferteStarten(){
   regels = [{type:"master", inch:43, aantal:1, beugel:true}];
   hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
   statusExtra = {akkoord:null, afgewezen:null, opgeleverd:null, factuur:null};
@@ -904,6 +912,25 @@ el("bib_nieuw").addEventListener("click", async ()=>{
   tekenPrijzen(); tekenRegels(); teken();
   bibliotheekDropdownVullen();
   statusPaneelTonen();
+}
+
+el("bib_verwijder").addEventListener("click", async ()=>{
+  const nr = el("o_nr").value.trim();
+  if(!nr){ alert("Geen offertenummer om te verwijderen."); return; }
+  const klant = el("k_post").value || el("k_org").value || "onbekende klant";
+  if(!confirm(`Offerte ${nr} (${klant}) helemaal verwijderen? Dit kan niet ongedaan worden gemaakt, en verwijdert ook de bijbehorende werkbon- en factuurgegevens.`)) return;
+  await apiDelete("/offertes/"+encodeURIComponent(nr));
+  try{
+    const lokaal = JSON.parse(haal(BIB_SLEUTEL)||"{}");
+    delete lokaal[nr];
+    zet(BIB_SLEUTEL, JSON.stringify(lokaal));
+  }catch(e){}
+  await nieuweOfferteStarten();
+});
+
+el("bib_nieuw").addEventListener("click", async ()=>{
+  if(!confirm("Nieuwe, lege offerte starten? De huidige offerte staat al bewaard onder zijn eigen nummer en blijft gewoon terug te vinden.")) return;
+  await nieuweOfferteStarten();
 });
 
 /* ---- bedrijfsgegevens: gesynchroniseerd via Cloudflare, lokaal als terugval zonder netwerk ---- */

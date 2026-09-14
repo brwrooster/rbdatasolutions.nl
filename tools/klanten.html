@@ -64,7 +64,7 @@
     <a href="overzicht.html">Overzicht</a>
     <a href="klanten.html" class="actief">Klanten</a>
     <a href="offerte.html">Offertes</a>
-    <a href="opleverbon.html">Opleverbonnen</a>
+    <a href="opleverbon.html">Werkbon</a>
     <a href="facturen.html">Facturen</a>
     <a href="bestellingen.html">Onderdelen</a>
     <a href="prijzen.html">Prijzen</a>
@@ -91,6 +91,10 @@ async function apiPut(pad, data){
     const r = await fetch(API+pad, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
     return r.ok;
   }catch(e){ return false; }
+}
+async function apiDelete(pad){
+  try{ const r = await fetch(API+pad, {method:"DELETE"}); return r.ok; }
+  catch(e){ return false; }
 }
 function klantSlug(naam){
   return (naam||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "klant";
@@ -161,6 +165,7 @@ function renderen(){
           <label>Contactpersoon</label><input data-veld="contact" data-id="${id}" value="${d.contact||""}">
           <label>Adres</label><textarea rows="2" data-veld="adres" data-id="${id}">${d.adres||""}</textarea>
           <label>E-mail</label><input data-veld="mail" data-id="${id}" value="${d.mail||""}">
+          <button class="knop stil" style="color:#ff8d9c;margin-top:14px" data-verwijder-klant="${id}">Klant verwijderen</button>
         </div>
       </div>`;
   }).join("");
@@ -168,10 +173,18 @@ function renderen(){
 
 el("zoek").addEventListener("input", renderen);
 
-document.addEventListener("click", e=>{
+document.addEventListener("click", async e=>{
   if(e.target.dataset.bewerk){
     const box = el("bewerk-"+e.target.dataset.bewerk);
     box.style.display = box.style.display==="block" ? "none" : "block";
+  }
+  if(e.target.dataset.verwijderKlant){
+    const id = e.target.dataset.verwijderKlant;
+    const naam = klanten[id] ? (klanten[id].post || klanten[id].org || id) : id;
+    if(!confirm(`"${naam}" verwijderen uit je klantenbestand? Offertes van deze klant blijven gewoon bestaan, alleen de klantgegevens zelf verdwijnen.`)) return;
+    await apiDelete("/klanten/"+encodeURIComponent(id));
+    delete klanten[id];
+    renderen();
   }
 });
 

@@ -101,7 +101,7 @@
       <a href="overzicht.html">Overzicht</a>
       <a href="klanten.html">Klanten</a>
       <a href="offerte.html">Offertes</a>
-      <a href="opleverbon.html">Opleverbonnen</a>
+      <a href="opleverbon.html">Werkbon</a>
       <a href="facturen.html" class="actief">Facturen</a>
       <a href="bestellingen.html">Onderdelen</a>
       <a href="prijzen.html">Prijzen</a>
@@ -153,7 +153,7 @@
     </fieldset>
   </div>
 
-  <div class="papier geen-print" id="doc_wrap" style="display:none">
+  <div class="papier" id="doc_wrap" style="display:none">
     <div class="brief-kop">
       <div>
         <img class="logo" id="logo" src="https://rbdatasolutions.nl/images/logo-banner.png" alt="">
@@ -220,6 +220,10 @@ async function apiPost(pad, data){
     if(!r.ok) return null;
     return await r.json();
   }catch(e){ return null; }
+}
+async function apiDelete(pad){
+  try{ const r = await fetch(API+pad, {method:"DELETE"}); return r.ok; }
+  catch(e){ return false; }
 }
 
 function onderdelen(r){
@@ -330,6 +334,7 @@ function renderAlles(){
         <td style="white-space:nowrap">
           <button class="rijknop" data-kies="${nr}">Open</button>
           ${betaald?"":`<button class="rijknop" data-betaald="${nr}">Betaald</button>`}
+          <button class="rijknop" style="color:#ff8d9c" data-verwijder-factuur="${nr}">Verwijderen</button>
         </td>
       </tr>`;
     }).join("") + `</tbody></table>`;
@@ -453,6 +458,14 @@ document.addEventListener("click", async e=>{
     await apiPut("/offertes/"+encodeURIComponent(nr), { factuur: { betaald: { datum: datum || iso(new Date()) } } });
     alleOffertes = await apiGet("/offertes") || alleOffertes;
     renderAlles(); renderKlaar();
+  }
+  if(e.target.dataset.verwijderFactuur){
+    const nr = e.target.dataset.verwijderFactuur;
+    if(!confirm(`Factuur van ${nr} verwijderen? De offerte zelf blijft bestaan en komt terug te staan bij "Klaar om te factureren".`)) return;
+    await apiPut("/offertes/"+encodeURIComponent(nr), { factuur: null });
+    alleOffertes = await apiGet("/offertes") || alleOffertes;
+    if(actieveNr === nr){ actieveNr = null; actieveData = null; el("vak_maken").style.display="none"; el("doc_wrap").style.display="none"; el("balk").style.display="none"; }
+    renderAlles(); renderKlaar(); renderKiesSelect();
   }
 });
 
