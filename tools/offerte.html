@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Offertes en facturen — RB Data Solutions</title>
+<style>
+  :root{
+    --ink:#0e1621; --paper:#fff; --line:#d6dbe1; --muted:#5b6672;
+    --rood:#c8102e; --groen:#1f7a4d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink); color:#e8edf2; font-size:16px; line-height:1.45;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%; padding-bottom:100px;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+
+  /* ---- slot ---- */
+  #slot{position:fixed;inset:0;background:var(--ink);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
+  #slot .kaart{max-width:340px;width:100%}
+  #slot h1{font-size:19px;margin:0 0 4px}
+  #slot p{color:#8d9aa8;font-size:13.5px;margin:0 0 18px}
+  #slot .fout{color:#ff8d9c;font-size:13px;min-height:19px;margin-top:8px}
+  #app{display:none}
+
+  .kop{padding:18px 4px 6px}
+  .kop .merk{font-weight:700;font-size:18px}
+  .kop .sub{color:#8d9aa8;font-size:13px;margin-top:2px}
+  .streep{height:3px;background:var(--rood);border-radius:2px;margin:10px 4px 18px}
+
+  .tabs{display:flex;gap:8px;margin:0 0 16px}
+  .tabs button{
+    flex:1;padding:11px 8px;border-radius:9px;border:1px solid #2b3a4c;background:#131c27;
+    color:#9fadbb;font-size:14px;font-weight:600;
+  }
+  .tabs button.aan{background:var(--rood);border-color:var(--rood);color:#fff}
+
+  fieldset{border:1px solid #253243;border-radius:10px;margin:0 0 16px;padding:14px 14px 8px;background:#131c27}
+  legend{font-weight:600;font-size:15px;padding:0 8px;color:#fff}
+  label{display:block;font-size:13px;color:#9fadbb;margin:10px 0 4px}
+  input,select,textarea{
+    width:100%;padding:11px 12px;font-size:16px;font-family:inherit;
+    border:1px solid #2b3a4c;border-radius:8px;background:#0c141d;color:#eaf0f6;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--rood);outline-offset:1px;border-color:var(--rood)}
+  .duo{display:flex;gap:10px}.duo>div{flex:1}
+  .check{display:flex;align-items:center;gap:10px;margin:12px 0;font-size:14px;color:#cdd8e2}
+  .check input{width:22px;height:22px;flex:0 0 22px}
+  .regel{border:1px solid #2b3a4c;border-radius:10px;padding:12px;margin:0 0 12px;background:#0f1822}
+  .rkop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .rtitel{font-weight:600;font-size:15px}
+  .weg{background:none;border:1px solid #3b4b5e;color:#9fadbb;border-radius:8px;padding:6px 10px;font-size:13px;width:auto}
+  button{font-family:inherit;cursor:pointer}
+  .knop{display:block;width:100%;padding:14px;border-radius:10px;border:none;background:var(--rood);color:#fff;font-size:16px;font-weight:600;margin-top:8px}
+  .knop.stil{background:#22303f;color:#dbe4ec}
+  .knop.groen{background:var(--groen)}
+  .hint{font-size:12.5px;color:#8d9aa8;margin:8px 2px 0;line-height:1.55}
+
+  .intern{border-color:#2a4a3a;background:#0f1d16}
+  .intern legend{color:#7fe0ac}
+  .intern table{width:100%;border-collapse:collapse;font-size:14px}
+  .intern td{padding:7px 0;border-bottom:1px solid #1e3327;color:#c8ddd0;font-variant-numeric:tabular-nums}
+  .intern td:last-child{text-align:right;color:#fff}
+  .intern tr.dik td{font-weight:700;border-bottom:none;padding-top:10px}
+
+  .taken{border-color:#3d3520;background:#1a170e}
+  .taken legend{color:#f0c674}
+  .taken li{font-size:13.5px;color:#ded4c0;margin-bottom:9px;line-height:1.5}
+  .taken li b{color:#fff}
+
+  /* ---- handtekening ---- */
+  #pad{width:100%;height:170px;background:#fff;border-radius:8px;border:1px solid #2b3a4c;touch-action:none;display:block}
+
+  /* ---- papier ---- */
+  .papier{background:var(--paper);color:#11181f;border-radius:6px;padding:26px 24px 30px;margin:0 0 18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .brief-kop{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+  .logo{max-width:190px;max-height:64px;display:block}
+  .wordmark{font-size:20px;font-weight:700;color:#11181f}
+  .wordmark span{color:var(--rood)}
+  .afzender{text-align:right;font-size:11.5px;color:var(--muted);line-height:1.55;white-space:pre-line}
+  .kopstreep{height:2px;background:var(--rood);margin:16px 0 20px}
+  .titelblok{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}
+  .titelblok h1{font-size:22px;margin:0 0 6px;letter-spacing:-.2px}
+  .aan{font-size:13px;line-height:1.55;white-space:pre-line}
+  .meta{font-size:12px;color:var(--muted);text-align:right;line-height:1.7;white-space:nowrap}
+  .meta b{color:#11181f;font-weight:600}
+  .intro{font-size:13.5px;line-height:1.6;margin:0 0 20px;max-width:66ch}
+  table.spec{width:100%;border-collapse:collapse;font-size:13px}
+  table.spec th{text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);border-bottom:1.5px solid #11181f;padding:0 0 6px}
+  table.spec th.r,table.spec td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.spec td{padding:10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  td.oms b{font-weight:600}
+  td.oms ul{margin:5px 0 0;padding-left:15px;color:var(--muted);font-size:11.5px;line-height:1.6}
+  .totblok{margin-top:14px;display:flex;justify-content:flex-end}
+  .totblok table{font-size:13px;min-width:280px;border-collapse:collapse}
+  .totblok td{padding:5px 0;font-variant-numeric:tabular-nums}
+  .totblok td:last-child{text-align:right;padding-left:24px;white-space:nowrap}
+  .totblok tr.eind td{border-top:1.5px solid #11181f;font-weight:700;font-size:15px;padding-top:9px}
+  .kader{margin-top:24px;border:1px solid var(--line);border-left:3px solid var(--rood);border-radius:4px;padding:14px 16px}
+  .kader h2{font-size:14px;margin:0 0 8px}
+  .kader table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .kader td{padding:4px 0;font-variant-numeric:tabular-nums}
+  .kader td:last-child{text-align:right;white-space:nowrap}
+  .kader tr.eind td{border-top:1px solid var(--line);font-weight:700;padding-top:7px}
+  .voorw{margin-top:24px;font-size:11.5px;color:var(--muted);line-height:1.65}
+  .voorw h2{font-size:12.5px;color:#11181f;margin:0 0 6px}
+  .voorw ul{margin:0;padding-left:18px}
+  .voorw li{margin-bottom:3px}
+  .akkoord{margin-top:26px;display:flex;gap:30px;font-size:11.5px;color:var(--muted)}
+  .akkoord div{flex:1}
+  .lijn{border-bottom:1px solid #11181f;height:46px;margin-bottom:5px;position:relative}
+  .lijn img{position:absolute;bottom:2px;left:0;max-height:44px;max-width:100%}
+  .lijn .getypt{position:absolute;bottom:4px;left:2px;font-size:12px}
+  .leeg{color:var(--muted);font-style:italic}
+  .stempel{display:inline-block;border:1.5px solid var(--groen);color:var(--groen);font-size:11px;font-weight:700;padding:3px 9px;border-radius:3px;margin-top:8px}
+
+  .balk{position:fixed;left:0;right:0;bottom:0;background:#0b121a;border-top:1px solid #22303f;padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;z-index:50}
+  .balk .tot{flex:1;font-size:12.5px;color:#9fadbb;line-height:1.3}
+  .balk .tot b{display:block;color:#fff;font-size:17px;font-variant-numeric:tabular-nums}
+  .balk button{width:auto;padding:12px 16px;border-radius:10px;border:none;background:var(--rood);color:#fff;font-weight:600;font-size:15px}
+
+  @media print{
+    @page{size:A4;margin:14mm}
+    body{background:#fff;color:#000;padding:0}
+    .wrap{max-width:none;padding:0}
+    .geen-print,#slot{display:none !important}
+    .papier{box-shadow:none;border-radius:0;padding:0;margin:0}
+    table.spec tr,.kader,.akkoord,.voorw{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<div id="slot">
+  <div class="kaart">
+    <h1>RB Data Solutions</h1>
+    <p>Deze pagina is alleen voor intern gebruik.</p>
+    <input id="ww" type="password" placeholder="Wachtwoord" autocomplete="current-password">
+    <button class="knop" id="ww_ok">Openen</button>
+    <div class="fout" id="ww_fout"></div>
+  </div>
+</div>
+
+<div id="app">
+<div class="wrap">
+  <div class="geen-print">
+    <div class="kop">
+      <div class="merk">Offertes en facturen</div>
+      <div class="sub">P2000 kazernescherm — RB Data Solutions</div>
+    </div>
+    <div class="streep"></div>
+
+    <div class="tabs">
+      <button data-tab="offerte" class="aan">Offerte</button>
+      <button data-tab="factuur">Factuur</button>
+    </div>
+
+    <fieldset>
+      <legend>Klant</legend>
+      <label for="k_post">Post of kazerne</label>
+      <input id="k_post" placeholder="Post Noorderduin">
+      <label for="k_org">Organisatie</label>
+      <input id="k_org" placeholder="Brandweer IJsselmeerlanden">
+      <label for="k_contact">Contactpersoon</label>
+      <input id="k_contact" placeholder="Dhr. J. de Vries, postcommandant">
+      <label for="k_adres">Adres</label>
+      <textarea id="k_adres" rows="3" placeholder="Havenstraat 12&#10;8000 AB Zwolle"></textarea>
+      <label for="k_mail">E-mail</label>
+      <input id="k_mail" type="email" placeholder="jdevries@brandweer.nl">
+    </fieldset>
+
+    <fieldset>
+      <legend>Schermen</legend>
+      <div id="regels"></div>
+      <button class="knop stil" id="add">Scherm toevoegen</button>
+      <p class="hint">Hoofdscherm = compleet systeem met ontvanger. Extra scherm = leest mee met het hoofdscherm van dezelfde post.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Installatie op locatie</legend>
+      <div class="check">
+        <input type="checkbox" id="i_doen" checked>
+        <label for="i_doen" style="margin:0">Ophangen en inregelen door RB Data Solutions</label>
+      </div>
+      <label for="i_km">Kilometers retour</label>
+      <input id="i_km" type="number" min="0" step="5" value="0" inputmode="numeric">
+      <p class="hint">Eerste scherm <span id="t_i1"></span>, elk volgend scherm <span id="t_i2"></span>, voorrijkosten <span id="t_km"></span> per kilometer, alles excl. btw.</p>
+    </fieldset>
+
+    <fieldset id="vak_offerte">
+      <legend>Offerte</legend>
+      <div class="duo">
+        <div><label for="o_nr">Offertenummer</label><input id="o_nr"></div>
+        <div><label for="o_datum">Datum</label><input id="o_datum" type="date"></div>
+      </div>
+      <label for="o_geldig">Geldig tot en met</label>
+      <input id="o_geldig" type="date">
+    </fieldset>
+
+    <fieldset id="vak_tekenen">
+      <legend>Digitaal ondertekenen</legend>
+      <p class="hint" style="margin-top:0">Laat de klant hieronder tekenen, of leg vast dat hij per e-mail akkoord gaf. Het komt onder aan de offerte te staan.</p>
+      <label for="h_naam">Naam ondertekenaar</label>
+      <input id="h_naam" placeholder="J. de Vries">
+      <label for="h_functie">Functie</label>
+      <input id="h_functie" placeholder="Postcommandant">
+      <label for="h_datum">Datum akkoord</label>
+      <input id="h_datum" type="date">
+      <label for="pad">Handtekening</label>
+      <canvas id="pad"></canvas>
+      <div class="duo">
+        <button class="knop stil" id="h_wis" style="margin-top:8px">Wissen</button>
+        <button class="knop groen" id="h_vast" style="margin-top:8px">Akkoord vastleggen</button>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="h_mail">
+        <label for="h_mail" style="margin:0">Akkoord per e-mail ontvangen, geen handtekening</label>
+      </div>
+      <p class="hint">Bewaar de akkoordmail apart in je klantmap. Dat is je bewijs als er later discussie komt.</p>
+    </fieldset>
+
+    <fieldset id="vak_factuur" style="display:none">
+      <legend>Factuur</legend>
+      <label for="f_soort">Wat factureer je</label>
+      <select id="f_soort">
+        <option value="eenmalig">Eenmalig — hardware en installatie</option>
+        <option value="abo">Abonnement — periode vooruit</option>
+        <option value="beide">Beide op één factuur</option>
+      </select>
+      <div class="duo">
+        <div><label for="f_nr">Factuurnummer</label><input id="f_nr"></div>
+        <div><label for="f_datum">Factuurdatum</label><input id="f_datum" type="date"></div>
+      </div>
+      <div class="duo">
+        <div><label for="f_verval">Vervaldatum</label><input id="f_verval" type="date"></div>
+        <div><label for="f_termijn">Abonnementsperiode</label>
+          <select id="f_termijn">
+            <option value="12">12 maanden vooruit</option>
+            <option value="3">3 maanden vooruit</option>
+            <option value="1">1 maand</option>
+          </select>
+        </div>
+      </div>
+      <div class="duo">
+        <div><label for="f_van">Periode van</label><input id="f_van" type="date"></div>
+        <div><label for="f_tot">tot en met</label><input id="f_tot" type="date"></div>
+      </div>
+      <label for="f_ref">Verwijzing</label>
+      <input id="f_ref" placeholder="Conform offerte OFF-2026-001, akkoord 12 maart 2026">
+      <p class="hint">Factuurnummers moeten doorlopen zonder gaten. De teller telt vanzelf op zodra je een nummer gebruikt.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Jouw gegevens</legend>
+      <label for="b_naam">Bedrijfsnaam</label>
+      <input id="b_naam" value="RB Data Solutions">
+      <label for="b_regels">Adres- en contactregels</label>
+      <textarea id="b_regels" rows="6">rbdatasolutions.nl
+info@rbdatasolutions.nl
+KVK 00000000
+btw-id NL000000000B00
+IBAN NL00 BANK 0000 0000 00</textarea>
+      <label for="b_logo">Eigen logo laden</label>
+      <input id="b_logo" type="file" accept="image/*">
+      <p class="hint">Zonder KVK-nummer en btw-identificatienummer voldoet je factuur niet aan de eisen van de Belastingdienst. Vul ze in zodra je ingeschreven staat.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Prijzen</legend>
+      <div id="prijzen"></div>
+      <p class="hint">Schermprijzen: links wat jij betaalt inclusief btw, rechts wat de klant betaalt exclusief btw. De abonnementsbedragen zijn inclusief btw.</p>
+    </fieldset>
+
+    <fieldset class="intern">
+      <legend>Alleen voor jou</legend>
+      <div id="intern"></div>
+      <p class="hint">Staat niet op de afdruk.</p>
+    </fieldset>
+
+    <fieldset class="taken">
+      <legend>Na akkoord — je administratie</legend>
+      <ol id="taken"></ol>
+      <button class="knop stil" id="csv">Boekhoudregel downloaden</button>
+      <p class="hint">Levert een csv-regel op die je bij je boekhouding kunt bewaren of importeren.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Opslaan en openen</legend>
+      <button class="knop stil" id="bewaar">Dossier downloaden</button>
+      <button class="knop stil" id="laad_knop">Dossier openen</button>
+      <input id="laad" type="file" accept=".json" style="display:none">
+      <p class="hint">Bewaar het dossier per klant in je map. Later open je het weer om de factuur of de verlenging te maken zonder alles opnieuw in te tikken.</p>
+    </fieldset>
+  </div>
+
+  <!-- ============== PAPIER ============== -->
+  <div class="papier" id="doc">
+    <div class="brief-kop">
+      <div>
+        <img class="logo" id="logo" src="https://rbdatasolutions.nl/images/logo-banner.png" alt="">
+        <div class="wordmark" id="wordmark" style="display:none">RB Data <span>Solutions</span></div>
+      </div>
+      <div class="afzender" id="p_afz"></div>
+    </div>
+    <div class="kopstreep"></div>
+    <div class="titelblok">
+      <div><h1 id="p_titel">Offerte</h1><div class="aan" id="p_aan"></div></div>
+      <div class="meta" id="p_meta"></div>
+    </div>
+    <p class="intro" id="p_intro"></p>
+    <table class="spec">
+      <thead><tr><th>Omschrijving</th><th class="r">Aantal</th><th class="r">Per stuk</th><th class="r">Totaal</th></tr></thead>
+      <tbody id="p_regels"></tbody>
+    </table>
+    <div class="totblok"><table id="p_tot"></table></div>
+    <div id="p_extra"></div>
+    <div class="voorw" id="p_voorw"></div>
+    <div class="akkoord" id="p_akkoord"></div>
+  </div>
+</div>
+
+<div class="balk geen-print">
+  <div class="tot"><b id="b_tot">€ 0,00</b><span id="b_sub"></span></div>
+  <button id="print">Pdf maken</button>
+</div>
+</div>
+
+<script>
+/* ====================== prijzen ======================
+   scherm/onderdeel: inkoop = incl. btw, verkoop = excl. btw
+   abonnement: incl. btw (zoals afgesproken)
+   ==================================================== */
+const BTW = 0.21;
+const P = {
+  computer_m : {label:"Kazernecomputer met ontvanger", inkoop:131, verkoop:145},
+  computer_s : {label:"Kazernecomputer extra scherm",  inkoop:78,  verkoop:89},
+  beugel     : {label:"Muurbeugel",                    inkoop:30,  verkoop:35},
+  inricht_m  : {label:"Inrichting hoofdscherm",        inkoop:0,   verkoop:195},
+  inricht_s  : {label:"Inrichting extra scherm",       inkoop:0,   verkoop:45},
+  inst1      : {label:"Installatie eerste scherm",     inkoop:0,   verkoop:175},
+  inst2      : {label:"Installatie extra scherm",      inkoop:0,   verkoop:95},
+  km         : {label:"Voorrijkosten per km",          inkoop:0,   verkoop:0.55}
+};
+const ABO = { master:{label:"Abonnement hoofdscherm per maand incl. btw", incl:15},
+              slave :{label:"Abonnement extra scherm per maand incl. btw", incl:7.5} };
+const SCHERM = {32:{inkoop:199,verkoop:215},43:{inkoop:329,verkoop:355},50:{inkoop:399,verkoop:429},
+                55:{inkoop:469,verkoop:505},65:{inkoop:629,verkoop:675},75:{inkoop:899,verkoop:965},
+                85:{inkoop:1249,verkoop:1345}};
+
+const TYPES = {master:"P2000 Kazernescherm", slave:"Extra kazernescherm", slave_pi:"Extra kazernescherm met eigen computer"};
+
+let regels = [{type:"master", inch:43, aantal:1, beugel:true}];
+let tab = "offerte";
+let logoData = null;
+let hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
+
+const eur = n => "€ " + Number(n).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+const ex  = i => i/(1+BTW);
+const el  = id => document.getElementById(id);
+const dNL = s => s ? new Date(s+"T00:00:00").toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}) : "";
+const iso = d => d.toISOString().slice(0,10);
+
+/* ---- kleine opslag, valt stil terug als de browser het blokkeert ---- */
+const bak = {};
+function zet(k,v){ try{localStorage.setItem(k,v)}catch(e){bak[k]=v} }
+function haal(k){ try{ const v=localStorage.getItem(k); return v===null?(bak[k]??null):v }catch(e){ return bak[k]??null } }
+
+/* ====================== opbouw ====================== */
+function onderdelen(r){
+  const s = SCHERM[r.inch], o = [];
+  if(r.type==="master")   o.push(P.computer_m);
+  if(r.type==="slave_pi") o.push(P.computer_s);
+  o.push({inkoop:s.inkoop, verkoop:s.verkoop});
+  if(r.beugel) o.push(P.beugel);
+  o.push(r.type==="master" ? P.inricht_m : P.inricht_s);
+  return o;
+}
+const stukEx  = r => onderdelen(r).reduce((a,o)=>a+o.verkoop,0);
+const stukIn  = r => onderdelen(r).reduce((a,o)=>a+o.inkoop,0);
+
+function watErbijZit(r){
+  const u = [];
+  u.push(`IPS-scherm van ${r.inch} inch${r.beugel?", met muurbeugel":""}`);
+  if(r.type==="master"){
+    u.push("Kazernecomputer voor onafgebroken gebruik, met alle bekabeling");
+    u.push("Ontvangstmodule voor het P2000-netwerk, met antenne");
+  }
+  if(r.type==="slave_pi") u.push("Eigen kazernecomputer, zodat het scherm zelfstandig opstart");
+  if(r.type==="master"){
+    u.push("Inrichting van de post: capcodes, voertuigen, ploegindeling en kaartinstellingen");
+    u.push("Alarmering vooraf getest en opgeleverd in werkende staat");
+  } else {
+    u.push("Gekoppeld aan het kazernescherm van de post en ingeregeld");
+  }
+  return u;
+}
+
+function installatie(){
+  if(!el("i_doen").checked) return [];
+  const n = regels.reduce((a,r)=>a+Number(r.aantal||0),0);
+  if(!n) return [];
+  const uit = [{naam:"Installatie op locatie", det:["Ophangen, aansluiten, inregelen en samen testen"], aantal:1, stuk:P.inst1.verkoop}];
+  if(n>1) uit.push({naam:"Installatie extra scherm", det:["Tijdens hetzelfde bezoek"], aantal:n-1, stuk:P.inst2.verkoop});
+  const km = Number(el("i_km").value||0);
+  if(km>0) uit.push({naam:"Voorrijkosten", det:[`${km} kilometer retour`], aantal:km, stuk:P.km.verkoop});
+  return uit;
+}
+
+function aboOverzicht(){
+  const uit = []; let pm = 0;
+  ["master","slave","slave_pi"].forEach(t=>{
+    const n = regels.filter(r=>r.type===t).reduce((a,r)=>a+Number(r.aantal||0),0);
+    if(!n) return;
+    const per = t==="master" ? ABO.master.incl : ABO.slave.incl;
+    pm += per*n;
+    uit.push({naam:TYPES[t], aantal:n, per, totaal:per*n});
+  });
+  return {rijen:uit, pm};
+}
+
+/* ====================== formulier ====================== */
+function tekenRegels(){
+  el("regels").innerHTML = regels.map((r,i)=>`
+    <div class="regel">
+      <div class="rkop"><div class="rtitel">Scherm ${i+1}</div>
+        <button class="weg" data-weg="${i}">Verwijderen</button></div>
+      <label>Type</label>
+      <select data-veld="type" data-i="${i}">
+        <option value="master"${r.type==="master"?" selected":""}>Hoofdscherm — compleet systeem</option>
+        <option value="slave"${r.type==="slave"?" selected":""}>Extra scherm</option>
+        <option value="slave_pi"${r.type==="slave_pi"?" selected":""}>Extra scherm met eigen computer</option>
+      </select>
+      <div class="duo">
+        <div><label>Schermformaat</label>
+          <select data-veld="inch" data-i="${i}">
+            ${Object.keys(SCHERM).map(k=>`<option value="${k}"${Number(k)===r.inch?" selected":""}>${k} inch</option>`).join("")}
+          </select></div>
+        <div><label>Aantal</label>
+          <input type="number" min="1" step="1" inputmode="numeric" data-veld="aantal" data-i="${i}" value="${r.aantal}"></div>
+      </div>
+      <div class="check"><input type="checkbox" id="bg${i}" data-veld="beugel" data-i="${i}"${r.beugel?" checked":""}>
+        <label for="bg${i}" style="margin:0">Muurbeugel meeleveren</label></div>
+    </div>`).join("");
+}
+
+function tekenPrijzen(){
+  const rij = (pad,key,label,a,b,disA) => `
+    <div class="duo" style="margin-bottom:4px">
+      <div><label>${label} — inkoop incl.</label>
+        <input type="number" step="0.01" inputmode="decimal" data-prijs="${pad}.${key}.inkoop" value="${a}"${disA?" disabled":""}></div>
+      <div><label>verkoop excl.</label>
+        <input type="number" step="0.01" inputmode="decimal" data-prijs="${pad}.${key}.verkoop" value="${b}"></div>
+    </div>`;
+  let h = "";
+  Object.keys(SCHERM).forEach(k=>h+=rij("SCHERM",k,`Scherm ${k} inch`,SCHERM[k].inkoop,SCHERM[k].verkoop,false));
+  Object.keys(P).forEach(k=>h+=rij("P",k,P[k].label,P[k].inkoop,P[k].verkoop,P[k].inkoop===0));
+  Object.keys(ABO).forEach(k=>h+=`
+    <div><label>${ABO[k].label}</label>
+      <input type="number" step="0.01" inputmode="decimal" data-prijs="ABO.${k}.incl" value="${ABO[k].incl}"></div>`);
+  el("prijzen").innerHTML = h;
+}
+
+/* ====================== documenten ====================== */
+function teken(){
+  el("p_afz").textContent = el("b_naam").value + "\n" + el("b_regels").value;
+  const aan = [el("k_post").value, el("k_org").value, el("k_contact").value, el("k_adres").value, el("k_mail").value]
+              .filter(v=>v&&v.trim()).join("\n");
+  el("p_aan").innerHTML = aan ? aan.replace(/\n/g,"<br>") : '<span class="leeg">Vul de klantgegevens in</span>';
+  tab==="offerte" ? tekenOfferte() : tekenFactuur();
+}
+
+function tekenOfferte(){
+  el("p_titel").textContent = "Offerte P2000 kazernescherm";
+  el("p_meta").innerHTML =
+    `Offertenummer <b>${el("o_nr").value||"—"}</b><br>Datum <b>${dNL(el("o_datum").value)||"—"}</b><br>Geldig tot <b>${dNL(el("o_geldig").value)||"—"}</b>`;
+  const post = el("k_post").value.trim() || "uw post";
+  el("p_intro").textContent =
+    `Hierbij de offerte voor het kazernescherm van ${post}. Het scherm ontvangt de alarmering rechtstreeks van het P2000-netwerk `+
+    `en toont meteen het meldingstype, het adres, de ingezette eenheden, de route en de rijtijd naar het incident. Tussen de meldingen `+
+    `door laat het de dienstinformatie van de ploeg zien. Hieronder staat eerst wat u eenmalig aanschaft, daarna het maandbedrag.`;
+
+  let ex_ = 0; const rij = [];
+  regels.forEach(r=>{
+    const n = Number(r.aantal||0); if(n<1) return;
+    const s = stukEx(r); ex_ += s*n;
+    rij.push(`<tr><td class="oms"><b>${TYPES[r.type]} — ${r.inch} inch</b>
+      <ul>${watErbijZit(r).map(x=>`<li>${x}</li>`).join("")}</ul></td>
+      <td class="r">${n}</td><td class="r">${eur(s)}</td><td class="r">${eur(s*n)}</td></tr>`);
+  });
+  installatie().forEach(i=>{ ex_ += i.stuk*i.aantal;
+    rij.push(`<tr><td class="oms"><b>${i.naam}</b><ul>${i.det.map(x=>`<li>${x}</li>`).join("")}</ul></td>
+      <td class="r">${i.aantal}</td><td class="r">${eur(i.stuk)}</td><td class="r">${eur(i.stuk*i.aantal)}</td></tr>`);
+  });
+  el("p_regels").innerHTML = rij.length ? rij.join("") : `<tr><td colspan="4" class="leeg" style="padding:14px 0">Nog geen schermen gekozen</td></tr>`;
+
+  const btw = ex_*BTW;
+  el("p_tot").innerHTML =
+    `<tr><td>Totaal eenmalig excl. btw</td><td>${eur(ex_)}</td></tr>
+     <tr><td>Btw 21%</td><td>${eur(btw)}</td></tr>
+     <tr class="eind"><td>Totaal eenmalig incl. btw</td><td>${eur(ex_+btw)}</td></tr>`;
+
+  const a = aboOverzicht();
+  el("p_extra").innerHTML = `
+    <div class="kader"><h2>Maandelijks abonnement</h2>
+      <table>
+        ${a.rijen.map(r=>`<tr><td>${r.naam}, ${r.aantal}× ${eur(r.per)} per maand</td><td>${eur(r.totaal)}</td></tr>`).join("")
+          || '<tr><td class="leeg">Nog geen schermen gekozen</td></tr>'}
+        <tr class="eind"><td>Per maand incl. btw</td><td>${eur(a.pm)}</td></tr>
+        <tr><td>Per jaar incl. btw</td><td>${eur(a.pm*12)}</td></tr>
+      </table>
+      <p style="font-size:11.5px;color:var(--muted);margin:9px 0 0;line-height:1.55">
+        Hierin zitten de ontvangst van de alarmering, de kaart- en routegegevens, alle software-updates, het draaiend houden van de
+        verbinding en ondersteuning op werkdagen tussen 09.00 en 17.00 uur.</p>
+    </div>`;
+
+  el("p_voorw").innerHTML = `<h2>Voorwaarden</h2><ul>
+    <li>Deze offerte is geldig tot de hierboven genoemde datum.</li>
+    <li>Het abonnement gaat in op de dag van oplevering en wordt per jaar vooruit gefactureerd. Na het eerste jaar maandelijks opzegbaar met een maand opzegtermijn.</li>
+    <li>De post zorgt voor een stopcontact bij het scherm en voor internet via wifi of netwerkkabel.</li>
+    <li>Eenmalige kosten worden bij oplevering gefactureerd, betaling binnen 14 dagen.</li>
+    <li>Levertijd in overleg, doorgaans binnen drie weken na akkoord.</li>
+    <li>De hardware wordt eigendom van de post. De software blijft eigendom van ${el("b_naam").value} en wordt in gebruik gegeven zolang het abonnement loopt.</li>
+    <li>Prijzen zijn exclusief btw, behalve het abonnement: dat is een bedrag inclusief btw.</li>
+  </ul>`;
+
+  let links = `<div class="lijn"></div>Voor akkoord namens de post — naam, datum en handtekening`;
+  if(hand.vast){
+    const inhoud = hand.mail
+      ? `<span class="getypt">Akkoord per e-mail bevestigd</span>`
+      : (hand.data ? `<img src="${hand.data}" alt="">` : "");
+    links = `<div class="lijn">${inhoud}</div>
+      ${hand.naam||"—"}${hand.functie?", "+hand.functie:""}<br>${dNL(hand.datum)}
+      <div class="stempel">Akkoord</div>`;
+  }
+  el("p_akkoord").innerHTML = `<div>${links}</div>
+    <div><div class="lijn"></div>${el("b_naam").value}</div>`;
+
+  const a2 = aboOverzicht();
+  el("b_tot").textContent = eur(ex_*1.21);
+  el("b_sub").textContent = `eenmalig incl. btw · ${eur(a2.pm)} per maand`;
+  tekenIntern(ex_, a2.pm);
+  tekenTaken();
+}
+
+function tekenFactuur(){
+  const soort = el("f_soort").value;
+  el("p_titel").textContent = "Factuur";
+  el("p_meta").innerHTML =
+    `Factuurnummer <b>${el("f_nr").value||"—"}</b><br>Factuurdatum <b>${dNL(el("f_datum").value)||"—"}</b><br>Vervaldatum <b>${dNL(el("f_verval").value)||"—"}</b>`;
+  el("p_intro").textContent = el("f_ref").value || "";
+
+  const rij = []; let ex_ = 0;
+  if(soort==="eenmalig" || soort==="beide"){
+    regels.forEach(r=>{
+      const n=Number(r.aantal||0); if(n<1) return;
+      const s=stukEx(r); ex_ += s*n;
+      rij.push(`<tr><td class="oms"><b>${TYPES[r.type]} — ${r.inch} inch</b>
+        <ul>${watErbijZit(r).map(x=>`<li>${x}</li>`).join("")}</ul></td>
+        <td class="r">${n}</td><td class="r">${eur(s)}</td><td class="r">${eur(s*n)}</td></tr>`);
+    });
+    installatie().forEach(i=>{ ex_ += i.stuk*i.aantal;
+      rij.push(`<tr><td class="oms"><b>${i.naam}</b></td><td class="r">${i.aantal}</td>
+        <td class="r">${eur(i.stuk)}</td><td class="r">${eur(i.stuk*i.aantal)}</td></tr>`);
+    });
+  }
+  if(soort==="abo" || soort==="beide"){
+    const mnd = Number(el("f_termijn").value);
+    const per = (el("f_van").value||el("f_tot").value)
+      ? `Periode ${dNL(el("f_van").value)} tot en met ${dNL(el("f_tot").value)}` : "";
+    aboOverzicht().rijen.forEach(r=>{
+      const stukje = ex(r.per)*mnd;
+      ex_ += stukje*r.aantal;
+      rij.push(`<tr><td class="oms"><b>Abonnement ${r.naam.toLowerCase()}</b>
+        <ul><li>${mnd} ${mnd===1?"maand":"maanden"} vooruit${per?", "+per.toLowerCase():""}</li></ul></td>
+        <td class="r">${r.aantal}</td><td class="r">${eur(stukje)}</td><td class="r">${eur(stukje*r.aantal)}</td></tr>`);
+    });
+  }
+  el("p_regels").innerHTML = rij.length ? rij.join("") : `<tr><td colspan="4" class="leeg" style="padding:14px 0">Niets te factureren</td></tr>`;
+
+  const btw = ex_*BTW;
+  el("p_tot").innerHTML =
+    `<tr><td>Totaal excl. btw</td><td>${eur(ex_)}</td></tr>
+     <tr><td>Btw 21% over ${eur(ex_)}</td><td>${eur(btw)}</td></tr>
+     <tr class="eind"><td>Te betalen</td><td>${eur(ex_+btw)}</td></tr>`;
+
+  const iban = (el("b_regels").value.match(/IBAN[^\n]*/i)||[""])[0];
+  el("p_extra").innerHTML = `<div class="kader"><h2>Betaling</h2>
+    <p style="font-size:12.5px;margin:0;line-height:1.6">
+      Wij verzoeken u ${eur(ex_+btw)} over te maken op ${iban||"ons rekeningnummer"},
+      onder vermelding van factuurnummer ${el("f_nr").value||"—"}, vóór ${dNL(el("f_verval").value)||"de vervaldatum"}.</p></div>`;
+  el("p_voorw").innerHTML = "";
+  el("p_akkoord").innerHTML = "";
+
+  el("b_tot").textContent = eur(ex_+btw);
+  el("b_sub").textContent = "te betalen incl. btw";
+  tekenIntern(null, null);
+  tekenTaken();
+}
+
+/* ====================== intern ====================== */
+function tekenIntern(){
+  let inkoopIncl=0, n=0, omzetEx=0;
+  regels.forEach(r=>{ const a=Number(r.aantal||0); inkoopIncl+=stukIn(r)*a; n+=a; omzetEx+=stukEx(r)*a; });
+  installatie().forEach(i=>omzetEx+=i.stuk*i.aantal);
+  const inkoopEx = ex(inkoopIncl);
+  const marge = omzetEx - inkoopEx;
+  const pct = omzetEx>0 ? marge/omzetEx*100 : 0;
+  const a = aboOverzicht();
+  const aboExJaar = ex(a.pm)*12;
+  const btwAfdracht = omzetEx*BTW - (inkoopIncl - inkoopEx);
+  el("intern").innerHTML = `<table>
+    <tr><td>Schermen</td><td>${n}</td></tr>
+    <tr><td>Inkoop hardware incl. btw</td><td>${eur(inkoopIncl)}</td></tr>
+    <tr><td>Inkoop hardware excl. btw</td><td>${eur(inkoopEx)}</td></tr>
+    <tr><td>Omzet eenmalig excl. btw</td><td>${eur(omzetEx)}</td></tr>
+    <tr class="dik"><td>Marge eenmalig</td><td>${eur(marge)} (${pct.toFixed(0)}%)</td></tr>
+    <tr><td>Abonnement per maand incl. btw</td><td>${eur(a.pm)}</td></tr>
+    <tr><td>Abonnement per maand excl. btw</td><td>${eur(ex(a.pm))}</td></tr>
+    <tr><td>Abonnement per jaar excl. btw</td><td>${eur(aboExJaar)}</td></tr>
+    <tr class="dik"><td>Opbrengst eerste jaar</td><td>${eur(marge+aboExJaar)}</td></tr>
+    <tr><td>Daarna elk jaar</td><td>${eur(aboExJaar)}</td></tr>
+    <tr><td>Opzij zetten voor de btw-aangifte</td><td>${eur(btwAfdracht)}</td></tr>
+  </table>`;
+}
+
+function tekenTaken(){
+  const post = el("k_post").value.trim() || "de post";
+  el("taken").innerHTML = [
+    `<b>Akkoord bewaren.</b> De ondertekende offerte als pdf in je map van ${post}, samen met de akkoordmail.`,
+    `<b>Inkoopfacturen bewaren.</b> De bonnen van het scherm, de beugel en de computeronderdelen. Daar haal je de btw van terug en ze zijn je kostenpost.`,
+    `<b>Verkoopfactuur sturen</b> bij oplevering, met doorlopend factuurnummer, je KVK- en btw-nummer, de btw apart vermeld en een betaaltermijn van 14 dagen.`,
+    `<b>Abonnementsfactuur</b> voor het eerste jaar, ingaand op de opleveringsdatum. Zet meteen een herinnering elf maanden later voor de verlenging.`,
+    `<b>Btw-aangifte</b> in het kwartaal waarin je de factuur stuurt, niet wanneer hij betaald wordt. Zet het btw-bedrag hierboven apart.`,
+    `<b>Alles zeven jaar bewaren</b>, digitaal mag. Eén map per klant met offerte, akkoord, in- en verkoopfacturen werkt het simpelst.`
+  ].map(t=>`<li>${t}</li>`).join("");
+}
+
+/* ====================== handtekening ====================== */
+const pad = el("pad"); let ctx, tekenend=false, leeg=true;
+function padInit(){
+  const r = pad.getBoundingClientRect(), s = window.devicePixelRatio||1;
+  pad.width = r.width*s; pad.height = r.height*s;
+  ctx = pad.getContext("2d"); ctx.scale(s,s);
+  ctx.lineWidth = 2.2; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#11181f";
+}
+function pos(e){ const r=pad.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+pad.addEventListener("pointerdown", e=>{ e.preventDefault(); pad.setPointerCapture(e.pointerId);
+  tekenend=true; leeg=false; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+pad.addEventListener("pointermove", e=>{ if(!tekenend) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
+["pointerup","pointercancel","pointerleave"].forEach(ev=>pad.addEventListener(ev,()=>tekenend=false));
+el("h_wis").addEventListener("click", ()=>{ ctx.clearRect(0,0,pad.width,pad.height); leeg=true; });
+el("h_vast").addEventListener("click", ()=>{
+  hand.naam = el("h_naam").value; hand.functie = el("h_functie").value;
+  hand.datum = el("h_datum").value || iso(new Date());
+  hand.mail = el("h_mail").checked;
+  hand.data = (!hand.mail && !leeg) ? pad.toDataURL("image/png") : null;
+  if(!hand.mail && leeg){ alert("Laat de klant eerst tekenen, of vink aan dat het akkoord per e-mail kwam."); return; }
+  hand.vast = true;
+  if(!el("f_ref").value){
+    el("f_ref").value = `Conform offerte ${el("o_nr").value}, akkoord ${dNL(hand.datum)}`;
+  }
+  teken();
+  alert("Akkoord vastgelegd. Maak nu een pdf en bewaar die bij de klant.");
+});
+
+/* ====================== opslaan ====================== */
+function dossier(){
+  return {versie:1, regels, hand, logoData,
+    klant:["k_post","k_org","k_contact","k_adres","k_mail"].reduce((o,k)=>(o[k]=el(k).value,o),{}),
+    doc:["o_nr","o_datum","o_geldig","f_nr","f_datum","f_verval","f_soort","f_termijn","f_van","f_tot","f_ref","i_km","b_naam","b_regels"]
+        .reduce((o,k)=>(o[k]=el(k).value,o),{}),
+    inst: el("i_doen").checked};
+}
+function download(naam, inhoud, type){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([inhoud],{type}));
+  a.download = naam; a.click(); URL.revokeObjectURL(a.href);
+}
+el("bewaar").addEventListener("click", ()=>{
+  const naam = (el("k_post").value||"klant").replace(/[^\w-]+/g,"-").toLowerCase();
+  download(`dossier-${naam}.json`, JSON.stringify(dossier(),null,2), "application/json");
+});
+el("laad_knop").addEventListener("click", ()=>el("laad").click());
+el("laad").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{ try{
+    const d = JSON.parse(fr.result);
+    regels = d.regels || regels; hand = d.hand || hand;
+    Object.entries(d.klant||{}).forEach(([k,v])=>el(k).value=v);
+    Object.entries(d.doc||{}).forEach(([k,v])=>el(k).value=v);
+    el("i_doen").checked = d.inst !== false;
+    if(d.logoData){ logoData=d.logoData; el("logo").src=d.logoData; }
+    tekenRegels(); teken();
+  }catch(err){ alert("Dit bestand kon ik niet lezen."); } };
+  fr.readAsText(f);
+});
+el("csv").addEventListener("click", ()=>{
+  let exBedrag=0;
+  regels.forEach(r=>exBedrag+=stukEx(r)*Number(r.aantal||0));
+  installatie().forEach(i=>exBedrag+=i.stuk*i.aantal);
+  const kop = "factuurnummer;factuurdatum;klant;omschrijving;bedrag_excl;btw;bedrag_incl";
+  const r = [el("f_nr").value, el("f_datum").value, el("k_post").value||el("k_org").value,
+             "P2000 kazernescherm", exBedrag.toFixed(2), (exBedrag*BTW).toFixed(2), (exBedrag*1.21).toFixed(2)].join(";");
+  download(`boekhouding-${el("f_nr").value||"factuur"}.csv`, kop+"\n"+r, "text/csv");
+});
+
+/* ====================== gebeurtenissen ====================== */
+document.addEventListener("input", e=>{
+  const t = e.target;
+  if(t.dataset.veld !== undefined){
+    const i = Number(t.dataset.i), v = t.dataset.veld;
+    if(v==="beugel") regels[i].beugel = t.checked;
+    else if(v==="inch") regels[i].inch = Number(t.value);
+    else if(v==="aantal") regels[i].aantal = Math.max(1, Number(t.value||1));
+    else { regels[i].type = t.value; tekenRegels(); }
+  }
+  if(t.dataset.prijs){
+    const [p,k,s] = t.dataset.prijs.split(".");
+    ({P,SCHERM,ABO}[p])[k][s] = Number(t.value||0);
+    tarieven();
+  }
+  teken();
+});
+document.addEventListener("change", e=>{ if(e.target.type==="checkbox"||e.target.tagName==="SELECT") teken(); });
+document.addEventListener("click", e=>{
+  if(e.target.dataset.weg !== undefined){
+    regels.splice(Number(e.target.dataset.weg),1);
+    if(!regels.length) regels.push({type:"slave",inch:43,aantal:1,beugel:true});
+    tekenRegels(); teken();
+  }
+  if(e.target.dataset.tab){
+    tab = e.target.dataset.tab;
+    document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("aan", b.dataset.tab===tab));
+    el("vak_offerte").style.display = tab==="offerte" ? "" : "none";
+    el("vak_tekenen").style.display = tab==="offerte" ? "" : "none";
+    el("vak_factuur").style.display = tab==="factuur" ? "" : "none";
+    if(tab==="factuur" && !el("f_nr").value) el("f_nr").value = nieuwNummer("factuur");
+    teken();
+  }
+});
+el("add").addEventListener("click", ()=>{
+  regels.push({type: regels.some(r=>r.type==="master")?"slave":"master", inch:43, aantal:1, beugel:true});
+  tekenRegels(); teken();
+});
+el("print").addEventListener("click", ()=>{
+  if(tab==="factuur" && el("f_nr").value) bevestigNummer(el("f_nr").value);
+  window.print();
+});
+el("b_logo").addEventListener("change", e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const fr=new FileReader();
+  fr.onload=()=>{ logoData=fr.result; el("logo").src=logoData; el("logo").style.display="block"; el("wordmark").style.display="none"; };
+  fr.readAsDataURL(f);
+});
+el("logo").addEventListener("error", ()=>{ if(logoData) return;
+  el("logo").style.display="none"; el("wordmark").style.display="block"; });
+
+function tarieven(){
+  el("t_i1").textContent = eur(P.inst1.verkoop);
+  el("t_i2").textContent = eur(P.inst2.verkoop);
+  el("t_km").textContent = eur(P.km.verkoop);
+}
+
+/* ---- doorlopende nummering ---- */
+function nieuwNummer(soort){
+  const jaar = new Date().getFullYear();
+  const sleutel = `rbds_${soort}_${jaar}`;
+  const n = Number(haal(sleutel)||0) + 1;
+  return (soort==="factuur" ? `${jaar}-` : `OFF-${jaar}-`) + String(n).padStart(3,"0");
+}
+function bevestigNummer(nr){
+  const m = nr.match(/(\d{4})-(\d+)$/); if(!m) return;
+  const soort = nr.startsWith("OFF") ? "offerte" : "factuur";
+  const sleutel = `rbds_${soort}_${m[1]}`;
+  if(Number(m[2]) > Number(haal(sleutel)||0)) zet(sleutel, String(Number(m[2])));
+}
+
+/* ====================== slot ====================== */
+/* SHA-256 van het wachtwoord. Wil je het wijzigen: draai
+   printf '%s' 'nieuwwachtwoord' | sha256sum   en plak de uitkomst hier. */
+const WACHTWOORD_HASH = "227587f52d7ff6ca88a3c9b29bc7c86870a98ddac76cfa3050498ea91cb64796";
+async function sha(t){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function open_(){
+  if((await sha(el("ww").value)) !== WACHTWOORD_HASH){
+    el("ww_fout").textContent = "Onjuist wachtwoord.";
+    return;
+  }
+  try{ sessionStorage.setItem("rbds_open","1"); }catch(e){}
+  el("slot").style.display = "none";
+  el("app").style.display = "block";
+  start();
+}
+el("ww_ok").addEventListener("click", open_);
+el("ww").addEventListener("keydown", e=>{ if(e.key==="Enter") open_(); });
+
+/* ====================== start ====================== */
+let gestart = false;
+function start(){
+  if(gestart) return; gestart = true;
+  const nu = new Date(), over30 = new Date(nu.getTime()+30*864e5), overJaar = new Date(nu.getTime()+364*864e5);
+  el("o_nr").value = nieuwNummer("offerte");
+  el("o_datum").value = iso(nu);
+  el("o_geldig").value = iso(over30);
+  el("f_datum").value = iso(nu);
+  el("f_verval").value = iso(new Date(nu.getTime()+14*864e5));
+  el("f_van").value = iso(nu);
+  el("f_tot").value = iso(overJaar);
+  el("h_datum").value = iso(nu);
+  padInit(); tekenPrijzen(); tekenRegels(); tarieven(); teken();
+}
+try{ if(sessionStorage.getItem("rbds_open")==="1"){ el("slot").style.display="none"; el("app").style.display="block"; start(); } }catch(e){}
+window.addEventListener("resize", ()=>{ if(gestart){ const d=pad.toDataURL(); padInit(); const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; } });
+</script>
+</body>
+</html>
