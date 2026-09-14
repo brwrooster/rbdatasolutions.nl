@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Opleveringsbon — RB Data Solutions</title>
+<style>
+  :root{--ink:#0e1621;--paper:#fff;--line:#d6dbe1;--muted:#5b6672;--rood:#c8102e;--groen:#1f7a4d}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);color:#e8edf2;font-size:16px;line-height:1.45;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%;padding-bottom:96px;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+  .kop{padding:18px 4px 6px}
+  .kop .merk{font-weight:700;font-size:18px}
+  .kop .sub{color:#8d9aa8;font-size:13px;margin-top:2px}
+  .streep{height:3px;background:var(--rood);border-radius:2px;margin:10px 4px 18px}
+
+  fieldset{border:1px solid #253243;border-radius:10px;margin:0 0 16px;padding:14px 14px 8px;background:#131c27}
+  legend{font-weight:600;font-size:15px;padding:0 8px;color:#fff}
+  label{display:block;font-size:13px;color:#9fadbb;margin:10px 0 4px}
+  input,select,textarea{
+    width:100%;padding:11px 12px;font-size:16px;font-family:inherit;
+    border:1px solid #2b3a4c;border-radius:8px;background:#0c141d;color:#eaf0f6;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--rood);outline-offset:1px;border-color:var(--rood)}
+  .duo{display:flex;gap:10px}.duo>div{flex:1}
+  .check{display:flex;align-items:flex-start;gap:10px;margin:12px 0;font-size:14px;color:#cdd8e2;line-height:1.4}
+  .check input{width:22px;height:22px;flex:0 0 22px;margin-top:1px}
+  .regel{border:1px solid #2b3a4c;border-radius:10px;padding:12px;margin:0 0 12px;background:#0f1822}
+  .rkop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .rtitel{font-weight:600;font-size:15px}
+  .weg{background:none;border:1px solid #3b4b5e;color:#9fadbb;border-radius:8px;padding:6px 10px;font-size:13px;width:auto}
+  button{font-family:inherit;cursor:pointer}
+  .knop{display:block;width:100%;padding:14px;border-radius:10px;border:none;background:var(--rood);color:#fff;font-size:16px;font-weight:600;margin-top:8px}
+  .knop.stil{background:#22303f;color:#dbe4ec}
+  .knop.groen{background:var(--groen)}
+  .hint{font-size:12.5px;color:#8d9aa8;margin:8px 2px 0;line-height:1.55}
+  #pad{width:100%;height:150px;background:#fff;border-radius:8px;border:1px solid #2b3a4c;touch-action:none;display:block}
+
+  .papier{background:var(--paper);color:#11181f;border-radius:6px;padding:26px 24px 30px;margin:0 0 18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .brief-kop{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+  .logo{max-width:190px;max-height:64px;display:block}
+  .wordmark{font-size:20px;font-weight:700;color:#11181f}
+  .wordmark span{color:var(--rood)}
+  .afzender{text-align:right;font-size:11.5px;color:var(--muted);line-height:1.55}
+  .kopstreep{height:2px;background:var(--rood);margin:16px 0 20px}
+  h1{font-size:21px;margin:0 0 4px;letter-spacing:-.2px}
+  .versie{font-size:12px;color:var(--muted);margin:0 0 20px}
+  .veld2{display:flex;gap:24px;margin-bottom:20px}
+  .veld2>div{flex:1}
+  .veld2 h2{font-size:12px;text-transform:none;color:var(--muted);margin:0 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  .veld2 p{font-size:13px;margin:0;line-height:1.6;white-space:pre-line}
+  table.spec{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px}
+  table.spec th{text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);border-bottom:1.5px solid #11181f;padding:0 0 6px}
+  table.spec td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  ul.check-l{list-style:none;margin:0 0 20px;padding:0;font-size:13px}
+  ul.check-l li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
+  ul.check-l li .vinkje{flex:0 0 18px;width:18px;height:18px;border:1.5px solid #11181f;border-radius:3px;margin-top:1px;position:relative}
+  ul.check-l li .vinkje.aan::after{content:"";position:absolute;left:3px;top:-1px;width:5px;height:10px;border:solid var(--groen);border-width:0 2px 2px 0;transform:rotate(40deg)}
+  ul.check-l li span.txt{flex:1}
+  ul.check-l li span.opm{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+  .kader{margin-top:6px;border:1px solid var(--line);border-left:3px solid var(--rood);border-radius:4px;padding:12px 15px;font-size:12.5px;line-height:1.6;margin-bottom:20px}
+  .akkoord{margin-top:24px;display:flex;gap:30px;font-size:11.5px;color:var(--muted)}
+  .akkoord div{flex:1}
+  .lijn{border-bottom:1px solid #11181f;height:46px;margin-bottom:5px;position:relative}
+  .lijn img{position:absolute;bottom:2px;left:0;max-height:44px;max-width:100%}
+  .lijn .getypt{position:absolute;bottom:4px;left:2px;font-size:12px}
+  .leeg{color:var(--muted);font-style:italic}
+  .stempel{display:inline-block;border:1.5px solid var(--groen);color:var(--groen);font-size:11px;font-weight:700;padding:3px 9px;border-radius:3px;margin-top:8px}
+
+  .balk{position:fixed;left:0;right:0;bottom:0;background:#0b121a;border-top:1px solid #22303f;padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;z-index:50}
+  .balk .tot{flex:1;font-size:12.5px;color:#9fadbb}
+  .balk button{width:auto;padding:12px 16px;border-radius:10px;border:none;background:var(--rood);color:#fff;font-weight:600;font-size:15px}
+
+  @media print{
+    @page{size:A4;margin:14mm}
+    body{background:#fff;color:#000;padding:0}
+    .wrap{max-width:none;padding:0}
+    .geen-print{display:none !important}
+    .papier{box-shadow:none;border-radius:0;padding:0;margin:0}
+    ul.check-l li,.kader,.akkoord{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="geen-print">
+    <div class="kop">
+      <div class="merk">Opleveringsbon</div>
+      <div class="sub">P2000 kazernescherm — RB Data Solutions</div>
+    </div>
+    <div class="streep"></div>
+
+    <fieldset>
+      <legend>Klant en referentie</legend>
+      <label for="k_post">Post of kazerne</label>
+      <input id="k_post" placeholder="Post Noorderduin">
+      <label for="k_org">Organisatie</label>
+      <input id="k_org" placeholder="Brandweer IJsselmeerlanden">
+      <label for="k_adres">Adres van de installatie</label>
+      <textarea id="k_adres" rows="2" placeholder="Havenstraat 12, 8000 AB Zwolle"></textarea>
+      <div class="duo">
+        <div><label for="k_ref">Offertenummer</label><input id="k_ref" placeholder="OFF-2026-001"></div>
+        <div><label for="k_datum">Opleveringsdatum</label><input id="k_datum" type="date"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Geleverde schermen</legend>
+      <div id="regels"></div>
+      <button class="knop stil" id="add">Scherm toevoegen</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Controle bij oplevering</legend>
+      <div class="check"><input type="checkbox" id="c1" checked><label for="c1" style="margin:0">Testmelding verstuurd en correct weergegeven op elk scherm</label></div>
+      <div class="check"><input type="checkbox" id="c2" checked><label for="c2" style="margin:0">Stroomvoorziening en internetverbinding op locatie functioneren</label></div>
+      <div class="check"><input type="checkbox" id="c3" checked><label for="c3" style="margin:0">Scherm stevig gemonteerd en kabels netjes weggewerkt</label></div>
+      <div class="check"><input type="checkbox" id="c4" checked><label for="c4" style="margin:0">Capcodes, voertuigen, ploegindeling en kaartinstellingen gecontroleerd met de post</label></div>
+      <div class="check"><input type="checkbox" id="c5" checked><label for="c5" style="margin:0">Verzegeling van de kazernecomputer aanwezig en intact</label></div>
+      <div class="check"><input type="checkbox" id="c6" checked><label for="c6" style="margin:0">Contactpersoon geïnstrueerd over de werking en de bediening</label></div>
+      <div class="check"><input type="checkbox" id="c7" checked><label for="c7" style="margin:0">Algemene voorwaarden en offerte eerder ontvangen en akkoord bevonden</label></div>
+      <label for="c_opm">Bijzonderheden of afwijkingen</label>
+      <textarea id="c_opm" rows="3" placeholder="Laat leeg als er niets te melden is"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ondertekenen namens de post</legend>
+      <label for="h_naam">Naam</label>
+      <input id="h_naam" placeholder="J. de Vries">
+      <label for="h_functie">Functie</label>
+      <input id="h_functie" placeholder="Postcommandant">
+      <label for="pad">Handtekening</label>
+      <canvas id="pad"></canvas>
+      <div class="duo">
+        <button class="knop stil" id="h_wis" style="margin-top:8px">Wissen</button>
+        <button class="knop groen" id="h_vast" style="margin-top:8px">Vastleggen</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Jouw gegevens</legend>
+      <label for="b_naam">Bedrijfsnaam</label>
+      <input id="b_naam" value="RB Data Solutions">
+      <div class="duo">
+        <div><label for="b_kvk">KVK-nummer</label><input id="b_kvk" placeholder="Nog niet ingeschreven" inputmode="numeric"></div>
+        <div><label for="b_btw">Btw-identificatienummer</label><input id="b_btw" placeholder="Nog niet bekend"></div>
+      </div>
+      <label for="m_naam">Naam monteur, namens RB Data Solutions</label>
+      <input id="m_naam" placeholder="R. Bos">
+      <label for="b_logo">Eigen logo laden</label>
+      <input id="b_logo" type="file" accept="image/*">
+      <p class="hint">Bedrijfsnaam, KVK- en btw-nummer worden automatisch overgenomen als je ze eerder in de offertetool hebt ingevuld.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Opslaan</legend>
+      <button class="knop stil" id="bewaar">Bon downloaden</button>
+      <button class="knop stil" id="laad_knop">Bon openen</button>
+      <input id="laad" type="file" accept=".json" style="display:none">
+    </fieldset>
+  </div>
+
+  <div class="papier" id="doc">
+    <div class="brief-kop">
+      <div>
+        <img class="logo" id="logo" src="https://rbdatasolutions.nl/images/logo-banner.png" alt="">
+        <div class="wordmark" id="wordmark" style="display:none">RB Data <span>Solutions</span></div>
+      </div>
+      <div class="afzender" id="p_afz"></div>
+    </div>
+    <div class="kopstreep"></div>
+    <h1>Opleveringsbon</h1>
+    <p class="versie" id="p_versie"></p>
+
+    <div class="veld2">
+      <div>
+        <h2>Post</h2>
+        <p id="p_klant" class="leeg">Nog geen gegevens ingevuld</p>
+      </div>
+      <div>
+        <h2>Installatieadres</h2>
+        <p id="p_adres" class="leeg">—</p>
+      </div>
+    </div>
+
+    <table class="spec">
+      <thead><tr><th>Geleverd scherm</th><th>Formaat</th><th>Aantal</th><th>Locatie op de post</th></tr></thead>
+      <tbody id="p_regels"></tbody>
+    </table>
+
+    <ul class="check-l" id="p_checks"></ul>
+
+    <div id="p_opm"></div>
+
+    <div class="kader">
+      Met ondertekening van deze bon verklaart de post het Systeem in werkende staat te hebben ontvangen.
+      Het abonnement gaat in op de hierboven genoemde opleveringsdatum. Op de levering zijn de eerder
+      toegezonden offerte en de algemene voorwaarden van <span id="p_bn2">RB Data Solutions</span> van toepassing.
+    </div>
+
+    <div class="akkoord" id="p_akkoord"></div>
+  </div>
+</div>
+
+<div class="balk geen-print">
+  <div class="tot">Opleveringsbon</div>
+  <button id="print">Pdf maken</button>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const dNL = s => s ? new Date(s+"T00:00:00").toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}) : "";
+function haal(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
+
+let regels = [{type:"Hoofdscherm", inch:43, aantal:1, locatie:""}];
+let hand = {data:null, naam:"", functie:"", vast:false};
+
+function tekenRegels(){
+  el("regels").innerHTML = regels.map((r,i)=>`
+    <div class="regel">
+      <div class="rkop"><div class="rtitel">Scherm ${i+1}</div>
+        <button class="weg" data-weg="${i}">Verwijderen</button></div>
+      <label>Type</label>
+      <select data-veld="type" data-i="${i}">
+        <option${r.type==="Hoofdscherm"?" selected":""}>Hoofdscherm</option>
+        <option${r.type==="Extra scherm"?" selected":""}>Extra scherm</option>
+      </select>
+      <div class="duo">
+        <div><label>Formaat</label>
+          <select data-veld="inch" data-i="${i}">
+            ${[32,43,50,55,65,75,85].map(k=>`<option value="${k}"${k===r.inch?" selected":""}>${k} inch</option>`).join("")}
+          </select></div>
+        <div><label>Aantal</label>
+          <input type="number" min="1" step="1" inputmode="numeric" data-veld="aantal" data-i="${i}" value="${r.aantal}"></div>
+      </div>
+      <label>Locatie op de post</label>
+      <input data-veld="locatie" data-i="${i}" value="${r.locatie}" placeholder="Uitrukhal, bij deur 2">
+    </div>`).join("");
+}
+
+function teken(){
+  const afz = [el("b_naam").value];
+  if(el("b_kvk").value.trim()) afz.push("KVK " + el("b_kvk").value.trim());
+  if(el("b_btw").value.trim()) afz.push("btw-id " + el("b_btw").value.trim());
+  afz.push("rbdatasolutions.nl");
+  el("p_afz").innerHTML = afz.join("<br>");
+  el("p_bn2").textContent = el("b_naam").value;
+
+  el("p_versie").textContent = `Bij offerte ${el("k_ref").value||"—"} · opgeleverd op ${dNL(el("k_datum").value)||"—"}`;
+
+  const klant = [el("k_post").value, el("k_org").value].filter(v=>v&&v.trim()).join("<br>");
+  el("p_klant").innerHTML = klant || '<span class="leeg">Nog geen gegevens ingevuld</span>';
+  el("p_klant").className = klant ? "" : "leeg";
+  el("p_adres").textContent = el("k_adres").value.trim() || "—";
+  el("p_adres").className = el("k_adres").value.trim() ? "" : "leeg";
+
+  el("p_regels").innerHTML = regels.map(r=>
+    `<tr><td>${r.type}</td><td>${r.inch} inch</td><td>${r.aantal}</td><td>${r.locatie||"—"}</td></tr>`
+  ).join("") || `<tr><td colspan="4" class="leeg">Nog geen schermen ingevuld</td></tr>`;
+
+  const checks = [
+    ["c1","Testmelding verstuurd en correct weergegeven op elk scherm"],
+    ["c2","Stroomvoorziening en internetverbinding op locatie functioneren"],
+    ["c3","Scherm stevig gemonteerd en kabels netjes weggewerkt"],
+    ["c4","Capcodes, voertuigen, ploegindeling en kaartinstellingen gecontroleerd met de post"],
+    ["c5","Verzegeling van de kazernecomputer aanwezig en intact"],
+    ["c6","Contactpersoon geïnstrueerd over de werking en de bediening"],
+    ["c7","Algemene voorwaarden en offerte eerder ontvangen en akkoord bevonden"]
+  ];
+  el("p_checks").innerHTML = checks.map(([id,tekst])=>
+    `<li><span class="vinkje${el(id).checked?" aan":""}"></span><span class="txt">${tekst}</span></li>`
+  ).join("");
+
+  el("p_opm").innerHTML = el("c_opm").value.trim()
+    ? `<div class="kader"><b>Bijzonderheden</b><br>${el("c_opm").value.trim().replace(/\n/g,"<br>")}</div>` : "";
+
+  const inhoud = hand.data ? `<img src="${hand.data}" alt="">` : "";
+  const links = hand.vast
+    ? `<div class="lijn">${inhoud}</div>${hand.naam||"—"}${hand.functie?", "+hand.functie:""}<div class="stempel">Ontvangen</div>`
+    : `<div class="lijn"></div>Voor ontvangst namens de post — naam, functie en handtekening`;
+  el("p_akkoord").innerHTML = `<div>${links}</div>
+    <div><div class="lijn"></div>${el("m_naam").value || el("b_naam").value}, namens ${el("b_naam").value}</div>`;
+}
+
+/* ---- handtekening ---- */
+const pad = el("pad"); let ctx, tekenend=false, leeg=true;
+function padInit(){
+  const r = pad.getBoundingClientRect(), s = window.devicePixelRatio||1;
+  pad.width = r.width*s; pad.height = r.height*s;
+  ctx = pad.getContext("2d"); ctx.scale(s,s);
+  ctx.lineWidth = 2.2; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#11181f";
+}
+function pos(e){ const r=pad.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+pad.addEventListener("pointerdown", e=>{ e.preventDefault(); pad.setPointerCapture(e.pointerId);
+  tekenend=true; leeg=false; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+pad.addEventListener("pointermove", e=>{ if(!tekenend) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
+["pointerup","pointercancel","pointerleave"].forEach(ev=>pad.addEventListener(ev,()=>tekenend=false));
+el("h_wis").addEventListener("click", ()=>{ ctx.clearRect(0,0,pad.width,pad.height); leeg=true; });
+el("h_vast").addEventListener("click", ()=>{
+  if(leeg){ alert("Laat de contactpersoon eerst tekenen."); return; }
+  hand.naam = el("h_naam").value; hand.functie = el("h_functie").value;
+  hand.data = pad.toDataURL("image/png"); hand.vast = true;
+  teken();
+  alert("Vastgelegd. Maak nu een pdf en bewaar die bij de klant.");
+});
+
+/* ---- bedrijfsgegevens delen met de offertetool ---- */
+(function bedrijfLaden(){
+  const r = haal("rbds_bedrijf"); if(!r) return;
+  try{
+    const d = JSON.parse(r);
+    if(d.naam) el("b_naam").value = d.naam;
+    if(d.kvk) el("b_kvk").value = d.kvk;
+    if(d.btw) el("b_btw").value = d.btw;
+  }catch(e){}
+})();
+
+/* ---- opslaan / laden van de bon ---- */
+function dossier(){
+  return {versie:1, regels, hand,
+    velden:["k_post","k_org","k_adres","k_ref","k_datum","c_opm","h_naam","h_functie","m_naam"]
+      .reduce((o,k)=>(o[k]=el(k).value,o),{}),
+    checks:["c1","c2","c3","c4","c5","c6","c7"].reduce((o,k)=>(o[k]=el(k).checked,o),{})};
+}
+function download(naam, inhoud, type){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([inhoud],{type})); a.download = naam; a.click();
+  URL.revokeObjectURL(a.href);
+}
+el("bewaar").addEventListener("click", ()=>{
+  const naam = (el("k_post").value||"post").replace(/[^\w-]+/g,"-").toLowerCase();
+  download(`opleverbon-${naam}.json`, JSON.stringify(dossier(),null,2), "application/json");
+});
+el("laad_knop").addEventListener("click", ()=>el("laad").click());
+el("laad").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{ try{
+    const d = JSON.parse(fr.result);
+    regels = d.regels || regels; hand = d.hand || hand;
+    Object.entries(d.velden||{}).forEach(([k,v])=>el(k).value=v);
+    Object.entries(d.checks||{}).forEach(([k,v])=>el(k).checked=v);
+    tekenRegels(); teken();
+  }catch(err){ alert("Dit bestand kon ik niet lezen."); } };
+  fr.readAsText(f);
+});
+
+/* ---- gebeurtenissen ---- */
+document.addEventListener("input", e=>{
+  const t = e.target;
+  if(t.dataset.veld !== undefined){
+    const i = Number(t.dataset.i), v = t.dataset.veld;
+    if(v==="inch") regels[i].inch = Number(t.value);
+    else if(v==="aantal") regels[i].aantal = Math.max(1, Number(t.value||1));
+    else regels[i][v] = t.value;
+  }
+  teken();
+});
+document.addEventListener("change", e=>{ if(e.target.tagName==="SELECT") teken(); });
+document.addEventListener("click", e=>{
+  if(e.target.dataset.weg !== undefined){
+    regels.splice(Number(e.target.dataset.weg),1);
+    if(!regels.length) regels.push({type:"Extra scherm", inch:43, aantal:1, locatie:""});
+    tekenRegels(); teken();
+  }
+});
+el("add").addEventListener("click", ()=>{
+  regels.push({type:"Extra scherm", inch:43, aantal:1, locatie:""});
+  tekenRegels(); teken();
+});
+el("print").addEventListener("click", ()=>window.print());
+el("b_logo").addEventListener("change", e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const fr=new FileReader();
+  fr.onload=()=>{ el("logo").src=fr.result; el("logo").style.display="block"; el("wordmark").style.display="none"; };
+  fr.readAsDataURL(f);
+});
+el("logo").addEventListener("error", ()=>{ el("logo").style.display="none"; el("wordmark").style.display="block"; });
+
+/* ---- start ---- */
+el("k_datum").value = new Date().toISOString().slice(0,10);
+padInit(); tekenRegels(); teken();
+window.addEventListener("resize", ()=>{ const d=pad.toDataURL(); padInit(); const i=new Image();
+  i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; });
+</script>
+</body>
+</html>

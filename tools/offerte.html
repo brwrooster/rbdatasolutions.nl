@@ -258,15 +258,17 @@
       <legend>Jouw gegevens</legend>
       <label for="b_naam">Bedrijfsnaam</label>
       <input id="b_naam" value="RB Data Solutions">
-      <label for="b_regels">Adres- en contactregels</label>
-      <textarea id="b_regels" rows="6">rbdatasolutions.nl
+      <div class="duo">
+        <div><label for="b_kvk">KVK-nummer</label><input id="b_kvk" placeholder="Nog niet ingeschreven" inputmode="numeric"></div>
+        <div><label for="b_btw">Btw-identificatienummer</label><input id="b_btw" placeholder="Nog niet bekend"></div>
+      </div>
+      <p class="hint" id="kvk_hint">Zonder deze twee nummers voldoet je factuur niet aan de eisen van de Belastingdienst. Zodra je ze hier invult, worden ze op dit toestel onthouden en vanaf dan overal automatisch ingevuld — ook op de algemene voorwaarden.</p>
+      <label for="b_regels">Overige adres- en contactregels</label>
+      <textarea id="b_regels" rows="4">rbdatasolutions.nl
 info@rbdatasolutions.nl
-KVK 00000000
-btw-id NL000000000B00
 IBAN NL00 BANK 0000 0000 00</textarea>
       <label for="b_logo">Eigen logo laden</label>
       <input id="b_logo" type="file" accept="image/*">
-      <p class="hint">Zonder KVK-nummer en btw-identificatienummer voldoet je factuur niet aan de eisen van de Belastingdienst. Vul ze in zodra je ingeschreven staat.</p>
     </fieldset>
 
     <fieldset>
@@ -466,7 +468,11 @@ function tekenPrijzen(){
 
 /* ====================== documenten ====================== */
 function teken(){
-  el("p_afz").textContent = el("b_naam").value + "\n" + el("b_regels").value;
+  const afzRegels = [el("b_naam").value];
+  if(el("b_kvk").value.trim()) afzRegels.push("KVK " + el("b_kvk").value.trim());
+  if(el("b_btw").value.trim()) afzRegels.push("btw-id " + el("b_btw").value.trim());
+  afzRegels.push(el("b_regels").value);
+  el("p_afz").textContent = afzRegels.join("\n");
   const aan = [el("k_post").value, el("k_org").value, el("k_contact").value, el("k_adres").value, el("k_mail").value]
               .filter(v=>v&&v.trim()).join("\n");
   el("p_aan").innerHTML = aan ? aan.replace(/\n/g,"<br>") : '<span class="leeg">Vul de klantgegevens in</span>';
@@ -525,16 +531,20 @@ function tekenOfferte(){
     <li>Levertijd in overleg, doorgaans binnen drie weken na akkoord.</li>
     <li>De hardware wordt eigendom van de post. De software blijft eigendom van ${el("b_naam").value} en wordt in gebruik gegeven zolang het abonnement loopt.</li>
     <li>Prijzen zijn exclusief btw, behalve het abonnement: dat is een bedrag inclusief btw.</li>
+    <li>Op deze offerte en op alle daaruit voortvloeiende overeenkomsten zijn de algemene voorwaarden van ${el("b_naam").value} versie 1.0 van toepassing. Deze zijn als bijlage meegezonden. De toepasselijkheid van inkoopvoorwaarden van opdrachtgever wordt uitdrukkelijk van de hand gewezen.</li>
+    <li>Het kazernescherm is een aanvullend informatiescherm en geen alarmeringssysteem. De officiële alarmering van de meldkamer blijft leidend. Artikel 13 van de algemene voorwaarden beschrijft welke invloeden van buitenaf de weergave kunnen verstoren.</li>
   </ul>`;
 
-  let links = `<div class="lijn"></div>Voor akkoord namens de post — naam, datum en handtekening`;
+  const verklaring = `Door ondertekening verklaart opdrachtgever de algemene voorwaarden versie 1.0 te hebben ontvangen, gelezen en aanvaard, waaronder artikel 13 over de beperkingen van de dienst.`;
+  let links = `<div class="lijn"></div>Voor akkoord namens de post — naam, datum en handtekening<br><span style="display:block;margin-top:6px">${verklaring}</span>`;
   if(hand.vast){
     const inhoud = hand.mail
       ? `<span class="getypt">Akkoord per e-mail bevestigd</span>`
       : (hand.data ? `<img src="${hand.data}" alt="">` : "");
     links = `<div class="lijn">${inhoud}</div>
       ${hand.naam||"—"}${hand.functie?", "+hand.functie:""}<br>${dNL(hand.datum)}
-      <div class="stempel">Akkoord</div>`;
+      <div class="stempel">Akkoord</div>
+      <span style="display:block;margin-top:6px">${verklaring}</span>`;
   }
   el("p_akkoord").innerHTML = `<div>${links}</div>
     <div><div class="lijn"></div>${el("b_naam").value}</div>`;
@@ -671,7 +681,7 @@ el("h_vast").addEventListener("click", ()=>{
 function dossier(){
   return {versie:1, regels, hand, logoData,
     klant:["k_post","k_org","k_contact","k_adres","k_mail"].reduce((o,k)=>(o[k]=el(k).value,o),{}),
-    doc:["o_nr","o_datum","o_geldig","f_nr","f_datum","f_verval","f_soort","f_termijn","f_van","f_tot","f_ref","i_km","b_naam","b_regels"]
+    doc:["o_nr","o_datum","o_geldig","f_nr","f_datum","f_verval","f_soort","f_termijn","f_van","f_tot","f_ref","i_km","b_naam","b_kvk","b_btw","b_regels"]
         .reduce((o,k)=>(o[k]=el(k).value,o),{}),
     inst: el("i_doen").checked};
 }
@@ -707,6 +717,30 @@ el("csv").addEventListener("click", ()=>{
   const r = [el("f_nr").value, el("f_datum").value, el("k_post").value||el("k_org").value,
              "P2000 kazernescherm", exBedrag.toFixed(2), (exBedrag*BTW).toFixed(2), (exBedrag*1.21).toFixed(2)].join(";");
   download(`boekhouding-${el("f_nr").value||"factuur"}.csv`, kop+"\n"+r, "text/csv");
+});
+
+/* ---- bedrijfsgegevens: blijven op dit toestel staan, ook na herladen ---- */
+function bedrijfOpslaan(){
+  zet("rbds_bedrijf", JSON.stringify({
+    naam: el("b_naam").value, kvk: el("b_kvk").value, btw: el("b_btw").value, regels: el("b_regels").value
+  }));
+  const compleet = el("b_kvk").value.trim() && el("b_btw").value.trim();
+  el("kvk_hint").textContent = compleet
+    ? "Bewaard op dit toestel. Deze gegevens vul ik voortaan overal automatisch in, ook op de algemene voorwaarden."
+    : "Zonder deze twee nummers voldoet je factuur niet aan de eisen van de Belastingdienst. Zodra je ze hier invult, worden ze op dit toestel onthouden en vanaf dan overal automatisch ingevuld — ook op de algemene voorwaarden.";
+}
+function bedrijfLaden(){
+  const r = haal("rbds_bedrijf"); if(!r) return;
+  try{
+    const d = JSON.parse(r);
+    if(d.naam) el("b_naam").value = d.naam;
+    if(d.kvk) el("b_kvk").value = d.kvk;
+    if(d.btw) el("b_btw").value = d.btw;
+    if(d.regels) el("b_regels").value = d.regels;
+  }catch(e){}
+}
+["b_naam","b_kvk","b_btw","b_regels"].forEach(id=>{
+  el(id).addEventListener("input", ()=>{ bedrijfOpslaan(); teken(); });
 });
 
 /* ====================== gebeurtenissen ====================== */
@@ -814,7 +848,7 @@ function start(){
   el("f_van").value = iso(nu);
   el("f_tot").value = iso(overJaar);
   el("h_datum").value = iso(nu);
-  padInit(); tekenPrijzen(); tekenRegels(); tarieven(); teken();
+  padInit(); tekenPrijzen(); tekenRegels(); tarieven(); bedrijfLaden(); teken();
 }
 try{ if(sessionStorage.getItem("rbds_open")==="1"){ el("slot").style.display="none"; el("app").style.display="block"; start(); } }catch(e){}
 window.addEventListener("resize", ()=>{ if(gestart){ const d=pad.toDataURL(); padInit(); const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; } });
