@@ -97,6 +97,13 @@
     <div class="streep"></div>
 
     <fieldset>
+      <legend>Koppel aan een offerte</legend>
+      <label for="bib_select">Bewaarde offertes op dit toestel</label>
+      <select id="bib_select"></select>
+      <p class="hint">Kies de offerte waarvoor je nu oplevert. Klant, adres en schermen worden overgenomen; jij vult alleen nog de locatie per scherm en de checklist in. Na ondertekening zie je in de offertetool dat deze post is opgeleverd.</p>
+    </fieldset>
+
+    <fieldset>
       <legend>Klant en referentie</legend>
       <label for="k_post">Post of kazerne</label>
       <input id="k_post" placeholder="Post Noorderduin">
@@ -217,6 +224,7 @@
 const el = id => document.getElementById(id);
 const dNL = s => s ? new Date(s+"T00:00:00").toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}) : "";
 function haal(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
+function zet(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
 
 let regels = [{type:"Hoofdscherm", inch:43, aantal:1, locatie:""}];
 let hand = {data:null, naam:"", functie:"", vast:false};
@@ -307,6 +315,8 @@ el("h_vast").addEventListener("click", ()=>{
   hand.naam = el("h_naam").value; hand.functie = el("h_functie").value;
   hand.data = pad.toDataURL("image/png"); hand.vast = true;
   teken();
+  opleveringTerugschrijven();
+  koppelDropdownVullen();
   alert("Vastgelegd. Maak nu een pdf en bewaar die bij de klant.");
 });
 
@@ -383,9 +393,58 @@ el("b_logo").addEventListener("change", e=>{
 });
 el("logo").addEventListener("error", ()=>{ el("logo").style.display="none"; el("wordmark").style.display="block"; });
 
+/* ---- koppelen aan een bewaarde offerte ---- */
+const BIB_SLEUTEL = "rbds_offertes";
+function bibliotheekAlles(){
+  try{ return JSON.parse(haal(BIB_SLEUTEL) || "{}"); }catch(e){ return {}; }
+}
+function koppelDropdownVullen(){
+  const alles = bibliotheekAlles();
+  const nrs = Object.keys(alles).sort((a,b)=>(alles[b].laatstGewijzigd||"").localeCompare(alles[a].laatstGewijzigd||""));
+  let opties = `<option value="">— zelf invullen zonder koppeling —</option>`;
+  nrs.forEach(nr=>{
+    const d = alles[nr];
+    const klant = (d.klant && (d.klant.k_post || d.klant.k_org)) || "naam nog niet ingevuld";
+    const status = d.opgeleverd ? " · al opgeleverd" : "";
+    opties += `<option value="${nr}"${nr===el("k_ref").value?" selected":""}>${nr} — ${klant}${status}</option>`;
+  });
+  el("bib_select").innerHTML = opties;
+  if(!nrs.length){
+    el("bib_select").innerHTML = `<option value="">Nog geen offertes bewaard op dit toestel</option>`;
+  }
+}
+const TYPE_MAP = {master:"Hoofdscherm", slave:"Extra scherm", slave_pi:"Extra scherm"};
+el("bib_select").addEventListener("change", ()=>{
+  const nr = el("bib_select").value;
+  if(!nr) return;
+  const d = bibliotheekAlles()[nr];
+  if(!d) return;
+  el("k_ref").value = nr;
+  if(d.klant){
+    el("k_post").value = d.klant.k_post || "";
+    el("k_org").value = d.klant.k_org || "";
+    el("k_adres").value = d.klant.k_adres || "";
+  }
+  if(Array.isArray(d.regels) && d.regels.length){
+    regels = d.regels.map(r=>({type: TYPE_MAP[r.type] || "Extra scherm", inch: r.inch, aantal: r.aantal, locatie:""}));
+    tekenRegels();
+  }
+  teken();
+});
+
+/* ---- na ondertekening: status terugschrijven naar de offertetool ---- */
+function opleveringTerugschrijven(){
+  const nr = el("k_ref").value.trim();
+  if(!nr) return;
+  const alles = bibliotheekAlles();
+  if(!alles[nr]) return;
+  alles[nr].opgeleverd = {datum: el("k_datum").value || new Date().toISOString().slice(0,10), klaar:true};
+  zet(BIB_SLEUTEL, JSON.stringify(alles));
+}
+
 /* ---- start ---- */
 el("k_datum").value = new Date().toISOString().slice(0,10);
-padInit(); tekenRegels(); teken();
+padInit(); tekenRegels(); teken(); koppelDropdownVullen();
 window.addEventListener("resize", ()=>{ const d=pad.toDataURL(); padInit(); const i=new Image();
   i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; });
 </script>

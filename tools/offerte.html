@@ -160,6 +160,14 @@
     </div>
 
     <fieldset>
+      <legend>Eerdere offertes</legend>
+      <label for="bib_select">Al bewaarde offertes op dit toestel</label>
+      <select id="bib_select"></select>
+      <button class="knop stil" id="bib_nieuw">Nieuwe offerte starten</button>
+      <p class="hint">Elke wijziging wordt automatisch bewaard op dit toestel, onder het offertenummer hieronder — ook als er weken tussen offerte en factuur zitten. Dit werkt alleen op dit toestel en in deze browser; wissel je van telefoon, gebruik dan "Dossier downloaden" verderop als reservekopie.</p>
+    </fieldset>
+
+    <fieldset>
       <legend>Klant</legend>
       <label for="k_post">Post of kazerne</label>
       <input id="k_post" placeholder="Post Noorderduin">
@@ -291,11 +299,11 @@ IBAN NL00 BANK 0000 0000 00</textarea>
     </fieldset>
 
     <fieldset>
-      <legend>Opslaan en openen</legend>
+      <legend>Reservekopie</legend>
       <button class="knop stil" id="bewaar">Dossier downloaden</button>
       <button class="knop stil" id="laad_knop">Dossier openen</button>
       <input id="laad" type="file" accept=".json" style="display:none">
-      <p class="hint">Bewaar het dossier per klant in je map. Later open je het weer om de factuur of de verlenging te maken zonder alles opnieuw in te tikken.</p>
+      <p class="hint">Alleen nodig als je een offerte wilt overzetten naar een ander toestel, of apart wilt archiveren. Op dit toestel is opslaan niet nodig — dat gebeurt vanzelf.</p>
     </fieldset>
   </div>
 
@@ -477,6 +485,7 @@ function teken(){
               .filter(v=>v&&v.trim()).join("\n");
   el("p_aan").innerHTML = aan ? aan.replace(/\n/g,"<br>") : '<span class="leeg">Vul de klantgegevens in</span>';
   tab==="offerte" ? tekenOfferte() : tekenFactuur();
+  bibliotheekAutoOpslaanDebounced();
 }
 
 function tekenOfferte(){
@@ -700,15 +709,85 @@ el("laad").addEventListener("change", e=>{
   const fr = new FileReader();
   fr.onload = ()=>{ try{
     const d = JSON.parse(fr.result);
-    regels = d.regels || regels; hand = d.hand || hand;
-    Object.entries(d.klant||{}).forEach(([k,v])=>el(k).value=v);
-    Object.entries(d.doc||{}).forEach(([k,v])=>el(k).value=v);
-    el("i_doen").checked = d.inst !== false;
-    if(d.logoData){ logoData=d.logoData; el("logo").src=d.logoData; }
-    tekenRegels(); teken();
+    vulFormulierIn(d);
+    bibliotheekDropdownVullen();
   }catch(err){ alert("Dit bestand kon ik niet lezen."); } };
   fr.readAsText(f);
 });
+
+/* ---- automatische bibliotheek: alle offertes staan op offertenummer in ditzelfde toestel ---- */
+const BIB_SLEUTEL = "rbds_offertes";
+function bibliotheekAlles(){
+  try{ return JSON.parse(haal(BIB_SLEUTEL) || "{}"); }catch(e){ return {}; }
+}
+function bibliotheekOpslaan(alles){ zet(BIB_SLEUTEL, JSON.stringify(alles)); }
+
+let bibTimer = null;
+function bibliotheekAutoOpslaanDebounced(){
+  clearTimeout(bibTimer);
+  bibTimer = setTimeout(()=>{
+    const nr = (el("o_nr").value||"").trim();
+    if(!nr) return;
+    const alles = bibliotheekAlles();
+    const bestaand = alles[nr] || {};
+    alles[nr] = Object.assign({}, dossier(), {
+      laatstGewijzigd: new Date().toISOString(),
+      opgeleverd: bestaand.opgeleverd || null
+    });
+    bibliotheekOpslaan(alles);
+    bibliotheekDropdownVullen();
+  }, 400);
+}
+
+function vulFormulierIn(d){
+  regels = d.regels || regels; hand = d.hand || hand;
+  Object.entries(d.klant||{}).forEach(([k,v])=>{ if(el(k)) el(k).value=v; });
+  Object.entries(d.doc||{}).forEach(([k,v])=>{ if(el(k)) el(k).value=v; });
+  el("i_doen").checked = d.inst !== false;
+  if(d.logoData){ logoData=d.logoData; el("logo").src=d.logoData; }
+  tekenRegels(); teken();
+}
+
+function bibliotheekDropdownVullen(){
+  const alles = bibliotheekAlles();
+  const huidig = el("o_nr").value;
+  const nrs = Object.keys(alles).sort((a,b)=>(alles[b].laatstGewijzigd||"").localeCompare(alles[a].laatstGewijzigd||""));
+  let opties = `<option value="">— huidige, nog niet eerder bewaarde offerte —</option>`;
+  nrs.forEach(nr=>{
+    const d = alles[nr];
+    const klant = (d.klant && (d.klant.k_post || d.klant.k_org)) || "naam nog niet ingevuld";
+    const status = d.opgeleverd ? " · opgeleverd" : (d.doc && d.doc.f_nr ? " · gefactureerd" : "");
+    opties += `<option value="${nr}"${nr===huidig?" selected":""}>${nr} — ${klant}${status}</option>`;
+  });
+  el("bib_select").innerHTML = opties;
+}
+
+el("bib_select").addEventListener("change", ()=>{
+  const nr = el("bib_select").value;
+  if(!nr) return;
+  const alles = bibliotheekAlles();
+  const d = alles[nr];
+  if(!d) return;
+  vulFormulierIn(d);
+  bibliotheekDropdownVullen();
+});
+
+el("bib_nieuw").addEventListener("click", ()=>{
+  if(!confirm("Nieuwe, lege offerte starten? De huidige offerte staat al bewaard onder zijn eigen nummer en blijft gewoon terug te vinden.")) return;
+  regels = [{type:"master", inch:43, aantal:1, beugel:true}];
+  hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
+  ["k_post","k_org","k_contact","k_adres","k_mail","f_ref","f_nr"].forEach(id=>el(id).value="");
+  const nu = new Date();
+  el("o_nr").value = nieuwNummer("offerte");
+  el("o_datum").value = iso(nu);
+  el("o_geldig").value = iso(new Date(nu.getTime()+30*864e5));
+  el("h_datum").value = iso(nu);
+  el("i_km").value = 0;
+  el("i_doen").checked = true;
+  tekenRegels(); teken();
+  bibliotheekDropdownVullen();
+});
+
 el("csv").addEventListener("click", ()=>{
   let exBedrag=0;
   regels.forEach(r=>exBedrag+=stukEx(r)*Number(r.aantal||0));
@@ -848,7 +927,7 @@ function start(){
   el("f_van").value = iso(nu);
   el("f_tot").value = iso(overJaar);
   el("h_datum").value = iso(nu);
-  padInit(); tekenPrijzen(); tekenRegels(); tarieven(); bedrijfLaden(); teken();
+  padInit(); tekenPrijzen(); tekenRegels(); tarieven(); bedrijfLaden(); teken(); bibliotheekDropdownVullen();
 }
 try{ if(sessionStorage.getItem("rbds_open")==="1"){ el("slot").style.display="none"; el("app").style.display="block"; start(); } }catch(e){}
 window.addEventListener("resize", ()=>{ if(gestart){ const d=pad.toDataURL(); padInit(); const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; } });
