@@ -142,6 +142,9 @@
       </div>
       <label for="f_ref">Verwijzing</label>
       <input id="f_ref" placeholder="Conform offerte OFF-2026-001, akkoord 12 maart 2026">
+      <label for="f_inkoop">Inkoopnummer van de klant (optioneel)</label>
+      <input id="f_inkoop" placeholder="Bijv. bij overheidsklanten verplicht">
+      <p class="hint" id="f_inkoop_hint" style="margin-top:2px"></p>
       <p class="hint">Factuurnummers moeten doorlopen zonder gaten. De teller telt vanzelf op zodra je hem gebruikt.</p>
     </fieldset>
 
@@ -262,6 +265,9 @@ function aboOverzicht(regels){
   });
   return {rijen:uit, pm};
 }
+function klantSlug(naam){
+  return (naam||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "klant";
+}
 function statusVan(d){
   if(d.afgewezen) return "afgewezen";
   if(d.factuur && d.factuur.betaald) return "betaald";
@@ -327,7 +333,7 @@ function renderAlles(){
     rijen.map(([nr,d])=>{
       const betaald = d.factuur.betaald;
       return `<tr>
-        <td>${d.factuur.nr}<br><span class="hint" style="margin:0">${dNL(d.factuur.datum)}</span></td>
+        <td>${d.factuur.nr}<br><span class="hint" style="margin:0">${dNL(d.factuur.datum)}${d.factuur.inkoopnummer ? " · PO "+d.factuur.inkoopnummer : ""}</span></td>
         <td>${d.klant||"—"}</td>
         <td class="r">${d.factuur.bedragIncl!=null ? eur(d.factuur.bedragIncl) : "—"}</td>
         <td><span class="status-tag${betaald?" betaald":""}">${betaald?"Betaald "+dNL(betaald.datum):"Openstaand"}</span></td>
@@ -368,6 +374,17 @@ async function kiesOfferte(nr){
   el("f_tot").value = bestaand.f_tot || iso(new Date(nu.getTime()+364*864e5));
   el("f_ref").value = bestaand.f_ref || (d.akkoord ? `Conform offerte ${nr}, akkoord ${dNL(d.akkoord.datum)}` : `Conform offerte ${nr}`);
 
+  el("f_inkoop").value = bestaand.f_inkoop || "";
+  el("f_inkoop_hint").textContent = "";
+  if(!bestaand.f_inkoop){
+    const klantId = klantSlug((d.klant && (d.klant.k_post || d.klant.k_org)) || "");
+    const klantRecord = await apiGet("/klanten/"+encodeURIComponent(klantId));
+    if(klantRecord && klantRecord.inkoopnummer){
+      el("f_inkoop").value = klantRecord.inkoopnummer;
+      el("f_inkoop_hint").textContent = "Overgenomen van deze klant — pas aan indien dit inkoopnummer per bestelling verschilt.";
+    }
+  }
+
   if(!el("f_nr").value){
     const jaar = new Date().getFullYear();
     const server = await apiPost(`/nummer/factuur/${jaar}`);
@@ -382,7 +399,7 @@ function factuurConceptOpslaan(){
   clearTimeout(opslaanTimer);
   opslaanTimer = setTimeout(()=>{
     if(!actieveNr) return;
-    const concept = ["f_soort","f_nr","f_datum","f_verval","f_termijn","f_van","f_tot","f_ref"].reduce((o,k)=>(o[k]=el(k).value,o),{});
+    const concept = ["f_soort","f_nr","f_datum","f_verval","f_termijn","f_van","f_tot","f_ref","f_inkoop"].reduce((o,k)=>(o[k]=el(k).value,o),{});
     apiPut("/offertes/"+encodeURIComponent(actieveNr), { factuurConcept: concept });
   }, 500);
 }
@@ -399,7 +416,7 @@ function tekenFactuur(){
   const k = d.klant || {};
   const aan = [k.k_post, k.k_org, k.k_contact, k.k_adres, k.k_mail].filter(v=>v&&v.trim()).join("\n");
   el("p_aan").innerHTML = aan ? aan.replace(/\n/g,"<br>") : '<span class="leeg">Klant onbekend</span>';
-  el("p_meta").innerHTML = `Factuurnummer <b>${el("f_nr").value||"—"}</b><br>Factuurdatum <b>${dNL(el("f_datum").value)||"—"}</b><br>Vervaldatum <b>${dNL(el("f_verval").value)||"—"}</b>`;
+  el("p_meta").innerHTML = `Factuurnummer <b>${el("f_nr").value||"—"}</b><br>Factuurdatum <b>${dNL(el("f_datum").value)||"—"}</b><br>Vervaldatum <b>${dNL(el("f_verval").value)||"—"}</b>${el("f_inkoop").value.trim() ? `<br>Inkoopnummer <b>${el("f_inkoop").value.trim()}</b>` : ""}`;
   el("p_intro").textContent = el("f_ref").value || "";
 
   const soort = el("f_soort").value;
@@ -444,7 +461,7 @@ function tekenFactuur(){
   factuurConceptOpslaan();
 }
 
-document.addEventListener("input", e=>{ if(el("vak_maken").style.display!=="none" && ["f_soort","f_nr","f_datum","f_verval","f_termijn","f_van","f_tot","f_ref"].includes(e.target.id)) tekenFactuur(); });
+document.addEventListener("input", e=>{ if(el("vak_maken").style.display!=="none" && ["f_soort","f_nr","f_datum","f_verval","f_termijn","f_van","f_tot","f_ref","f_inkoop"].includes(e.target.id)) tekenFactuur(); });
 document.addEventListener("change", e=>{ if(e.target.id==="f_soort"||e.target.id==="f_termijn") tekenFactuur(); });
 el("zoek").addEventListener("input", renderAlles);
 el("k_select").addEventListener("change", ()=>{ if(el("k_select").value) kiesOfferte(el("k_select").value); });
@@ -488,7 +505,7 @@ el("print").addEventListener("click", async ()=>{
     aboOverzicht(regels).rijen.forEach(r=>ex_ += ex(r.per)*mnd*r.aantal);
   }
   await apiPut("/offertes/"+encodeURIComponent(actieveNr), {
-    factuur: { nr: el("f_nr").value, datum: el("f_datum").value, bedragEx: ex_, bedragIncl: ex_*1.21, soort }
+    factuur: { nr: el("f_nr").value, datum: el("f_datum").value, bedragEx: ex_, bedragIncl: ex_*1.21, soort, inkoopnummer: el("f_inkoop").value.trim() || null }
   });
   alleOffertes = await apiGet("/offertes") || alleOffertes;
   renderAlles(); renderKlaar();

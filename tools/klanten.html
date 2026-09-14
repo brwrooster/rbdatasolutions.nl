@@ -152,7 +152,8 @@ function renderen(){
           ${d.org && d.post ? d.org+"<br>" : ""}
           ${d.contact ? d.contact+"<br>" : ""}
           ${d.adres ? d.adres.replace(/\n/g,"<br>")+"<br>" : ""}
-          ${d.mail ? d.mail : ""}
+          ${d.mail ? d.mail+"<br>" : ""}
+          ${d.inkoopnummer ? "Inkoopnummer: "+d.inkoopnummer : ""}
         </div>
         <div class="badges">${badges}</div>
         <div class="acties">
@@ -165,6 +166,7 @@ function renderen(){
           <label>Contactpersoon</label><input data-veld="contact" data-id="${id}" value="${d.contact||""}">
           <label>Adres</label><textarea rows="2" data-veld="adres" data-id="${id}">${d.adres||""}</textarea>
           <label>E-mail</label><input data-veld="mail" data-id="${id}" value="${d.mail||""}">
+          <label>Vast inkoopnummer (optioneel)</label><input data-veld="inkoopnummer" data-id="${id}" value="${d.inkoopnummer||""}" placeholder="Bijv. bij overheidsklanten">
           <button class="knop stil" style="color:#ff8d9c;margin-top:14px" data-verwijder-klant="${id}">Klant verwijderen</button>
         </div>
       </div>`;
