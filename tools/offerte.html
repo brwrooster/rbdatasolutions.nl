@@ -184,6 +184,7 @@
         <button class="knop stil" id="bib_nieuw">Nieuwe offerte starten</button>
         <button class="knop stil" id="bib_verwijder" style="color:#ff8d9c">Deze offerte verwijderen</button>
       </div>
+      <button class="knop stil" id="bib_opschonen" style="margin-top:8px">Lege offertes opruimen</button>
       <p class="hint">Elke wijziging wordt automatisch bewaard en gesynchroniseerd — open dezelfde offerte straks gerust op je laptop, ook als er weken tussen offerte en factuur zitten. Zonder internet werkt alles gewoon door en wordt de laatste stand bijgewerkt zodra je weer verbinding hebt.</p>
     </fieldset>
 
@@ -830,13 +831,20 @@ async function bibliotheekVolledig(nr){
 }
 
 let bibTimer = null;
+function offerteHeeftInhoud(){
+  return !!(el("k_post").value.trim() || el("k_org").value.trim() ||
+    statusExtra.akkoord || statusExtra.afgewezen || statusExtra.opgeleverd || statusExtra.factuur);
+}
+
 function bibliotheekAutoOpslaanDebounced(){
   clearTimeout(bibTimer);
   bibTimer = setTimeout(async ()=>{
     const nr = (el("o_nr").value||"").trim();
     if(!nr) return;
-    const data = dossier();
     const lokaal = JSON.parse(haal(BIB_SLEUTEL) || "{}");
+    const bestondAl = !!lokaal[nr];
+    if(!bestondAl && !offerteHeeftInhoud()) return;
+    const data = dossier();
     lokaal[nr] = Object.assign({}, lokaal[nr]||{}, data, { laatstGewijzigd: new Date().toISOString() });
     zet(BIB_SLEUTEL, JSON.stringify(lokaal));
     await apiPut("/offertes/"+encodeURIComponent(nr), data);
@@ -925,7 +933,39 @@ el("bib_verwijder").addEventListener("click", async ()=>{
     delete lokaal[nr];
     zet(BIB_SLEUTEL, JSON.stringify(lokaal));
   }catch(e){}
-  await nieuweOfferteStarten();
+
+  // scherm leegmaken zonder een nieuw nummer te reserveren of iets nieuws op te slaan
+  regels = [{type:"master", inch:43, aantal:1, beugel:true}];
+  hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
+  statusExtra = {akkoord:null, afgewezen:null, opgeleverd:null, factuur:null};
+  htekenWijze = "telefoon"; wijzeTonen();
+  ["k_post","k_org","k_contact","k_adres","k_mail","afwijs_reden","o_nr"].forEach(id=>el(id).value="");
+  tekenRegels(); teken();
+  statusPaneelTonen();
+  bibliotheekDropdownVullen();
+  alert("Offerte verwijderd. Kies hierboven een andere offerte, of start een nieuwe.");
+});
+
+el("bib_opschonen").addEventListener("click", async ()=>{
+  const alles = await bibliotheekLijst();
+  const legeNrs = Object.keys(alles).filter(nr=>{
+    const d = alles[nr];
+    return !(d.klant||"").trim() && !d.akkoord && !d.afgewezen && !d.opgeleverd && !d.factuur;
+  }).filter(nr => nr !== el("o_nr").value.trim());
+  if(!legeNrs.length){ alert("Geen lege offertes gevonden om op te ruimen."); return; }
+  if(!confirm(`${legeNrs.length} lege offerte(s) zonder klantnaam en zonder status verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+  let gelukt = 0;
+  for(const nr of legeNrs){
+    await apiDelete("/offertes/"+encodeURIComponent(nr));
+    gelukt++;
+  }
+  try{
+    const lokaal = JSON.parse(haal(BIB_SLEUTEL)||"{}");
+    legeNrs.forEach(nr=>delete lokaal[nr]);
+    zet(BIB_SLEUTEL, JSON.stringify(lokaal));
+  }catch(e){}
+  bibliotheekDropdownVullen();
+  alert(`${gelukt} lege offerte(s) opgeruimd.`);
 });
 
 el("bib_nieuw").addEventListener("click", async ()=>{
