@@ -38,6 +38,11 @@
     color:#9fadbb;font-size:14px;font-weight:600;
   }
   .tabs button.aan{background:var(--rood);border-color:var(--rood);color:#fff}
+  .keuze.aan{background:var(--rood) !important;border-color:var(--rood) !important;color:#fff !important}
+  .stap{padding:9px 0;border-bottom:1px solid #253243;font-size:14px;color:#cdd8e2}
+  .stap:last-child{border-bottom:none}
+  #status_volgende{margin-top:10px}
+  a.knop{text-decoration:none;text-align:center;box-sizing:border-box}
 
   fieldset{border:1px solid #253243;border-radius:10px;margin:0 0 16px;padding:14px 14px 8px;background:#131c27}
   legend{font-weight:600;font-size:15px;padding:0 8px;color:#fff}
@@ -161,14 +166,25 @@
 
     <fieldset>
       <legend>Eerdere offertes</legend>
-      <label for="bib_select">Al bewaarde offertes op dit toestel</label>
+      <label for="bib_zoek">Zoeken op postnaam of offertenummer</label>
+      <input id="bib_zoek" placeholder="Typ om te filteren">
+      <label for="bib_select">Bewaarde offertes</label>
       <select id="bib_select"></select>
       <button class="knop stil" id="bib_nieuw">Nieuwe offerte starten</button>
-      <p class="hint">Elke wijziging wordt automatisch bewaard op dit toestel, onder het offertenummer hieronder — ook als er weken tussen offerte en factuur zitten. Dit werkt alleen op dit toestel en in deze browser; wissel je van telefoon, gebruik dan "Dossier downloaden" verderop als reservekopie.</p>
+      <p class="hint">Elke wijziging wordt automatisch bewaard en gesynchroniseerd — open dezelfde offerte straks gerust op je laptop, ook als er weken tussen offerte en factuur zitten. Zonder internet werkt alles gewoon door en wordt de laatste stand bijgewerkt zodra je weer verbinding hebt.</p>
+    </fieldset>
+
+    <fieldset id="vak_status" style="display:none">
+      <legend>Status van deze offerte</legend>
+      <div id="status_stappen"></div>
+      <div id="status_volgende"></div>
     </fieldset>
 
     <fieldset>
       <legend>Klant</legend>
+      <label for="klant_zoek">Bestaande klant zoeken in je klantenbestand</label>
+      <input id="klant_zoek" placeholder="Typ een postnaam">
+      <select id="klant_select"></select>
       <label for="k_post">Post of kazerne</label>
       <input id="k_post" placeholder="Post Noorderduin">
       <label for="k_org">Organisatie</label>
@@ -179,6 +195,7 @@
       <textarea id="k_adres" rows="3" placeholder="Havenstraat 12&#10;8000 AB Zwolle"></textarea>
       <label for="k_mail">E-mail</label>
       <input id="k_mail" type="email" placeholder="jdevries@brandweer.nl">
+      <p class="hint">Klanten worden automatisch bewaard zodra je een postnaam invult, zodat je ze de volgende keer terugvindt door te zoeken.</p>
     </fieldset>
 
     <fieldset>
@@ -210,25 +227,25 @@
     </fieldset>
 
     <fieldset id="vak_tekenen">
-      <legend>Digitaal ondertekenen</legend>
-      <p class="hint" style="margin-top:0">Laat de klant hieronder tekenen, of leg vast dat hij per e-mail akkoord gaf. Het komt onder aan de offerte te staan.</p>
+      <legend>Akkoord vastleggen</legend>
+      <div class="duo" style="margin-bottom:2px">
+        <button type="button" class="knop stil keuze aan" id="wijze_telefoon">Op dit toestel tekenen</button>
+        <button type="button" class="knop stil keuze" id="wijze_mail">Per e-mail ontvangen</button>
+      </div>
+      <p class="hint" id="wijze_hint" style="margin-top:8px">Laat de klant hieronder op dit scherm tekenen.</p>
       <label for="h_naam">Naam ondertekenaar</label>
       <input id="h_naam" placeholder="J. de Vries">
       <label for="h_functie">Functie</label>
       <input id="h_functie" placeholder="Postcommandant">
       <label for="h_datum">Datum akkoord</label>
       <input id="h_datum" type="date">
-      <label for="pad">Handtekening</label>
-      <canvas id="pad"></canvas>
-      <div class="duo">
+      <div id="teken_canvas">
+        <label for="pad">Handtekening</label>
+        <canvas id="pad"></canvas>
         <button class="knop stil" id="h_wis" style="margin-top:8px">Wissen</button>
-        <button class="knop groen" id="h_vast" style="margin-top:8px">Akkoord vastleggen</button>
       </div>
-      <div class="check">
-        <input type="checkbox" id="h_mail">
-        <label for="h_mail" style="margin:0">Akkoord per e-mail ontvangen, geen handtekening</label>
-      </div>
-      <p class="hint">Bewaar de akkoordmail apart in je klantmap. Dat is je bewijs als er later discussie komt.</p>
+      <button class="knop groen" id="h_vast" style="margin-top:8px">Akkoord vastleggen</button>
+      <p class="hint">Bewaar een akkoordmail apart in je klantmap. Dat is je bewijs als er later discussie komt.</p>
     </fieldset>
 
     <fieldset id="vak_factuur" style="display:none">
@@ -303,7 +320,7 @@ IBAN NL00 BANK 0000 0000 00</textarea>
       <button class="knop stil" id="bewaar">Dossier downloaden</button>
       <button class="knop stil" id="laad_knop">Dossier openen</button>
       <input id="laad" type="file" accept=".json" style="display:none">
-      <p class="hint">Alleen nodig als je een offerte wilt overzetten naar een ander toestel, of apart wilt archiveren. Op dit toestel is opslaan niet nodig — dat gebeurt vanzelf.</p>
+      <p class="hint">Handig als extra reservekopie op je eigen toestel, of om een offerte buiten deze tool om door te sturen. Voor gebruik op je andere apparaten is dit niet nodig — dat gaat automatisch.</p>
     </fieldset>
   </div>
 
@@ -367,6 +384,9 @@ let regels = [{type:"master", inch:43, aantal:1, beugel:true}];
 let tab = "offerte";
 let logoData = null;
 let hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
+let htekenWijze = "telefoon";
+let statusExtra = {akkoord:null, opgeleverd:null, factuur:null};
+let klantenLijst = {};
 
 const eur = n => "€ " + Number(n).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
 const ex  = i => i/(1+BTW);
@@ -378,6 +398,34 @@ const iso = d => d.toISOString().slice(0,10);
 const bak = {};
 function zet(k,v){ try{localStorage.setItem(k,v)}catch(e){bak[k]=v} }
 function haal(k){ try{ const v=localStorage.getItem(k); return v===null?(bak[k]??null):v }catch(e){ return bak[k]??null } }
+
+/* ---- opslag op Cloudflare: zelfde gegevens op elk toestel ----
+   Ligt onder hetzelfde pad (tools/*) als de Access-inlog, dus geen
+   apart wachtwoord nodig — Cloudflare laat het verzoek alleen door
+   als je al bent ingelogd. */
+const API = "/tools/api";
+async function apiGet(pad){
+  try{ const r = await fetch(API+pad); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
+}
+async function apiPut(pad, data){
+  try{
+    const r = await fetch(API+pad, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
+    return r.ok;
+  }catch(e){ return false; }
+}
+async function apiPost(pad, data){
+  try{
+    const r = await fetch(API+pad, {method:"POST", headers:{"Content-Type":"application/json"}, body: data?JSON.stringify(data):"{}"});
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+function klantNaamVan(d){
+  if(!d) return "naam nog niet ingevuld";
+  if(typeof d.klant === "string") return d.klant || "naam nog niet ingevuld";
+  return (d.klant && (d.klant.k_post || d.klant.k_org)) || "naam nog niet ingevuld";
+}
 
 /* ====================== opbouw ====================== */
 function onderdelen(r){
@@ -658,7 +706,7 @@ function tekenTaken(){
   ].map(t=>`<li>${t}</li>`).join("");
 }
 
-/* ====================== handtekening ====================== */
+/* ====================== handtekening en akkoordstatus ====================== */
 const pad = el("pad"); let ctx, tekenend=false, leeg=true;
 function padInit(){
   const r = pad.getBoundingClientRect(), s = window.devicePixelRatio||1;
@@ -672,19 +720,62 @@ pad.addEventListener("pointerdown", e=>{ e.preventDefault(); pad.setPointerCaptu
 pad.addEventListener("pointermove", e=>{ if(!tekenend) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>pad.addEventListener(ev,()=>tekenend=false));
 el("h_wis").addEventListener("click", ()=>{ ctx.clearRect(0,0,pad.width,pad.height); leeg=true; });
-el("h_vast").addEventListener("click", ()=>{
+
+function wijzeTonen(){
+  el("teken_canvas").style.display = htekenWijze==="telefoon" ? "" : "none";
+  el("wijze_telefoon").classList.toggle("aan", htekenWijze==="telefoon");
+  el("wijze_mail").classList.toggle("aan", htekenWijze==="mail");
+  el("wijze_hint").textContent = htekenWijze==="telefoon"
+    ? "Laat de klant hieronder op dit scherm tekenen."
+    : "Maak een pdf van deze offerte en de voorwaarden en stuur die per mail. Vul hieronder in wie akkoord gaf zodra je een ondertekend bericht terugkrijgt.";
+}
+el("wijze_telefoon").addEventListener("click", ()=>{ htekenWijze="telefoon"; wijzeTonen(); });
+el("wijze_mail").addEventListener("click", ()=>{ htekenWijze="mail"; wijzeTonen(); });
+
+el("h_vast").addEventListener("click", async ()=>{
   hand.naam = el("h_naam").value; hand.functie = el("h_functie").value;
   hand.datum = el("h_datum").value || iso(new Date());
-  hand.mail = el("h_mail").checked;
-  hand.data = (!hand.mail && !leeg) ? pad.toDataURL("image/png") : null;
-  if(!hand.mail && leeg){ alert("Laat de klant eerst tekenen, of vink aan dat het akkoord per e-mail kwam."); return; }
+  hand.mail = (htekenWijze === "mail");
+  if(htekenWijze === "telefoon"){
+    if(leeg){ alert("Laat de klant eerst tekenen, of kies 'Per e-mail ontvangen'."); return; }
+    hand.data = pad.toDataURL("image/png");
+  } else {
+    if(!hand.naam.trim()){ alert("Vul in wie akkoord heeft gegeven."); return; }
+    hand.data = null;
+  }
   hand.vast = true;
   if(!el("f_ref").value){
     el("f_ref").value = `Conform offerte ${el("o_nr").value}, akkoord ${dNL(hand.datum)}`;
   }
+  statusExtra.akkoord = { wijze: hand.mail?"mail":"telefoon", datum: hand.datum, naam: hand.naam, functie: hand.functie };
+  const nr = el("o_nr").value.trim();
+  if(nr) await apiPut("/offertes/"+encodeURIComponent(nr), { akkoord: statusExtra.akkoord });
   teken();
-  alert("Akkoord vastgelegd. Maak nu een pdf en bewaar die bij de klant.");
+  statusPaneelTonen();
+  bibliotheekDropdownVullen();
+  alert("Akkoord vastgelegd. Hieronder staat de volgende stap.");
 });
+
+function statusPaneelTonen(){
+  const heeftIets = statusExtra.akkoord || statusExtra.opgeleverd || statusExtra.factuur;
+  el("vak_status").style.display = heeftIets ? "" : "none";
+  if(!heeftIets) return;
+  const s1 = statusExtra.akkoord
+    ? `✅ Akkoord ontvangen op ${dNL(statusExtra.akkoord.datum)} (${statusExtra.akkoord.wijze==="mail" ? "per e-mail" : "op toestel getekend"})`
+    : "⭘ Nog geen akkoord";
+  const s2 = statusExtra.opgeleverd ? `✅ Opgeleverd op ${dNL(statusExtra.opgeleverd.datum)}` : "⭘ Nog niet opgeleverd";
+  const s3 = statusExtra.factuur ? `✅ Factuur ${statusExtra.factuur.nr} aangemaakt op ${dNL(statusExtra.factuur.datum)}` : "⭘ Nog geen factuur";
+  el("status_stappen").innerHTML = `<div class="stap">${s1}</div><div class="stap">${s2}</div><div class="stap">${s3}</div>`;
+
+  const nr = el("o_nr").value.trim();
+  let volgende = "";
+  if(statusExtra.akkoord && !statusExtra.opgeleverd){
+    volgende = `<a class="knop" href="opleverbon.html?nr=${encodeURIComponent(nr)}">Opleverbon openen voor deze offerte</a>`;
+  } else if(statusExtra.opgeleverd && !statusExtra.factuur){
+    volgende = `<a class="knop" href="offerte.html?nr=${encodeURIComponent(nr)}&tab=factuur">Factuur maken voor deze offerte</a>`;
+  }
+  el("status_volgende").innerHTML = volgende;
+}
 
 /* ====================== opslaan ====================== */
 function dossier(){
@@ -715,70 +806,91 @@ el("laad").addEventListener("change", e=>{
   fr.readAsText(f);
 });
 
-/* ---- automatische bibliotheek: alle offertes staan op offertenummer in ditzelfde toestel ---- */
+/* ---- automatische bibliotheek: alle offertes staan op offertenummer, gedeeld via Cloudflare ---- */
 const BIB_SLEUTEL = "rbds_offertes";
-function bibliotheekAlles(){
+async function bibliotheekLijst(){
+  const server = await apiGet("/offertes");
+  if(server) return server;
   try{ return JSON.parse(haal(BIB_SLEUTEL) || "{}"); }catch(e){ return {}; }
 }
-function bibliotheekOpslaan(alles){ zet(BIB_SLEUTEL, JSON.stringify(alles)); }
+async function bibliotheekVolledig(nr){
+  const server = await apiGet("/offertes/"+encodeURIComponent(nr));
+  if(server) return server;
+  try{ return (JSON.parse(haal(BIB_SLEUTEL)||"{}"))[nr] || null; }catch(e){ return null; }
+}
 
 let bibTimer = null;
 function bibliotheekAutoOpslaanDebounced(){
   clearTimeout(bibTimer);
-  bibTimer = setTimeout(()=>{
+  bibTimer = setTimeout(async ()=>{
     const nr = (el("o_nr").value||"").trim();
     if(!nr) return;
-    const alles = bibliotheekAlles();
-    const bestaand = alles[nr] || {};
-    alles[nr] = Object.assign({}, dossier(), {
-      laatstGewijzigd: new Date().toISOString(),
-      opgeleverd: bestaand.opgeleverd || null
-    });
-    bibliotheekOpslaan(alles);
+    const data = dossier();
+    const lokaal = JSON.parse(haal(BIB_SLEUTEL) || "{}");
+    lokaal[nr] = Object.assign({}, lokaal[nr]||{}, data, { laatstGewijzigd: new Date().toISOString() });
+    zet(BIB_SLEUTEL, JSON.stringify(lokaal));
+    await apiPut("/offertes/"+encodeURIComponent(nr), data);
     bibliotheekDropdownVullen();
-  }, 400);
+  }, 500);
 }
 
 function vulFormulierIn(d){
   regels = d.regels || regels; hand = d.hand || hand;
+  statusExtra = { akkoord: d.akkoord||null, opgeleverd: d.opgeleverd||null, factuur: d.factuur||null };
+  htekenWijze = hand.mail ? "mail" : "telefoon";
+  wijzeTonen();
   Object.entries(d.klant||{}).forEach(([k,v])=>{ if(el(k)) el(k).value=v; });
   Object.entries(d.doc||{}).forEach(([k,v])=>{ if(el(k)) el(k).value=v; });
   el("i_doen").checked = d.inst !== false;
   if(d.logoData){ logoData=d.logoData; el("logo").src=d.logoData; }
   tekenRegels(); teken();
+  statusPaneelTonen();
 }
 
-function bibliotheekDropdownVullen(){
-  const alles = bibliotheekAlles();
+let laatsteBibLijst = {};
+async function bibliotheekDropdownVullen(){
+  laatsteBibLijst = await bibliotheekLijst();
+  bibliotheekOptiesRenderen();
+}
+function bibliotheekOptiesRenderen(){
+  const filter = (el("bib_zoek").value||"").trim().toLowerCase();
   const huidig = el("o_nr").value;
-  const nrs = Object.keys(alles).sort((a,b)=>(alles[b].laatstGewijzigd||"").localeCompare(alles[a].laatstGewijzigd||""));
+  const nrs = Object.keys(laatsteBibLijst).filter(nr=>{
+    if(!filter) return true;
+    return nr.toLowerCase().includes(filter) || klantNaamVan(laatsteBibLijst[nr]).toLowerCase().includes(filter);
+  }).sort((a,b)=>(laatsteBibLijst[b].laatstGewijzigd||"").localeCompare(laatsteBibLijst[a].laatstGewijzigd||""));
   let opties = `<option value="">— huidige, nog niet eerder bewaarde offerte —</option>`;
   nrs.forEach(nr=>{
-    const d = alles[nr];
-    const klant = (d.klant && (d.klant.k_post || d.klant.k_org)) || "naam nog niet ingevuld";
-    const status = d.opgeleverd ? " · opgeleverd" : (d.doc && d.doc.f_nr ? " · gefactureerd" : "");
+    const d = laatsteBibLijst[nr];
+    const klant = klantNaamVan(d);
+    let status = "";
+    if(d.factuur || (d.doc && d.doc.f_nr)) status = " · gefactureerd";
+    else if(d.opgeleverd) status = " · opgeleverd";
+    else if(d.akkoord) status = " · akkoord";
     opties += `<option value="${nr}"${nr===huidig?" selected":""}>${nr} — ${klant}${status}</option>`;
   });
   el("bib_select").innerHTML = opties;
 }
+el("bib_zoek").addEventListener("input", bibliotheekOptiesRenderen);
 
-el("bib_select").addEventListener("change", ()=>{
+el("bib_select").addEventListener("change", async ()=>{
   const nr = el("bib_select").value;
   if(!nr) return;
-  const alles = bibliotheekAlles();
-  const d = alles[nr];
+  const d = await bibliotheekVolledig(nr);
   if(!d) return;
   vulFormulierIn(d);
   bibliotheekDropdownVullen();
 });
 
-el("bib_nieuw").addEventListener("click", ()=>{
+el("bib_nieuw").addEventListener("click", async ()=>{
   if(!confirm("Nieuwe, lege offerte starten? De huidige offerte staat al bewaard onder zijn eigen nummer en blijft gewoon terug te vinden.")) return;
   regels = [{type:"master", inch:43, aantal:1, beugel:true}];
   hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
+  statusExtra = {akkoord:null, opgeleverd:null, factuur:null};
+  htekenWijze = "telefoon"; wijzeTonen();
   ["k_post","k_org","k_contact","k_adres","k_mail","f_ref","f_nr"].forEach(id=>el(id).value="");
   const nu = new Date();
-  el("o_nr").value = nieuwNummer("offerte");
+  el("o_nr").value = await nieuwNummer("offerte");
   el("o_datum").value = iso(nu);
   el("o_geldig").value = iso(new Date(nu.getTime()+30*864e5));
   el("h_datum").value = iso(nu);
@@ -786,6 +898,7 @@ el("bib_nieuw").addEventListener("click", ()=>{
   el("i_doen").checked = true;
   tekenRegels(); teken();
   bibliotheekDropdownVullen();
+  statusPaneelTonen();
 });
 
 el("csv").addEventListener("click", ()=>{
@@ -798,25 +911,27 @@ el("csv").addEventListener("click", ()=>{
   download(`boekhouding-${el("f_nr").value||"factuur"}.csv`, kop+"\n"+r, "text/csv");
 });
 
-/* ---- bedrijfsgegevens: blijven op dit toestel staan, ook na herladen ---- */
+/* ---- bedrijfsgegevens: gesynchroniseerd via Cloudflare, lokaal als terugval zonder netwerk ---- */
+let bedrijfTimer = null;
 function bedrijfOpslaan(){
-  zet("rbds_bedrijf", JSON.stringify({
-    naam: el("b_naam").value, kvk: el("b_kvk").value, btw: el("b_btw").value, regels: el("b_regels").value
-  }));
+  const data = { naam: el("b_naam").value, kvk: el("b_kvk").value, btw: el("b_btw").value, regels: el("b_regels").value };
+  zet("rbds_bedrijf", JSON.stringify(data));
   const compleet = el("b_kvk").value.trim() && el("b_btw").value.trim();
   el("kvk_hint").textContent = compleet
-    ? "Bewaard op dit toestel. Deze gegevens vul ik voortaan overal automatisch in, ook op de algemene voorwaarden."
-    : "Zonder deze twee nummers voldoet je factuur niet aan de eisen van de Belastingdienst. Zodra je ze hier invult, worden ze op dit toestel onthouden en vanaf dan overal automatisch ingevuld — ook op de algemene voorwaarden.";
+    ? "Bewaard en gesynchroniseerd. Deze gegevens vul ik voortaan overal automatisch in, op elk toestel."
+    : "Zonder deze twee nummers voldoet je factuur niet aan de eisen van de Belastingdienst. Zodra je ze hier invult, worden ze gesynchroniseerd en vanaf dan overal automatisch ingevuld.";
+  clearTimeout(bedrijfTimer);
+  bedrijfTimer = setTimeout(()=>apiPut("/bedrijf", data), 500);
 }
-function bedrijfLaden(){
-  const r = haal("rbds_bedrijf"); if(!r) return;
-  try{
-    const d = JSON.parse(r);
-    if(d.naam) el("b_naam").value = d.naam;
-    if(d.kvk) el("b_kvk").value = d.kvk;
-    if(d.btw) el("b_btw").value = d.btw;
-    if(d.regels) el("b_regels").value = d.regels;
-  }catch(e){}
+async function bedrijfLaden(){
+  const server = await apiGet("/bedrijf");
+  let d = server;
+  if(!d){ try{ d = JSON.parse(haal("rbds_bedrijf")||"null"); }catch(e){ d = null; } }
+  if(!d) return;
+  if(d.naam) el("b_naam").value = d.naam;
+  if(d.kvk) el("b_kvk").value = d.kvk;
+  if(d.btw) el("b_btw").value = d.btw;
+  if(d.regels) el("b_regels").value = d.regels;
 }
 ["b_naam","b_kvk","b_btw","b_regels"].forEach(id=>{
   el(id).addEventListener("input", ()=>{ bedrijfOpslaan(); teken(); });
@@ -840,7 +955,7 @@ document.addEventListener("input", e=>{
   teken();
 });
 document.addEventListener("change", e=>{ if(e.target.type==="checkbox"||e.target.tagName==="SELECT") teken(); });
-document.addEventListener("click", e=>{
+document.addEventListener("click", async e=>{
   if(e.target.dataset.weg !== undefined){
     regels.splice(Number(e.target.dataset.weg),1);
     if(!regels.length) regels.push({type:"slave",inch:43,aantal:1,beugel:true});
@@ -852,7 +967,7 @@ document.addEventListener("click", e=>{
     el("vak_offerte").style.display = tab==="offerte" ? "" : "none";
     el("vak_tekenen").style.display = tab==="offerte" ? "" : "none";
     el("vak_factuur").style.display = tab==="factuur" ? "" : "none";
-    if(tab==="factuur" && !el("f_nr").value) el("f_nr").value = nieuwNummer("factuur");
+    if(tab==="factuur" && !el("f_nr").value) el("f_nr").value = await nieuwNummer("factuur");
     teken();
   }
 });
@@ -860,8 +975,17 @@ el("add").addEventListener("click", ()=>{
   regels.push({type: regels.some(r=>r.type==="master")?"slave":"master", inch:43, aantal:1, beugel:true});
   tekenRegels(); teken();
 });
-el("print").addEventListener("click", ()=>{
-  if(tab==="factuur" && el("f_nr").value) bevestigNummer(el("f_nr").value);
+el("print").addEventListener("click", async ()=>{
+  if(tab==="factuur" && el("f_nr").value){
+    await bevestigNummer(el("f_nr").value);
+    const nr = el("o_nr").value.trim();
+    if(nr){
+      statusExtra.factuur = { nr: el("f_nr").value, datum: el("f_datum").value || iso(new Date()) };
+      await apiPut("/offertes/"+encodeURIComponent(nr), { factuur: statusExtra.factuur });
+      statusPaneelTonen();
+      bibliotheekDropdownVullen();
+    }
+  }
   window.print();
 });
 el("b_logo").addEventListener("change", e=>{
@@ -879,16 +1003,71 @@ function tarieven(){
   el("t_km").textContent = eur(P.km.verkoop);
 }
 
-/* ---- doorlopende nummering ---- */
-function nieuwNummer(soort){
+/* ---- klantenbestand: elke ingevulde post wordt bewaard en is terug te zoeken ---- */
+function klantSlug(naam){
+  return (naam||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "klant";
+}
+async function klantenLaden(){
+  klantenLijst = (await apiGet("/klanten")) || {};
+  klantenOptiesRenderen();
+}
+function klantenOptiesRenderen(){
+  const filter = (el("klant_zoek").value||"").trim().toLowerCase();
+  const ids = Object.keys(klantenLijst).filter(id=>{
+    if(!filter) return true;
+    const d = klantenLijst[id];
+    return (d.post||"").toLowerCase().includes(filter) || (d.org||"").toLowerCase().includes(filter);
+  }).sort((a,b)=>(klantenLijst[a].post||klantenLijst[a].org||"").localeCompare(klantenLijst[b].post||klantenLijst[b].org||""));
+  let opties = `<option value="">— zoek hierboven, of vul rechtstreeks in —</option>`;
+  ids.forEach(id=>{
+    const d = klantenLijst[id];
+    const label = [d.post, d.org].filter(Boolean).join(" — ") || id;
+    opties += `<option value="${id}">${label}</option>`;
+  });
+  el("klant_select").innerHTML = opties;
+}
+el("klant_zoek").addEventListener("input", klantenOptiesRenderen);
+el("klant_select").addEventListener("change", ()=>{
+  const id = el("klant_select").value; if(!id) return;
+  const d = klantenLijst[id]; if(!d) return;
+  el("k_post").value = d.post||""; el("k_org").value = d.org||"";
+  el("k_contact").value = d.contact||""; el("k_adres").value = d.adres||""; el("k_mail").value = d.mail||"";
+  teken();
+});
+let klantTimer = null;
+function klantAutoOpslaan(){
+  clearTimeout(klantTimer);
+  klantTimer = setTimeout(async ()=>{
+    const naam = el("k_post").value.trim() || el("k_org").value.trim();
+    if(!naam) return;
+    const id = klantSlug(naam);
+    const data = { post: el("k_post").value, org: el("k_org").value, contact: el("k_contact").value, adres: el("k_adres").value, mail: el("k_mail").value };
+    klantenLijst[id] = Object.assign({}, klantenLijst[id]||{}, data);
+    await apiPut("/klanten/"+encodeURIComponent(id), data);
+  }, 600);
+}
+["k_post","k_org","k_contact","k_adres","k_mail"].forEach(id=>{
+  el(id).addEventListener("input", klantAutoOpslaan);
+});
+
+/* ---- doorlopende nummering: telt centraal op Cloudflare, terugval lokaal zonder netwerk ---- */
+async function nieuwNummer(soort){
   const jaar = new Date().getFullYear();
+  const server = await apiPost(`/nummer/${soort}/${jaar}`);
+  if(server && typeof server.waarde === "number"){
+    const sleutel = `rbds_${soort}_${jaar}`;
+    zet(sleutel, String(server.waarde));
+    return (soort==="factuur" ? `${jaar}-` : `OFF-${jaar}-`) + String(server.waarde).padStart(3,"0");
+  }
   const sleutel = `rbds_${soort}_${jaar}`;
   const n = Number(haal(sleutel)||0) + 1;
+  zet(sleutel, String(n));
   return (soort==="factuur" ? `${jaar}-` : `OFF-${jaar}-`) + String(n).padStart(3,"0");
 }
-function bevestigNummer(nr){
+async function bevestigNummer(nr){
   const m = nr.match(/(\d{4})-(\d+)$/); if(!m) return;
   const soort = nr.startsWith("OFF") ? "offerte" : "factuur";
+  await apiPost(`/nummer/${soort}/${m[1]}`, {minimaal: Number(m[2])});
   const sleutel = `rbds_${soort}_${m[1]}`;
   if(Number(m[2]) > Number(haal(sleutel)||0)) zet(sleutel, String(Number(m[2])));
 }
@@ -916,10 +1095,9 @@ el("ww").addEventListener("keydown", e=>{ if(e.key==="Enter") open_(); });
 
 /* ====================== start ====================== */
 let gestart = false;
-function start(){
+async function start(){
   if(gestart) return; gestart = true;
   const nu = new Date(), over30 = new Date(nu.getTime()+30*864e5), overJaar = new Date(nu.getTime()+364*864e5);
-  el("o_nr").value = nieuwNummer("offerte");
   el("o_datum").value = iso(nu);
   el("o_geldig").value = iso(over30);
   el("f_datum").value = iso(nu);
@@ -927,7 +1105,34 @@ function start(){
   el("f_van").value = iso(nu);
   el("f_tot").value = iso(overJaar);
   el("h_datum").value = iso(nu);
-  padInit(); tekenPrijzen(); tekenRegels(); tarieven(); bedrijfLaden(); teken(); bibliotheekDropdownVullen();
+  padInit(); tekenPrijzen(); tekenRegels(); tarieven();
+  await bedrijfLaden();
+  klantenLaden();
+
+  const params = new URLSearchParams(location.search);
+  const paramNr = params.get("nr");
+  const paramTab = params.get("tab");
+
+  if(paramNr){
+    const d = await bibliotheekVolledig(paramNr);
+    if(d){ el("o_nr").value = paramNr; vulFormulierIn(d); }
+    else { el("o_nr").value = await nieuwNummer("offerte"); }
+  } else {
+    el("o_nr").value = await nieuwNummer("offerte");
+  }
+
+  if(paramTab === "factuur"){
+    tab = "factuur";
+    document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("aan", b.dataset.tab==="factuur"));
+    el("vak_offerte").style.display = "none";
+    el("vak_tekenen").style.display = "none";
+    el("vak_factuur").style.display = "";
+    if(!el("f_nr").value) el("f_nr").value = await nieuwNummer("factuur");
+  }
+
+  teken();
+  bibliotheekDropdownVullen();
+  statusPaneelTonen();
 }
 try{ if(sessionStorage.getItem("rbds_open")==="1"){ el("slot").style.display="none"; el("app").style.display="block"; start(); } }catch(e){}
 window.addEventListener("resize", ()=>{ if(gestart){ const d=pad.toDataURL(); padInit(); const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; } });

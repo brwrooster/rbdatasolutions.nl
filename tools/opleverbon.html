@@ -39,6 +39,7 @@
   .knop{display:block;width:100%;padding:14px;border-radius:10px;border:none;background:var(--rood);color:#fff;font-size:16px;font-weight:600;margin-top:8px}
   .knop.stil{background:#22303f;color:#dbe4ec}
   .knop.groen{background:var(--groen)}
+  a.knop{text-decoration:none;text-align:center;box-sizing:border-box;display:block}
   .hint{font-size:12.5px;color:#8d9aa8;margin:8px 2px 0;line-height:1.55}
   #pad{width:100%;height:150px;background:#fff;border-radius:8px;border:1px solid #2b3a4c;touch-action:none;display:block}
 
@@ -98,9 +99,16 @@
 
     <fieldset>
       <legend>Koppel aan een offerte</legend>
-      <label for="bib_select">Bewaarde offertes op dit toestel</label>
+      <label for="bib_zoek">Zoeken op postnaam of offertenummer</label>
+      <input id="bib_zoek" placeholder="Typ om te filteren">
+      <label for="bib_select">Bewaarde offertes</label>
       <select id="bib_select"></select>
-      <p class="hint">Kies de offerte waarvoor je nu oplevert. Klant, adres en schermen worden overgenomen; jij vult alleen nog de locatie per scherm en de checklist in. Na ondertekening zie je in de offertetool dat deze post is opgeleverd.</p>
+      <p class="hint">Kies de offerte waarvoor je nu oplevert. Klant, adres en schermen worden overgenomen; jij vult alleen nog de locatie per scherm en de checklist in. Na ondertekening zie je dit ook meteen terug in de offertetool, op elk toestel.</p>
+    </fieldset>
+
+    <fieldset id="vak_volgende" style="display:none">
+      <legend>Volgende stap</legend>
+      <a class="knop" id="link_factuur" href="#">Factuur maken voor deze offerte</a>
     </fieldset>
 
     <fieldset>
@@ -226,6 +234,23 @@ const dNL = s => s ? new Date(s+"T00:00:00").toLocaleDateString("nl-NL",{day:"nu
 function haal(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
 function zet(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
 
+const API = "/tools/api";
+async function apiGet(pad){
+  try{ const r = await fetch(API+pad); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
+}
+async function apiPut(pad, data){
+  try{
+    const r = await fetch(API+pad, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
+    return r.ok;
+  }catch(e){ return false; }
+}
+function klantNaamVan(d){
+  if(!d) return "naam nog niet ingevuld";
+  if(typeof d.klant === "string") return d.klant || "naam nog niet ingevuld";
+  return (d.klant && (d.klant.k_post || d.klant.k_org)) || "naam nog niet ingevuld";
+}
+
 let regels = [{type:"Hoofdscherm", inch:43, aantal:1, locatie:""}];
 let hand = {data:null, naam:"", functie:"", vast:false};
 
@@ -310,25 +335,31 @@ pad.addEventListener("pointerdown", e=>{ e.preventDefault(); pad.setPointerCaptu
 pad.addEventListener("pointermove", e=>{ if(!tekenend) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
 ["pointerup","pointercancel","pointerleave"].forEach(ev=>pad.addEventListener(ev,()=>tekenend=false));
 el("h_wis").addEventListener("click", ()=>{ ctx.clearRect(0,0,pad.width,pad.height); leeg=true; });
-el("h_vast").addEventListener("click", ()=>{
+el("h_vast").addEventListener("click", async ()=>{
   if(leeg){ alert("Laat de contactpersoon eerst tekenen."); return; }
   hand.naam = el("h_naam").value; hand.functie = el("h_functie").value;
   hand.data = pad.toDataURL("image/png"); hand.vast = true;
   teken();
-  opleveringTerugschrijven();
+  await opleveringTerugschrijven();
   koppelDropdownVullen();
-  alert("Vastgelegd. Maak nu een pdf en bewaar die bij de klant.");
+  const nr = el("k_ref").value.trim();
+  if(nr){
+    el("link_factuur").href = `offerte.html?nr=${encodeURIComponent(nr)}&tab=factuur`;
+    el("vak_volgende").style.display = "";
+  }
+  alert("Vastgelegd. Maak nu een pdf en bewaar die bij de klant. Hieronder staat de volgende stap.");
 });
 
 /* ---- bedrijfsgegevens delen met de offertetool ---- */
-(function bedrijfLaden(){
-  const r = haal("rbds_bedrijf"); if(!r) return;
-  try{
-    const d = JSON.parse(r);
-    if(d.naam) el("b_naam").value = d.naam;
-    if(d.kvk) el("b_kvk").value = d.kvk;
-    if(d.btw) el("b_btw").value = d.btw;
-  }catch(e){}
+(async function bedrijfLaden(){
+  const server = await apiGet("/bedrijf");
+  let d = server;
+  if(!d){ try{ d = JSON.parse(haal("rbds_bedrijf")||"null"); }catch(e){ d = null; } }
+  if(!d) return;
+  if(d.naam) el("b_naam").value = d.naam;
+  if(d.kvk) el("b_kvk").value = d.kvk;
+  if(d.btw) el("b_btw").value = d.btw;
+  teken();
 })();
 
 /* ---- opslaan / laden van de bon ---- */
@@ -394,30 +425,43 @@ el("b_logo").addEventListener("change", e=>{
 el("logo").addEventListener("error", ()=>{ el("logo").style.display="none"; el("wordmark").style.display="block"; });
 
 /* ---- koppelen aan een bewaarde offerte ---- */
-const BIB_SLEUTEL = "rbds_offertes";
-function bibliotheekAlles(){
-  try{ return JSON.parse(haal(BIB_SLEUTEL) || "{}"); }catch(e){ return {}; }
+async function offerteLijst(){
+  const server = await apiGet("/offertes");
+  if(server) return server;
+  try{ return JSON.parse(haal("rbds_offertes") || "{}"); }catch(e){ return {}; }
 }
-function koppelDropdownVullen(){
-  const alles = bibliotheekAlles();
-  const nrs = Object.keys(alles).sort((a,b)=>(alles[b].laatstGewijzigd||"").localeCompare(alles[a].laatstGewijzigd||""));
+async function offerteVolledig(nr){
+  const server = await apiGet("/offertes/"+encodeURIComponent(nr));
+  if(server) return server;
+  try{ return (JSON.parse(haal("rbds_offertes")||"{}"))[nr] || null; }catch(e){ return null; }
+}
+let laatsteOfferteLijst = {};
+async function koppelDropdownVullen(){
+  laatsteOfferteLijst = await offerteLijst();
+  koppelOptiesRenderen();
+}
+function koppelOptiesRenderen(){
+  if(!Object.keys(laatsteOfferteLijst).length){
+    el("bib_select").innerHTML = `<option value="">Nog geen offertes gevonden</option>`;
+    return;
+  }
+  const filter = (el("bib_zoek").value||"").trim().toLowerCase();
+  const nrs = Object.keys(laatsteOfferteLijst).filter(nr=>{
+    if(!filter) return true;
+    return nr.toLowerCase().includes(filter) || klantNaamVan(laatsteOfferteLijst[nr]).toLowerCase().includes(filter);
+  }).sort((a,b)=>(laatsteOfferteLijst[b].laatstGewijzigd||"").localeCompare(laatsteOfferteLijst[a].laatstGewijzigd||""));
   let opties = `<option value="">— zelf invullen zonder koppeling —</option>`;
   nrs.forEach(nr=>{
-    const d = alles[nr];
-    const klant = (d.klant && (d.klant.k_post || d.klant.k_org)) || "naam nog niet ingevuld";
+    const d = laatsteOfferteLijst[nr];
     const status = d.opgeleverd ? " · al opgeleverd" : "";
-    opties += `<option value="${nr}"${nr===el("k_ref").value?" selected":""}>${nr} — ${klant}${status}</option>`;
+    opties += `<option value="${nr}"${nr===el("k_ref").value?" selected":""}>${nr} — ${klantNaamVan(d)}${status}</option>`;
   });
   el("bib_select").innerHTML = opties;
-  if(!nrs.length){
-    el("bib_select").innerHTML = `<option value="">Nog geen offertes bewaard op dit toestel</option>`;
-  }
 }
+el("bib_zoek").addEventListener("input", koppelOptiesRenderen);
 const TYPE_MAP = {master:"Hoofdscherm", slave:"Extra scherm", slave_pi:"Extra scherm"};
-el("bib_select").addEventListener("change", ()=>{
-  const nr = el("bib_select").value;
-  if(!nr) return;
-  const d = bibliotheekAlles()[nr];
+async function laadGekoppeldeOfferte(nr){
+  const d = await offerteVolledig(nr);
   if(!d) return;
   el("k_ref").value = nr;
   if(d.klant){
@@ -430,21 +474,37 @@ el("bib_select").addEventListener("change", ()=>{
     tekenRegels();
   }
   teken();
+}
+el("bib_select").addEventListener("change", async ()=>{
+  const nr = el("bib_select").value;
+  if(!nr) return;
+  await laadGekoppeldeOfferte(nr);
 });
 
 /* ---- na ondertekening: status terugschrijven naar de offertetool ---- */
-function opleveringTerugschrijven(){
+async function opleveringTerugschrijven(){
   const nr = el("k_ref").value.trim();
   if(!nr) return;
-  const alles = bibliotheekAlles();
-  if(!alles[nr]) return;
-  alles[nr].opgeleverd = {datum: el("k_datum").value || new Date().toISOString().slice(0,10), klaar:true};
-  zet(BIB_SLEUTEL, JSON.stringify(alles));
+  const status = { opgeleverd: { datum: el("k_datum").value || new Date().toISOString().slice(0,10), klaar:true } };
+  await apiPut("/offertes/"+encodeURIComponent(nr), status);
+  try{
+    const lokaal = JSON.parse(haal("rbds_offertes")||"{}");
+    if(lokaal[nr]) lokaal[nr].opgeleverd = status.opgeleverd;
+    zet("rbds_offertes", JSON.stringify(lokaal));
+  }catch(e){}
 }
 
 /* ---- start ---- */
 el("k_datum").value = new Date().toISOString().slice(0,10);
-padInit(); tekenRegels(); teken(); koppelDropdownVullen();
+padInit(); tekenRegels(); teken();
+(async function opstarten(){
+  await koppelDropdownVullen();
+  const paramNr = new URLSearchParams(location.search).get("nr");
+  if(paramNr){
+    el("bib_select").value = paramNr;
+    await laadGekoppeldeOfferte(paramNr);
+  }
+})();
 window.addEventListener("resize", ()=>{ const d=pad.toDataURL(); padInit(); const i=new Image();
   i.onload=()=>ctx.drawImage(i,0,0,pad.clientWidth,pad.clientHeight); i.src=d; });
 </script>
