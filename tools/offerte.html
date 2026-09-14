@@ -32,6 +32,10 @@
   .kop .sub{color:#8d9aa8;font-size:13px;margin-top:2px}
   .streep{height:3px;background:var(--rood);border-radius:2px;margin:10px 4px 18px}
 
+  .topnav{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 12px;margin:0 -4px 4px;-webkit-overflow-scrolling:touch}
+  .topnav a{flex:0 0 auto;padding:8px 13px;border-radius:8px;background:#131c27;border:1px solid #253243;color:#9fadbb;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
+  .topnav a.actief{background:var(--rood);border-color:var(--rood);color:#fff}
+
   .tabs{display:flex;gap:8px;margin:0 0 16px}
   .tabs button{
     flex:1;padding:11px 8px;border-radius:9px;border:1px solid #2b3a4c;background:#131c27;
@@ -154,15 +158,19 @@
 <div class="wrap">
   <div class="geen-print">
     <div class="kop">
-      <div class="merk">Offertes en facturen</div>
+      <div class="merk">Offertes</div>
       <div class="sub">P2000 kazernescherm — RB Data Solutions</div>
     </div>
     <div class="streep"></div>
-
-    <div class="tabs">
-      <button data-tab="offerte" class="aan">Offerte</button>
-      <button data-tab="factuur">Factuur</button>
-    </div>
+    <nav class="topnav">
+      <a href="overzicht.html">Overzicht</a>
+      <a href="klanten.html">Klanten</a>
+      <a href="offerte.html" class="actief">Offertes</a>
+      <a href="opleverbon.html">Opleverbonnen</a>
+      <a href="facturen.html">Facturen</a>
+      <a href="bestellingen.html">Onderdelen</a>
+      <a href="prijzen.html">Prijzen</a>
+    </nav>
 
     <fieldset>
       <legend>Eerdere offertes</legend>
@@ -227,7 +235,7 @@
     </fieldset>
 
     <fieldset id="vak_tekenen">
-      <legend>Akkoord vastleggen</legend>
+      <legend>Akkoord of afwijzing</legend>
       <div class="duo" style="margin-bottom:2px">
         <button type="button" class="knop stil keuze aan" id="wijze_telefoon">Op dit toestel tekenen</button>
         <button type="button" class="knop stil keuze" id="wijze_mail">Per e-mail ontvangen</button>
@@ -246,37 +254,10 @@
       </div>
       <button class="knop groen" id="h_vast" style="margin-top:8px">Akkoord vastleggen</button>
       <p class="hint">Bewaar een akkoordmail apart in je klantmap. Dat is je bewijs als er later discussie komt.</p>
-    </fieldset>
-
-    <fieldset id="vak_factuur" style="display:none">
-      <legend>Factuur</legend>
-      <label for="f_soort">Wat factureer je</label>
-      <select id="f_soort">
-        <option value="eenmalig">Eenmalig — hardware en installatie</option>
-        <option value="abo">Abonnement — periode vooruit</option>
-        <option value="beide">Beide op één factuur</option>
-      </select>
-      <div class="duo">
-        <div><label for="f_nr">Factuurnummer</label><input id="f_nr"></div>
-        <div><label for="f_datum">Factuurdatum</label><input id="f_datum" type="date"></div>
-      </div>
-      <div class="duo">
-        <div><label for="f_verval">Vervaldatum</label><input id="f_verval" type="date"></div>
-        <div><label for="f_termijn">Abonnementsperiode</label>
-          <select id="f_termijn">
-            <option value="12">12 maanden vooruit</option>
-            <option value="3">3 maanden vooruit</option>
-            <option value="1">1 maand</option>
-          </select>
-        </div>
-      </div>
-      <div class="duo">
-        <div><label for="f_van">Periode van</label><input id="f_van" type="date"></div>
-        <div><label for="f_tot">tot en met</label><input id="f_tot" type="date"></div>
-      </div>
-      <label for="f_ref">Verwijzing</label>
-      <input id="f_ref" placeholder="Conform offerte OFF-2026-001, akkoord 12 maart 2026">
-      <p class="hint">Factuurnummers moeten doorlopen zonder gaten. De teller telt vanzelf op zodra je een nummer gebruikt.</p>
+      <hr style="border:none;border-top:1px solid #253243;margin:16px 0">
+      <label for="afwijs_reden">Offerte afgewezen? Reden (optioneel)</label>
+      <input id="afwijs_reden" placeholder="Bijvoorbeeld: kiest voor een ander systeem">
+      <button class="knop stil" id="afwijs_vast" style="margin-top:8px;color:#ff8d9c">Offerte afwijzen</button>
     </fieldset>
 
     <fieldset>
@@ -297,9 +278,9 @@ IBAN NL00 BANK 0000 0000 00</textarea>
     </fieldset>
 
     <fieldset>
-      <legend>Prijzen</legend>
+      <legend>Prijzen voor deze offerte</legend>
       <div id="prijzen"></div>
-      <p class="hint">Schermprijzen: links wat jij betaalt inclusief btw, rechts wat de klant betaalt exclusief btw. De abonnementsbedragen zijn inclusief btw.</p>
+      <p class="hint">Deze offerte gebruikt de prijzen die golden op het moment dat je hem aanmaakte. Wijzig je de standaardprijzen in het tabblad "Prijzen", dan verandert dat niets aan deze offerte — je past hier alleen deze ene offerte aan, bijvoorbeeld voor een uitzondering.</p>
     </fieldset>
 
     <fieldset class="intern">
@@ -311,8 +292,12 @@ IBAN NL00 BANK 0000 0000 00</textarea>
     <fieldset class="taken">
       <legend>Na akkoord — je administratie</legend>
       <ol id="taken"></ol>
-      <button class="knop stil" id="csv">Boekhoudregel downloaden</button>
-      <p class="hint">Levert een csv-regel op die je bij je boekhouding kunt bewaren of importeren.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Terugzetten</legend>
+      <button class="knop stil" id="herstel">Lokale offertes van dit toestel terugzetten</button>
+      <p class="hint">Gebruik dit als je een offerte niet terugziet in de lijst hierboven, bijvoorbeeld na het instellen van de gedeelde opslag. Alles wat op dit toestel staat wordt dan alsnog naar Cloudflare gestuurd.</p>
     </fieldset>
 
     <fieldset>
@@ -380,12 +365,30 @@ const SCHERM = {32:{inkoop:199,verkoop:215},43:{inkoop:329,verkoop:355},50:{inko
 
 const TYPES = {master:"P2000 Kazernescherm", slave:"Extra kazernescherm", slave_pi:"Extra kazernescherm met eigen computer"};
 
+/* ---- prijssnapshot: elke offerte bevriest de prijzen van het moment van aanmaken ----
+   Wijzig je later de catalogus (tabblad Prijzen), dan verandert dat niets aan een
+   offerte die al een eigen snapshot heeft. Alleen nieuwe offertes lezen de catalogus. */
+function prijzenToepassen(snap){
+  if(!snap) return;
+  if(snap.SCHERM) Object.keys(snap.SCHERM).forEach(k=>{ if(SCHERM[k]){ SCHERM[k].inkoop=snap.SCHERM[k].inkoop; SCHERM[k].verkoop=snap.SCHERM[k].verkoop; } });
+  if(snap.P) Object.keys(snap.P).forEach(k=>{ if(P[k]){ P[k].inkoop=snap.P[k].inkoop; P[k].verkoop=snap.P[k].verkoop; } });
+  if(snap.ABO){
+    if(snap.ABO.master) ABO.master.incl = snap.ABO.master.incl;
+    if(snap.ABO.slave)  ABO.slave.incl  = snap.ABO.slave.incl;
+  }
+}
+function huidigeSnapshot(){
+  const s = {SCHERM:{}, P:{}, ABO:{master:{incl:ABO.master.incl}, slave:{incl:ABO.slave.incl}}};
+  Object.keys(SCHERM).forEach(k=>s.SCHERM[k]={inkoop:SCHERM[k].inkoop, verkoop:SCHERM[k].verkoop});
+  Object.keys(P).forEach(k=>s.P[k]={inkoop:P[k].inkoop, verkoop:P[k].verkoop});
+  return s;
+}
+
 let regels = [{type:"master", inch:43, aantal:1, beugel:true}];
-let tab = "offerte";
 let logoData = null;
 let hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
 let htekenWijze = "telefoon";
-let statusExtra = {akkoord:null, opgeleverd:null, factuur:null};
+let statusExtra = {akkoord:null, afgewezen:null, opgeleverd:null, factuur:null};
 let klantenLijst = {};
 
 const eur = n => "€ " + Number(n).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -532,7 +535,7 @@ function teken(){
   const aan = [el("k_post").value, el("k_org").value, el("k_contact").value, el("k_adres").value, el("k_mail").value]
               .filter(v=>v&&v.trim()).join("\n");
   el("p_aan").innerHTML = aan ? aan.replace(/\n/g,"<br>") : '<span class="leeg">Vul de klantgegevens in</span>';
-  tab==="offerte" ? tekenOfferte() : tekenFactuur();
+  tekenOfferte();
   bibliotheekAutoOpslaanDebounced();
 }
 
@@ -613,61 +616,6 @@ function tekenOfferte(){
   tekenTaken();
 }
 
-function tekenFactuur(){
-  const soort = el("f_soort").value;
-  el("p_titel").textContent = "Factuur";
-  el("p_meta").innerHTML =
-    `Factuurnummer <b>${el("f_nr").value||"—"}</b><br>Factuurdatum <b>${dNL(el("f_datum").value)||"—"}</b><br>Vervaldatum <b>${dNL(el("f_verval").value)||"—"}</b>`;
-  el("p_intro").textContent = el("f_ref").value || "";
-
-  const rij = []; let ex_ = 0;
-  if(soort==="eenmalig" || soort==="beide"){
-    regels.forEach(r=>{
-      const n=Number(r.aantal||0); if(n<1) return;
-      const s=stukEx(r); ex_ += s*n;
-      rij.push(`<tr><td class="oms"><b>${TYPES[r.type]} — ${r.inch} inch</b>
-        <ul>${watErbijZit(r).map(x=>`<li>${x}</li>`).join("")}</ul></td>
-        <td class="r">${n}</td><td class="r">${eur(s)}</td><td class="r">${eur(s*n)}</td></tr>`);
-    });
-    installatie().forEach(i=>{ ex_ += i.stuk*i.aantal;
-      rij.push(`<tr><td class="oms"><b>${i.naam}</b></td><td class="r">${i.aantal}</td>
-        <td class="r">${eur(i.stuk)}</td><td class="r">${eur(i.stuk*i.aantal)}</td></tr>`);
-    });
-  }
-  if(soort==="abo" || soort==="beide"){
-    const mnd = Number(el("f_termijn").value);
-    const per = (el("f_van").value||el("f_tot").value)
-      ? `Periode ${dNL(el("f_van").value)} tot en met ${dNL(el("f_tot").value)}` : "";
-    aboOverzicht().rijen.forEach(r=>{
-      const stukje = ex(r.per)*mnd;
-      ex_ += stukje*r.aantal;
-      rij.push(`<tr><td class="oms"><b>Abonnement ${r.naam.toLowerCase()}</b>
-        <ul><li>${mnd} ${mnd===1?"maand":"maanden"} vooruit${per?", "+per.toLowerCase():""}</li></ul></td>
-        <td class="r">${r.aantal}</td><td class="r">${eur(stukje)}</td><td class="r">${eur(stukje*r.aantal)}</td></tr>`);
-    });
-  }
-  el("p_regels").innerHTML = rij.length ? rij.join("") : `<tr><td colspan="4" class="leeg" style="padding:14px 0">Niets te factureren</td></tr>`;
-
-  const btw = ex_*BTW;
-  el("p_tot").innerHTML =
-    `<tr><td>Totaal excl. btw</td><td>${eur(ex_)}</td></tr>
-     <tr><td>Btw 21% over ${eur(ex_)}</td><td>${eur(btw)}</td></tr>
-     <tr class="eind"><td>Te betalen</td><td>${eur(ex_+btw)}</td></tr>`;
-
-  const iban = (el("b_regels").value.match(/IBAN[^\n]*/i)||[""])[0];
-  el("p_extra").innerHTML = `<div class="kader"><h2>Betaling</h2>
-    <p style="font-size:12.5px;margin:0;line-height:1.6">
-      Wij verzoeken u ${eur(ex_+btw)} over te maken op ${iban||"ons rekeningnummer"},
-      onder vermelding van factuurnummer ${el("f_nr").value||"—"}, vóór ${dNL(el("f_verval").value)||"de vervaldatum"}.</p></div>`;
-  el("p_voorw").innerHTML = "";
-  el("p_akkoord").innerHTML = "";
-
-  el("b_tot").textContent = eur(ex_+btw);
-  el("b_sub").textContent = "te betalen incl. btw";
-  tekenIntern(null, null);
-  tekenTaken();
-}
-
 /* ====================== intern ====================== */
 function tekenIntern(){
   let inkoopIncl=0, n=0, omzetEx=0;
@@ -744,22 +692,43 @@ el("h_vast").addEventListener("click", async ()=>{
     hand.data = null;
   }
   hand.vast = true;
-  if(!el("f_ref").value){
-    el("f_ref").value = `Conform offerte ${el("o_nr").value}, akkoord ${dNL(hand.datum)}`;
-  }
   statusExtra.akkoord = { wijze: hand.mail?"mail":"telefoon", datum: hand.datum, naam: hand.naam, functie: hand.functie };
+  statusExtra.afgewezen = null;
   const nr = el("o_nr").value.trim();
-  if(nr) await apiPut("/offertes/"+encodeURIComponent(nr), { akkoord: statusExtra.akkoord });
+  if(nr) await apiPut("/offertes/"+encodeURIComponent(nr), { akkoord: statusExtra.akkoord, afgewezen: null });
   teken();
   statusPaneelTonen();
   bibliotheekDropdownVullen();
   alert("Akkoord vastgelegd. Hieronder staat de volgende stap.");
 });
 
+el("afwijs_vast").addEventListener("click", async ()=>{
+  if(!confirm("Deze offerte als afgewezen markeren? Hij verdwijnt dan uit je actieve lijst met openstaande offertes.")) return;
+  statusExtra.afgewezen = { datum: iso(new Date()), reden: el("afwijs_reden").value.trim() };
+  const nr = el("o_nr").value.trim();
+  if(nr) await apiPut("/offertes/"+encodeURIComponent(nr), { afgewezen: statusExtra.afgewezen });
+  statusPaneelTonen();
+  bibliotheekDropdownVullen();
+  alert("Offerte gemarkeerd als afgewezen.");
+});
+
 function statusPaneelTonen(){
-  const heeftIets = statusExtra.akkoord || statusExtra.opgeleverd || statusExtra.factuur;
+  const heeftIets = statusExtra.akkoord || statusExtra.afgewezen || statusExtra.opgeleverd || statusExtra.factuur;
   el("vak_status").style.display = heeftIets ? "" : "none";
   if(!heeftIets) return;
+
+  if(statusExtra.afgewezen){
+    el("status_stappen").innerHTML = `<div class="stap">❌ Afgewezen op ${dNL(statusExtra.afgewezen.datum)}${statusExtra.afgewezen.reden ? " — "+statusExtra.afgewezen.reden : ""}</div>`;
+    el("status_volgende").innerHTML = `<button class="knop stil" id="afwijs_intrekken">Afwijzing intrekken</button>`;
+    el("afwijs_intrekken").addEventListener("click", async ()=>{
+      statusExtra.afgewezen = null;
+      const nr = el("o_nr").value.trim();
+      if(nr) await apiPut("/offertes/"+encodeURIComponent(nr), { afgewezen: null });
+      statusPaneelTonen(); bibliotheekDropdownVullen();
+    });
+    return;
+  }
+
   const s1 = statusExtra.akkoord
     ? `✅ Akkoord ontvangen op ${dNL(statusExtra.akkoord.datum)} (${statusExtra.akkoord.wijze==="mail" ? "per e-mail" : "op toestel getekend"})`
     : "⭘ Nog geen akkoord";
@@ -772,16 +741,16 @@ function statusPaneelTonen(){
   if(statusExtra.akkoord && !statusExtra.opgeleverd){
     volgende = `<a class="knop" href="opleverbon.html?nr=${encodeURIComponent(nr)}">Opleverbon openen voor deze offerte</a>`;
   } else if(statusExtra.opgeleverd && !statusExtra.factuur){
-    volgende = `<a class="knop" href="offerte.html?nr=${encodeURIComponent(nr)}&tab=factuur">Factuur maken voor deze offerte</a>`;
+    volgende = `<a class="knop" href="facturen.html?nr=${encodeURIComponent(nr)}">Factuur maken voor deze offerte</a>`;
   }
   el("status_volgende").innerHTML = volgende;
 }
 
 /* ====================== opslaan ====================== */
 function dossier(){
-  return {versie:1, regels, hand, logoData,
+  return {versie:1, regels, hand, logoData, prijzenSnapshot: huidigeSnapshot(),
     klant:["k_post","k_org","k_contact","k_adres","k_mail"].reduce((o,k)=>(o[k]=el(k).value,o),{}),
-    doc:["o_nr","o_datum","o_geldig","f_nr","f_datum","f_verval","f_soort","f_termijn","f_van","f_tot","f_ref","i_km","b_naam","b_kvk","b_btw","b_regels"]
+    doc:["o_nr","o_datum","o_geldig","i_km","b_naam","b_kvk","b_btw","b_regels"]
         .reduce((o,k)=>(o[k]=el(k).value,o),{}),
     inst: el("i_doen").checked};
 }
@@ -806,12 +775,44 @@ el("laad").addEventListener("change", e=>{
   fr.readAsText(f);
 });
 
+el("herstel").addEventListener("click", async ()=>{
+  let lokaal = {};
+  try{ lokaal = JSON.parse(haal(BIB_SLEUTEL)||"{}"); }catch(e){}
+  const nrs = Object.keys(lokaal);
+  if(!nrs.length){ alert("Er staat niets lokaal bewaard op dit toestel."); return; }
+  if(!confirm(`${nrs.length} offerte(s) van dit toestel terugzetten naar de gedeelde opslag?`)) return;
+  let gelukt = 0;
+  for(const nr of nrs){
+    const ok = await apiPut("/offertes/"+encodeURIComponent(nr), lokaal[nr]);
+    if(ok) gelukt++;
+  }
+  bibliotheekDropdownVullen();
+  alert(`${gelukt} van ${nrs.length} offerte(s) teruggezet. Ze staan nu ook op je andere toestellen.`);
+});
+
 /* ---- automatische bibliotheek: alle offertes staan op offertenummer, gedeeld via Cloudflare ---- */
 const BIB_SLEUTEL = "rbds_offertes";
 async function bibliotheekLijst(){
-  const server = await apiGet("/offertes");
-  if(server) return server;
-  try{ return JSON.parse(haal(BIB_SLEUTEL) || "{}"); }catch(e){ return {}; }
+  const server = await apiGet("/offertes") || {};
+  let lokaal = {};
+  try{ lokaal = JSON.parse(haal(BIB_SLEUTEL) || "{}"); }catch(e){}
+  const samen = Object.assign({}, server);
+  Object.keys(lokaal).forEach(nr=>{
+    if(!samen[nr] || (lokaal[nr].laatstGewijzigd||"") > (samen[nr].laatstGewijzigd||"")){
+      samen[nr] = {
+        klant: klantNaamVan(lokaal[nr]),
+        laatstGewijzigd: lokaal[nr].laatstGewijzigd || "",
+        akkoord: lokaal[nr].akkoord || null,
+        afgewezen: lokaal[nr].afgewezen || null,
+        opgeleverd: lokaal[nr].opgeleverd || null,
+        besteld: lokaal[nr].besteld || null,
+        factuur: lokaal[nr].factuur || null,
+        heeftFactuur: !!(lokaal[nr].factuur || (lokaal[nr].doc && lokaal[nr].doc.f_nr)),
+        regels: lokaal[nr].regels || []
+      };
+    }
+  });
+  return samen;
 }
 async function bibliotheekVolledig(nr){
   const server = await apiGet("/offertes/"+encodeURIComponent(nr));
@@ -836,14 +837,15 @@ function bibliotheekAutoOpslaanDebounced(){
 
 function vulFormulierIn(d){
   regels = d.regels || regels; hand = d.hand || hand;
-  statusExtra = { akkoord: d.akkoord||null, opgeleverd: d.opgeleverd||null, factuur: d.factuur||null };
+  statusExtra = { akkoord: d.akkoord||null, afgewezen: d.afgewezen||null, opgeleverd: d.opgeleverd||null, factuur: d.factuur||null };
+  if(d.prijzenSnapshot) prijzenToepassen(d.prijzenSnapshot);
   htekenWijze = hand.mail ? "mail" : "telefoon";
   wijzeTonen();
   Object.entries(d.klant||{}).forEach(([k,v])=>{ if(el(k)) el(k).value=v; });
   Object.entries(d.doc||{}).forEach(([k,v])=>{ if(el(k)) el(k).value=v; });
   el("i_doen").checked = d.inst !== false;
   if(d.logoData){ logoData=d.logoData; el("logo").src=d.logoData; }
-  tekenRegels(); teken();
+  tekenPrijzen(); tekenRegels(); teken();
   statusPaneelTonen();
 }
 
@@ -866,6 +868,7 @@ function bibliotheekOptiesRenderen(){
     let status = "";
     if(d.factuur || (d.doc && d.doc.f_nr)) status = " · gefactureerd";
     else if(d.opgeleverd) status = " · opgeleverd";
+    else if(d.afgewezen) status = " · afgewezen";
     else if(d.akkoord) status = " · akkoord";
     opties += `<option value="${nr}"${nr===huidig?" selected":""}>${nr} — ${klant}${status}</option>`;
   });
@@ -886,9 +889,9 @@ el("bib_nieuw").addEventListener("click", async ()=>{
   if(!confirm("Nieuwe, lege offerte starten? De huidige offerte staat al bewaard onder zijn eigen nummer en blijft gewoon terug te vinden.")) return;
   regels = [{type:"master", inch:43, aantal:1, beugel:true}];
   hand = {data:null, naam:"", functie:"", datum:"", mail:false, vast:false};
-  statusExtra = {akkoord:null, opgeleverd:null, factuur:null};
+  statusExtra = {akkoord:null, afgewezen:null, opgeleverd:null, factuur:null};
   htekenWijze = "telefoon"; wijzeTonen();
-  ["k_post","k_org","k_contact","k_adres","k_mail","f_ref","f_nr"].forEach(id=>el(id).value="");
+  ["k_post","k_org","k_contact","k_adres","k_mail","afwijs_reden"].forEach(id=>el(id).value="");
   const nu = new Date();
   el("o_nr").value = await nieuwNummer("offerte");
   el("o_datum").value = iso(nu);
@@ -896,19 +899,11 @@ el("bib_nieuw").addEventListener("click", async ()=>{
   el("h_datum").value = iso(nu);
   el("i_km").value = 0;
   el("i_doen").checked = true;
-  tekenRegels(); teken();
+  const catalogus = await apiGet("/prijzen");
+  if(catalogus) prijzenToepassen(catalogus);
+  tekenPrijzen(); tekenRegels(); teken();
   bibliotheekDropdownVullen();
   statusPaneelTonen();
-});
-
-el("csv").addEventListener("click", ()=>{
-  let exBedrag=0;
-  regels.forEach(r=>exBedrag+=stukEx(r)*Number(r.aantal||0));
-  installatie().forEach(i=>exBedrag+=i.stuk*i.aantal);
-  const kop = "factuurnummer;factuurdatum;klant;omschrijving;bedrag_excl;btw;bedrag_incl";
-  const r = [el("f_nr").value, el("f_datum").value, el("k_post").value||el("k_org").value,
-             "P2000 kazernescherm", exBedrag.toFixed(2), (exBedrag*BTW).toFixed(2), (exBedrag*1.21).toFixed(2)].join(";");
-  download(`boekhouding-${el("f_nr").value||"factuur"}.csv`, kop+"\n"+r, "text/csv");
 });
 
 /* ---- bedrijfsgegevens: gesynchroniseerd via Cloudflare, lokaal als terugval zonder netwerk ---- */
@@ -955,39 +950,18 @@ document.addEventListener("input", e=>{
   teken();
 });
 document.addEventListener("change", e=>{ if(e.target.type==="checkbox"||e.target.tagName==="SELECT") teken(); });
-document.addEventListener("click", async e=>{
+document.addEventListener("click", e=>{
   if(e.target.dataset.weg !== undefined){
     regels.splice(Number(e.target.dataset.weg),1);
     if(!regels.length) regels.push({type:"slave",inch:43,aantal:1,beugel:true});
     tekenRegels(); teken();
-  }
-  if(e.target.dataset.tab){
-    tab = e.target.dataset.tab;
-    document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("aan", b.dataset.tab===tab));
-    el("vak_offerte").style.display = tab==="offerte" ? "" : "none";
-    el("vak_tekenen").style.display = tab==="offerte" ? "" : "none";
-    el("vak_factuur").style.display = tab==="factuur" ? "" : "none";
-    if(tab==="factuur" && !el("f_nr").value) el("f_nr").value = await nieuwNummer("factuur");
-    teken();
   }
 });
 el("add").addEventListener("click", ()=>{
   regels.push({type: regels.some(r=>r.type==="master")?"slave":"master", inch:43, aantal:1, beugel:true});
   tekenRegels(); teken();
 });
-el("print").addEventListener("click", async ()=>{
-  if(tab==="factuur" && el("f_nr").value){
-    await bevestigNummer(el("f_nr").value);
-    const nr = el("o_nr").value.trim();
-    if(nr){
-      statusExtra.factuur = { nr: el("f_nr").value, datum: el("f_datum").value || iso(new Date()) };
-      await apiPut("/offertes/"+encodeURIComponent(nr), { factuur: statusExtra.factuur });
-      statusPaneelTonen();
-      bibliotheekDropdownVullen();
-    }
-  }
-  window.print();
-});
+el("print").addEventListener("click", ()=>window.print());
 el("b_logo").addEventListener("change", e=>{
   const f=e.target.files[0]; if(!f) return;
   const fr=new FileReader();
@@ -1064,14 +1038,6 @@ async function nieuwNummer(soort){
   zet(sleutel, String(n));
   return (soort==="factuur" ? `${jaar}-` : `OFF-${jaar}-`) + String(n).padStart(3,"0");
 }
-async function bevestigNummer(nr){
-  const m = nr.match(/(\d{4})-(\d+)$/); if(!m) return;
-  const soort = nr.startsWith("OFF") ? "offerte" : "factuur";
-  await apiPost(`/nummer/${soort}/${m[1]}`, {minimaal: Number(m[2])});
-  const sleutel = `rbds_${soort}_${m[1]}`;
-  if(Number(m[2]) > Number(haal(sleutel)||0)) zet(sleutel, String(Number(m[2])));
-}
-
 /* ====================== slot ====================== */
 /* SHA-256 van het wachtwoord. Wil je het wijzigen: draai
    printf '%s' 'nieuwwachtwoord' | sha256sum   en plak de uitkomst hier. */
@@ -1097,21 +1063,20 @@ el("ww").addEventListener("keydown", e=>{ if(e.key==="Enter") open_(); });
 let gestart = false;
 async function start(){
   if(gestart) return; gestart = true;
-  const nu = new Date(), over30 = new Date(nu.getTime()+30*864e5), overJaar = new Date(nu.getTime()+364*864e5);
+  const nu = new Date(), over30 = new Date(nu.getTime()+30*864e5);
   el("o_datum").value = iso(nu);
   el("o_geldig").value = iso(over30);
-  el("f_datum").value = iso(nu);
-  el("f_verval").value = iso(new Date(nu.getTime()+14*864e5));
-  el("f_van").value = iso(nu);
-  el("f_tot").value = iso(overJaar);
   el("h_datum").value = iso(nu);
   padInit(); tekenPrijzen(); tekenRegels(); tarieven();
   await bedrijfLaden();
-  klantenLaden();
+  await klantenLaden();
+  const catalogus = await apiGet("/prijzen");
+  if(catalogus) prijzenToepassen(catalogus);
+  tekenPrijzen();
 
   const params = new URLSearchParams(location.search);
   const paramNr = params.get("nr");
-  const paramTab = params.get("tab");
+  const paramKlant = params.get("klant");
 
   if(paramNr){
     const d = await bibliotheekVolledig(paramNr);
@@ -1119,15 +1084,11 @@ async function start(){
     else { el("o_nr").value = await nieuwNummer("offerte"); }
   } else {
     el("o_nr").value = await nieuwNummer("offerte");
-  }
-
-  if(paramTab === "factuur"){
-    tab = "factuur";
-    document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("aan", b.dataset.tab==="factuur"));
-    el("vak_offerte").style.display = "none";
-    el("vak_tekenen").style.display = "none";
-    el("vak_factuur").style.display = "";
-    if(!el("f_nr").value) el("f_nr").value = await nieuwNummer("factuur");
+    if(paramKlant && klantenLijst[paramKlant]){
+      const d = klantenLijst[paramKlant];
+      el("k_post").value = d.post||""; el("k_org").value = d.org||"";
+      el("k_contact").value = d.contact||""; el("k_adres").value = d.adres||""; el("k_mail").value = d.mail||"";
+    }
   }
 
   teken();

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Prijzen — RB Data Solutions</title>
+<style>
+  :root{--ink:#0e1621;--muted:#5b6672;--rood:#c8102e;--groen:#1f7a4d}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);color:#e8edf2;font-size:16px;line-height:1.45;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%;padding-bottom:40px;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+  .kop{padding:18px 4px 6px}
+  .kop .merk{font-weight:700;font-size:18px}
+  .kop .sub{color:#8d9aa8;font-size:13px;margin-top:2px}
+  .streep{height:3px;background:var(--rood);border-radius:2px;margin:10px 4px 18px}
+  .topnav{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 12px;margin:0 -4px 4px;-webkit-overflow-scrolling:touch}
+  .topnav a{flex:0 0 auto;padding:8px 13px;border-radius:8px;background:#131c27;border:1px solid #253243;color:#9fadbb;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
+  .topnav a.actief{background:var(--rood);border-color:var(--rood);color:#fff}
+
+  fieldset{border:1px solid #253243;border-radius:10px;margin:0 0 16px;padding:14px 14px 8px;background:#131c27}
+  legend{font-weight:600;font-size:15px;padding:0 8px;color:#fff}
+  label{display:block;font-size:13px;color:#9fadbb;margin:10px 0 4px}
+  input{width:100%;padding:11px 12px;font-size:16px;font-family:inherit;border:1px solid #2b3a4c;border-radius:8px;background:#0c141d;color:#eaf0f6}
+  input:focus{outline:2px solid var(--rood);outline-offset:1px;border-color:var(--rood)}
+  input:disabled{opacity:.45}
+  .duo{display:flex;gap:10px;margin-bottom:6px}.duo>div{flex:1}
+  .hint{font-size:12.5px;color:#8d9aa8;margin:8px 2px 0;line-height:1.55}
+  .let{border:1px solid #2b3a4c;border-left:3px solid var(--rood);border-radius:4px;padding:12px 14px;margin:0 0 16px;font-size:13px;line-height:1.6}
+  .let b{display:block;margin-bottom:4px}
+  .status{font-size:12.5px;color:#7fe0ac;min-height:18px;margin:6px 2px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kop">
+    <div class="merk">Prijzen</div>
+    <div class="sub">P2000 kazernescherm — RB Data Solutions</div>
+  </div>
+  <div class="streep"></div>
+  <nav class="topnav">
+    <a href="overzicht.html">Overzicht</a>
+    <a href="klanten.html">Klanten</a>
+    <a href="offerte.html">Offertes</a>
+    <a href="opleverbon.html">Opleverbonnen</a>
+    <a href="facturen.html">Facturen</a>
+    <a href="bestellingen.html">Onderdelen</a>
+    <a href="prijzen.html" class="actief">Prijzen</a>
+  </nav>
+
+  <div class="let">
+    <b>Dit is de standaardcatalogus.</b>
+    Wijzig je hier een prijs, dan geldt die vanaf nu voor elke <u>nieuwe</u> offerte. Bestaande offertes veranderen niet mee —
+    die hebben de prijzen vastgelegd zoals ze golden op het moment dat je ze aanmaakte. Wil je voor één specifieke klant
+    toch afwijken, doe dat dan bij die offerte zelf onder "Prijzen voor deze offerte".
+  </div>
+
+  <fieldset>
+    <legend>Schermen</legend>
+    <div id="schermen"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Onderdelen en werk</legend>
+    <div id="onderdelen"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Abonnement</legend>
+    <div id="abonnement"></div>
+    <p class="hint">Bedragen inclusief btw, zoals afgesproken met klanten.</p>
+  </fieldset>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const API = "/tools/api";
+async function apiGet(pad){
+  try{ const r = await fetch(API+pad); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
+}
+async function apiPut(pad, data){
+  try{
+    const r = await fetch(API+pad, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
+    return r.ok;
+  }catch(e){ return false; }
+}
+
+/* Standaardwaarden — alleen gebruikt zolang er nog geen catalogus in Cloudflare staat */
+const STANDAARD = {
+  SCHERM: {32:{inkoop:199,verkoop:215},43:{inkoop:329,verkoop:355},50:{inkoop:399,verkoop:429},
+           55:{inkoop:469,verkoop:505},65:{inkoop:629,verkoop:675},75:{inkoop:899,verkoop:965},
+           85:{inkoop:1249,verkoop:1345}},
+  P: {
+    computer_m: {label:"Kazernecomputer met ontvanger", inkoop:131, verkoop:145},
+    computer_s: {label:"Kazernecomputer extra scherm",  inkoop:78,  verkoop:89},
+    beugel:     {label:"Muurbeugel",                    inkoop:30,  verkoop:35},
+    inricht_m:  {label:"Inrichting hoofdscherm",         inkoop:0,   verkoop:195},
+    inricht_s:  {label:"Inrichting extra scherm",        inkoop:0,   verkoop:45},
+    inst1:      {label:"Installatie eerste scherm",      inkoop:0,   verkoop:175},
+    inst2:      {label:"Installatie extra scherm",       inkoop:0,   verkoop:95},
+    km:         {label:"Voorrijkosten per km",           inkoop:0,   verkoop:0.55}
+  },
+  ABO: { master:{incl:15}, slave:{incl:7.5} }
+};
+
+let catalogus = null;
+
+function veld(pad, label, obj, disabledInkoop){
+  return `<div class="duo">
+    <div><label>${label} — inkoop</label>
+      <input type="number" step="0.01" inputmode="decimal" data-pad="${pad}.inkoop" value="${obj.inkoop}"${disabledInkoop?" disabled":""}></div>
+    <div><label>verkoop</label>
+      <input type="number" step="0.01" inputmode="decimal" data-pad="${pad}.verkoop" value="${obj.verkoop}"></div>
+  </div>`;
+}
+
+function tekenen(){
+  el("schermen").innerHTML = Object.keys(STANDAARD.SCHERM).map(k=>
+    veld(`SCHERM.${k}`, `Scherm ${k} inch`, catalogus.SCHERM[k], false)
+  ).join("");
+
+  el("onderdelen").innerHTML = Object.keys(STANDAARD.P).map(k=>
+    veld(`P.${k}`, STANDAARD.P[k].label, catalogus.P[k], ["inricht_m","inricht_s","inst1","inst2","km"].includes(k))
+  ).join("");
+
+  el("abonnement").innerHTML = `
+    <label>Hoofdscherm per maand incl. btw</label>
+    <input type="number" step="0.01" inputmode="decimal" data-pad="ABO.master.incl" value="${catalogus.ABO.master.incl}">
+    <label>Extra scherm per maand incl. btw</label>
+    <input type="number" step="0.01" inputmode="decimal" data-pad="ABO.slave.incl" value="${catalogus.ABO.slave.incl}">`;
+}
+
+function dieperZet(obj, pad, waarde){
+  const delen = pad.split(".");
+  let d = obj;
+  for(let i=0;i<delen.length-1;i++) d = d[delen[i]];
+  d[delen[delen.length-1]] = waarde;
+}
+
+let opslaanTimer = null;
+document.addEventListener("input", e=>{
+  const pad = e.target.dataset.pad;
+  if(!pad) return;
+  dieperZet(catalogus, pad, Number(e.target.value||0));
+  el("status").textContent = "";
+  clearTimeout(opslaanTimer);
+  opslaanTimer = setTimeout(async ()=>{
+    const ok = await apiPut("/prijzen", catalogus);
+    el("status").textContent = ok ? "Opgeslagen — geldt vanaf nu voor nieuwe offertes." : "Kon niet opslaan, probeer het zo nog eens.";
+  }, 500);
+});
+
+async function laden(){
+  const server = await apiGet("/prijzen");
+  catalogus = server || JSON.parse(JSON.stringify(STANDAARD));
+  Object.keys(STANDAARD.SCHERM).forEach(k=>{ if(!catalogus.SCHERM[k]) catalogus.SCHERM[k] = {...STANDAARD.SCHERM[k]}; });
+  Object.keys(STANDAARD.P).forEach(k=>{ if(!catalogus.P[k]) catalogus.P[k] = {...STANDAARD.P[k]}; });
+  if(!catalogus.ABO) catalogus.ABO = JSON.parse(JSON.stringify(STANDAARD.ABO));
+  tekenen();
+  if(!server) apiPut("/prijzen", catalogus);
+}
+laden();
+</script>
+</body>
+</html>

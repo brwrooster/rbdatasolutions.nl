@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Overzicht — RB Data Solutions</title>
+<style>
+  :root{--ink:#0e1621;--muted:#5b6672;--rood:#c8102e;--groen:#1f7a4d}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);color:#e8edf2;font-size:16px;line-height:1.45;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%;padding-bottom:40px;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+  .kop{padding:18px 4px 6px}
+  .kop .merk{font-weight:700;font-size:18px}
+  .kop .sub{color:#8d9aa8;font-size:13px;margin-top:2px}
+  .streep{height:3px;background:var(--rood);border-radius:2px;margin:10px 4px 18px}
+  .topnav{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 12px;margin:0 -4px 4px;-webkit-overflow-scrolling:touch}
+  .topnav a{flex:0 0 auto;padding:8px 13px;border-radius:8px;background:#131c27;border:1px solid #253243;color:#9fadbb;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
+  .topnav a.actief{background:var(--rood);border-color:var(--rood);color:#fff}
+
+  fieldset{border:1px solid #253243;border-radius:10px;margin:0 0 16px;padding:14px 14px 8px;background:#131c27}
+  legend{font-weight:600;font-size:15px;padding:0 8px;color:#fff}
+  select{width:100%;padding:11px 12px;font-size:16px;font-family:inherit;border:1px solid #2b3a4c;border-radius:8px;background:#0c141d;color:#eaf0f6}
+  .hint{font-size:12.5px;color:#8d9aa8;margin:8px 2px 0;line-height:1.55}
+  .leeg{color:var(--muted);font-style:italic}
+  a{color:#7fc4e0}
+
+  .funnel{display:flex;flex-wrap:wrap;gap:8px}
+  .funnel .stap{flex:1 1 30%;min-width:96px;background:#0f1822;border:1px solid #2b3a4c;border-radius:9px;padding:10px;text-align:center}
+  .funnel .stap b{display:block;font-size:22px;line-height:1.2}
+  .funnel .stap span{font-size:11px;color:#9fadbb}
+
+  table.som{width:100%;border-collapse:collapse;font-size:14.5px}
+  table.som td{padding:7px 0;border-bottom:1px solid #1c2734}
+  table.som td:last-child{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  table.som tr:last-child td{border-bottom:none}
+  table.som tr.dik td{font-weight:700;border-top:1px solid #2b3a4c;padding-top:10px}
+
+  table.open{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.open th{text-align:left;font-size:11px;color:#8d9aa8;padding:0 0 6px;border-bottom:1px solid #253243}
+  table.open td{padding:8px 0;border-bottom:1px solid #1c2734}
+  table.open td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dagen{font-size:11px;padding:2px 7px;border-radius:20px;background:#341418;color:#ff8d9c}
+  .dagen.ok{background:#33280f;color:#f0c674}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kop">
+    <div class="merk">Overzicht</div>
+    <div class="sub">P2000 kazernescherm — RB Data Solutions</div>
+  </div>
+  <div class="streep"></div>
+  <nav class="topnav">
+    <a href="overzicht.html" class="actief">Overzicht</a>
+    <a href="klanten.html">Klanten</a>
+    <a href="offerte.html">Offertes</a>
+    <a href="opleverbon.html">Opleverbonnen</a>
+    <a href="facturen.html">Facturen</a>
+    <a href="bestellingen.html">Onderdelen</a>
+    <a href="prijzen.html">Prijzen</a>
+  </nav>
+
+  <fieldset>
+    <legend>Pijplijn</legend>
+    <div class="funnel" id="funnel"><p class="leeg">Laden…</p></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Financieel</legend>
+    <select id="jaar"></select>
+    <div id="financieel" style="margin-top:12px"><p class="leeg">Laden…</p></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Actief abonnement</legend>
+    <div id="abonnement"><p class="leeg">Laden…</p></div>
+    <p class="hint">Gebaseerd op offertes die zijn opgeleverd en niet zijn afgewezen.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Openstaande facturen</legend>
+    <div id="open_facturen"><p class="leeg">Laden…</p></div>
+  </fieldset>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const API = "/tools/api";
+async function apiGet(pad){
+  try{ const r = await fetch(API+pad); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
+}
+const eur = n => "€ " + Number(n).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+const dNL = s => s ? new Date(s+"T00:00:00").toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}) : "";
+const ABO_STANDAARD = { master:{incl:15}, slave:{incl:7.5} };
+
+function statusVan(d){
+  if(d.afgewezen) return "afgewezen";
+  if(d.factuur && d.factuur.betaald) return "betaald";
+  if(d.factuur) return "gefactureerd";
+  if(d.opgeleverd) return "opgeleverd";
+  if(d.akkoord) return "akkoord";
+  return "concept";
+}
+
+let alleOffertes = {};
+
+async function laden(){
+  const o = await apiGet("/offertes");
+  if(!o){ el("funnel").innerHTML = `<p class="leeg">Geen verbinding met de gedeelde opslag.</p>`; return; }
+  alleOffertes = o;
+  renderFunnel();
+  renderJaarSelect();
+  renderFinancieel();
+  renderAbonnement();
+  renderOpenFacturen();
+}
+
+function renderFunnel(){
+  const lijst = Object.values(alleOffertes);
+  const tel = {concept:0, akkoord:0, afgewezen:0, opgeleverd:0, gefactureerd:0, betaald:0};
+  lijst.forEach(d=>{ tel[statusVan(d)]++; });
+  const rijen = [
+    ["concept","Concept"],["akkoord","Akkoord"],["opgeleverd","Opgeleverd"],
+    ["gefactureerd","Gefactureerd"],["betaald","Betaald"],["afgewezen","Afgewezen"]
+  ];
+  el("funnel").innerHTML = rijen.map(([k,l])=>`<div class="stap"><b>${tel[k]}</b><span>${l}</span></div>`).join("");
+}
+
+function jarenMetData(){
+  const jaren = new Set([new Date().getFullYear()]);
+  Object.values(alleOffertes).forEach(d=>{
+    if(d.factuur && d.factuur.datum) jaren.add(Number(d.factuur.datum.slice(0,4)));
+  });
+  return [...jaren].sort((a,b)=>b-a);
+}
+function renderJaarSelect(){
+  const jaren = jarenMetData();
+  el("jaar").innerHTML = jaren.map(j=>`<option value="${j}">${j}</option>`).join("");
+  el("jaar").addEventListener("change", renderFinancieel);
+}
+
+function renderFinancieel(){
+  const jaar = Number(el("jaar").value || new Date().getFullYear());
+  let gefactEx=0, gefactIncl=0, betaaldIncl=0, n=0;
+  Object.values(alleOffertes).forEach(d=>{
+    if(!d.factuur || !d.factuur.datum) return;
+    if(Number(d.factuur.datum.slice(0,4)) !== jaar) return;
+    n++;
+    gefactEx += Number(d.factuur.bedragEx||0);
+    gefactIncl += Number(d.factuur.bedragIncl|| (d.factuur.bedragEx? d.factuur.bedragEx*1.21:0));
+    if(d.factuur.betaald) betaaldIncl += Number(d.factuur.bedragIncl|| (d.factuur.bedragEx? d.factuur.bedragEx*1.21:0));
+  });
+  const btw = gefactIncl - gefactEx;
+  const open = gefactIncl - betaaldIncl;
+  el("financieel").innerHTML = n ? `<table class="som">
+    <tr><td>Aantal facturen</td><td>${n}</td></tr>
+    <tr><td>Gefactureerd excl. btw</td><td>${eur(gefactEx)}</td></tr>
+    <tr><td>Btw over dit jaar</td><td>${eur(btw)}</td></tr>
+    <tr class="dik"><td>Gefactureerd incl. btw</td><td>${eur(gefactIncl)}</td></tr>
+    <tr><td>Waarvan betaald</td><td>${eur(betaaldIncl)}</td></tr>
+    <tr><td>Nog openstaand</td><td>${eur(open)}</td></tr>
+  </table>` : `<p class="leeg">Geen facturen in ${jaar}.</p>`;
+}
+
+function renderAbonnement(){
+  let pm = 0, master = 0, slave = 0;
+  Object.values(alleOffertes).forEach(d=>{
+    if(d.afgewezen || !d.opgeleverd) return;
+    const abo = (d.prijzenSnapshot && d.prijzenSnapshot.ABO) || ABO_STANDAARD;
+    (d.regels||[]).forEach(r=>{
+      const n = Number(r.aantal||0);
+      if(r.type==="master"){ master += n; pm += n * (abo.master ? abo.master.incl : ABO_STANDAARD.master.incl); }
+      else { slave += n; pm += n * (abo.slave ? abo.slave.incl : ABO_STANDAARD.slave.incl); }
+    });
+  });
+  el("abonnement").innerHTML = (master+slave) ? `<table class="som">
+    <tr><td>Hoofdschermen actief</td><td>${master}</td></tr>
+    <tr><td>Extra schermen actief</td><td>${slave}</td></tr>
+    <tr class="dik"><td>Per maand incl. btw</td><td>${eur(pm)}</td></tr>
+    <tr><td>Per jaar incl. btw</td><td>${eur(pm*12)}</td></tr>
+  </table>` : `<p class="leeg">Nog geen opgeleverde, actieve schermen.</p>`;
+}
+
+function renderOpenFacturen(){
+  const rijen = Object.entries(alleOffertes).filter(([nr,d])=> d.factuur && !d.factuur.betaald)
+    .sort((a,b)=>(a[1].factuur.datum||"").localeCompare(b[1].factuur.datum||""));
+  if(!rijen.length){ el("open_facturen").innerHTML = `<p class="leeg">Geen openstaande facturen.</p>`; return; }
+  const nu = new Date();
+  el("open_facturen").innerHTML = `<table class="open"><thead><tr><th>Factuur</th><th>Klant</th><th class="r">Bedrag</th><th>Open</th></tr></thead><tbody>` +
+    rijen.map(([nr,d])=>{
+      const dagen = Math.max(0, Math.round((nu - new Date(d.factuur.datum)) / 864e5));
+      return `<tr>
+        <td><a href="facturen.html?nr=${encodeURIComponent(nr)}">${d.factuur.nr}</a><br><span class="hint" style="margin:0">${dNL(d.factuur.datum)}</span></td>
+        <td>${d.klant||"—"}</td>
+        <td class="r">${d.factuur.bedragIncl!=null?eur(d.factuur.bedragIncl):"—"}</td>
+        <td><span class="dagen${dagen<=14?" ok":""}">${dagen} dagen</span></td>
+      </tr>`;
+    }).join("") + `</tbody></table>`;
+}
+
+laden();
+</script>
+</body>
+</html>

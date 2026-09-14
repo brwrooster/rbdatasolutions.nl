@@ -19,6 +19,9 @@
   .kop .merk{font-weight:700;font-size:18px}
   .kop .sub{color:#8d9aa8;font-size:13px;margin-top:2px}
   .streep{height:3px;background:var(--rood);border-radius:2px;margin:10px 4px 18px}
+  .topnav{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 12px;margin:0 -4px 4px;-webkit-overflow-scrolling:touch}
+  .topnav a{flex:0 0 auto;padding:8px 13px;border-radius:8px;background:#131c27;border:1px solid #253243;color:#9fadbb;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
+  .topnav a.actief{background:var(--rood);border-color:var(--rood);color:#fff}
 
   fieldset{border:1px solid #253243;border-radius:10px;margin:0 0 16px;padding:14px 14px 8px;background:#131c27}
   legend{font-weight:600;font-size:15px;padding:0 8px;color:#fff}
@@ -96,6 +99,15 @@
       <div class="sub">P2000 kazernescherm — RB Data Solutions</div>
     </div>
     <div class="streep"></div>
+    <nav class="topnav">
+      <a href="overzicht.html">Overzicht</a>
+      <a href="klanten.html">Klanten</a>
+      <a href="offerte.html">Offertes</a>
+      <a href="opleverbon.html" class="actief">Opleverbonnen</a>
+      <a href="facturen.html">Facturen</a>
+      <a href="bestellingen.html">Onderdelen</a>
+      <a href="prijzen.html">Prijzen</a>
+    </nav>
 
     <fieldset>
       <legend>Koppel aan een offerte</legend>
@@ -344,7 +356,7 @@ el("h_vast").addEventListener("click", async ()=>{
   koppelDropdownVullen();
   const nr = el("k_ref").value.trim();
   if(nr){
-    el("link_factuur").href = `offerte.html?nr=${encodeURIComponent(nr)}&tab=factuur`;
+    el("link_factuur").href = `facturen.html?nr=${encodeURIComponent(nr)}`;
     el("vak_volgende").style.display = "";
   }
   alert("Vastgelegd. Maak nu een pdf en bewaar die bij de klant. Hieronder staat de volgende stap.");
@@ -426,9 +438,16 @@ el("logo").addEventListener("error", ()=>{ el("logo").style.display="none"; el("
 
 /* ---- koppelen aan een bewaarde offerte ---- */
 async function offerteLijst(){
-  const server = await apiGet("/offertes");
-  if(server) return server;
-  try{ return JSON.parse(haal("rbds_offertes") || "{}"); }catch(e){ return {}; }
+  const server = await apiGet("/offertes") || {};
+  let lokaal = {};
+  try{ lokaal = JSON.parse(haal("rbds_offertes") || "{}"); }catch(e){}
+  const samen = Object.assign({}, server);
+  Object.keys(lokaal).forEach(nr=>{
+    if(!samen[nr] || (lokaal[nr].laatstGewijzigd||"") > (samen[nr].laatstGewijzigd||"")){
+      samen[nr] = { klant: klantNaamVan(lokaal[nr]), laatstGewijzigd: lokaal[nr].laatstGewijzigd||"", opgeleverd: lokaal[nr].opgeleverd||null };
+    }
+  });
+  return samen;
 }
 async function offerteVolledig(nr){
   const server = await apiGet("/offertes/"+encodeURIComponent(nr));
